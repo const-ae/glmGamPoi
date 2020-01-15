@@ -1,0 +1,15 @@
+Package: glmGamPoi
+Type: Package
+Title: Fit a Gamma-Poisson Generalized Linear Model
+Version: 0.1.0
+Author: person("Constantin", "Ahlmann-Eltze", email = "artjom31415@googlemail.com", 
+             role = c("aut", "cre"), comment = c(ORCID = "0000-0002-3762-068X"))
+Description: Fit linear models to overdispersed count data.
+     The package can estimate the overdispersion and fit repeated models
+     for matrix input. It is designed to handle large input datasets as they
+     typically occur in single cell RNA-seq experiments.
+License: GPL-3
+Encoding: UTF-8
+LazyData: true
+Suggests: 
+    testthat
