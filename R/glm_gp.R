@@ -3,7 +3,9 @@
 #' Fit a Gamma-Poisson Generalized Linear Model
 #'
 #' @export
-glm_gp <- function(data, design = ~ 1, reference_level = NULL,
+glm_gp <- function(data, design = ~ 1,
+                   col_data = NULL,
+                   reference_level = NULL,
                    size_factors = TRUE,
                    overdispersion = TRUE,
                    do_cox_reid_adjustment = TRUE,

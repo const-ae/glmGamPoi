@@ -4,7 +4,7 @@
 \alias{glm_gp}
 \title{Fit a Gamma-Poisson Generalized Linear Model}
 \usage{
-glm_gp(data, design = ~1, reference_level = NULL,
+glm_gp(data, design = ~1, col_data = NULL, reference_level = NULL,
   size_factors = TRUE, overdispersion = TRUE,
   do_cox_reid_adjustment = TRUE, verbose = FALSE)
 }
