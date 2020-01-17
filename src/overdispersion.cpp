@@ -37,7 +37,7 @@ double score_function_bandara_fast(IntegerVector y, IntegerVector cumsumLookupTa
     arma::vec dw_diag = pow(mu / (mu + r), 2);
     arma::mat b = model_matrix.t() * (model_matrix.each_col() % w_diag);
     arma::mat db = model_matrix.t() * (model_matrix.each_col() % dw_diag);
-    cr_term = 0.5 * trace(b.i() * db);
+    cr_term = -0.5 * trace(b.i() * db);
   }
 
   double digammaSummand = 0.0;
@@ -80,7 +80,7 @@ double score_deriv_function_bandara_fast(IntegerVector y, IntegerVector cumsumLo
     otherSummand += mu[i] / (mu[i] * r + pow(r, 2)) + (y[i] - mu[i]) / pow(mu[i] + r, 2);
   }
 
-  return -digammaSummand + otherSummand - cr_term;
+  return -digammaSummand + otherSummand + cr_term;
 }
 
 
