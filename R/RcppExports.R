@@ -13,3 +13,15 @@ score_deriv_function_bandara_fast <- function(y, cumsumLookupTable, mu, r, model
     .Call(`_glmGamPoi_score_deriv_function_bandara_fast`, y, cumsumLookupTable, mu, r, model_matrix, do_cr_adj)
 }
 
+gampoi_loglikelihood_fast <- function(y, mu, log_theta, model_matrix, do_cr_adj) {
+    .Call(`_glmGamPoi_gampoi_loglikelihood_fast`, y, mu, log_theta, model_matrix, do_cr_adj)
+}
+
+gampoi_score_function_fast <- function(y, mu, log_theta, model_matrix, do_cr_adj) {
+    .Call(`_glmGamPoi_gampoi_score_function_fast`, y, mu, log_theta, model_matrix, do_cr_adj)
+}
+
+gampoi_deriv_score_function_fast <- function(y, mu, log_theta, model_matrix, do_cr_adj) {
+    .Call(`_glmGamPoi_gampoi_deriv_score_function_fast`, y, mu, log_theta, model_matrix, do_cr_adj)
+}
+
