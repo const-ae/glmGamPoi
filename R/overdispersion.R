@@ -89,7 +89,7 @@ bandara_overdispersion_mle <- function(y, mean_vector,
   }, x0 = start_pos,
   dfun = function(r){
     score_deriv_function_bandara_fast(y, cumsumLookupTable = cslv,
-                                      mu = mean_vector, theta=1/r,
+                                      mu = mean_vector, r= r,
                                       model_matrix = model_matrix,
                                       do_cr_adj = do_cox_reid_adjustment)
   }, tol = .Machine$double.eps^0.25)

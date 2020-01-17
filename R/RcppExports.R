@@ -9,7 +9,7 @@ score_function_bandara_fast <- function(y, cumsumLookupTable, mu, r, model_matri
     .Call(`_glmGamPoi_score_function_bandara_fast`, y, cumsumLookupTable, mu, r, model_matrix, do_cr_adj)
 }
 
-score_deriv_function_bandara_fast <- function(y, cumsumLookupTable, mu, theta, model_matrix, do_cr_adj) {
-    .Call(`_glmGamPoi_score_deriv_function_bandara_fast`, y, cumsumLookupTable, mu, theta, model_matrix, do_cr_adj)
+score_deriv_function_bandara_fast <- function(y, cumsumLookupTable, mu, r, model_matrix, do_cr_adj) {
+    .Call(`_glmGamPoi_score_deriv_function_bandara_fast`, y, cumsumLookupTable, mu, r, model_matrix, do_cr_adj)
 }
 
