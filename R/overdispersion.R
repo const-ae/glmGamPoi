@@ -113,20 +113,17 @@ conventional_overdispersion_mle <- function(y, mean_vector,
     return(return_value)
   }
 
-  nb_ll <- function(y, mu, theta, model_matrix, do_cox_reid_adjustment){
-    if(do_cox_reid_adjustment){
-      b <- t(model_matrix) %*% diag(1/(1/mu + theta), nrow = length(y)) %*% model_matrix
-      cr_term <- 0.5 * log(det(b))
-    }else{
-      cr_term <- 0
-    }
-    ll_term <- sum(lgamma(y + 1/theta) - lgamma(1/theta) - y * log(mu + 1/theta) - 1/theta * log(1 + mu * theta))
-    cr_term + ll_term
-  }
-
   res <- nlminb(start = start_value,
-         objective = function(theta){
-           - nb_ll(y, mean_vector, exp(theta), model_matrix, do_cox_reid_adjustment)
+         objective = function(log_theta){
+           - conventional_loglikelihood_fast(y, mu = mean_vector, log_theta = log_theta,
+                             model_matrix = model_matrix, do_cr_adj = do_cox_reid_adjustment)
+         }, gradient = function(log_theta){
+           - conventional_score_function_fast(y, mu = mean_vector, log_theta = log_theta,
+                             model_matrix = model_matrix, do_cr_adj = do_cox_reid_adjustment)
+         }, hessian = function(log_theta){
+           res <- conventional_deriv_score_function_fast(y, mu = mean_vector, log_theta = log_theta,
+                             model_matrix = model_matrix, do_cr_adj = do_cox_reid_adjustment)
+           matrix(- res, nrow = 1, ncol = 1)
          })
   return_value$root <- exp(res$par)
   return_value$iterations <- res$iterations

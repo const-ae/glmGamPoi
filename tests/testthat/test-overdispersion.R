@@ -19,17 +19,17 @@ X <- matrix(rnorm(n = 30 * 4), nrow = 30, ncol = 4)
 
 
 test_that("Convential and Bandara approach produce the same estimates", {
-  res1 <- bandara_overdispersion_mle(y = samples, mean_vector = mu,
+  ban_w_cr <- bandara_overdispersion_mle(y = samples, mean_vector = mu,
                                      model_matrix = X, do_cox_reid_adjustment = TRUE)$root
-  res2 <- conventional_overdispersion_mle(y = samples, mean_vector = mu,
+  con_w_cr <- conventional_overdispersion_mle(y = samples, mean_vector = mu,
                                           model_matrix = X, do_cox_reid_adjustment = TRUE)$root
-  expect_equal(res1, res2, tolerance = 1e-4)
+  expect_equal(ban_w_cr, con_w_cr, tolerance = 1e-4)
 
-  res1 <- bandara_overdispersion_mle(y = samples, mean_vector = mu,
+  ban_wo_cr <- bandara_overdispersion_mle(y = samples, mean_vector = mu,
                                      model_matrix = X, do_cox_reid_adjustment = FALSE)$root
-  res2 <- conventional_overdispersion_mle(y = samples, mean_vector = mu,
+  con_wo_cr <- conventional_overdispersion_mle(y = samples, mean_vector = mu,
                                           model_matrix = X, do_cox_reid_adjustment = FALSE)$root
-  expect_equal(res1, res2, tolerance = 1e-4)
+  expect_equal(ban_wo_cr, con_wo_cr, tolerance = 1e-4)
 })
 
 
@@ -58,11 +58,11 @@ test_that("C++ implementation of loglikelihood and score match", {
   log_theta_g <- seq(-3, 3, length.out = 1001)
 
   ll_values <- sapply(log_theta_g, function(log_theta){
-    gampoi_loglikelihood_fast(samples, mu = mu, log_theta = log_theta, model_matrix = X, do_cr_adj = TRUE)
+    conventional_loglikelihood_fast(samples, mu = mu, log_theta = log_theta, model_matrix = X, do_cr_adj = TRUE)
   })
   emp_deriv<- diff(ll_values) / diff(log_theta_g)[1]
   analyt_deriv <- sapply(log_theta_g, function(log_theta){
-    gampoi_score_function_fast(samples, mu = mu, log_theta = log_theta, model_matrix = X, do_cr_adj = TRUE)
+    conventional_score_function_fast(samples, mu = mu, log_theta = log_theta, model_matrix = X, do_cr_adj = TRUE)
   })
   respace_analyt <- zoo::rollmean(analyt_deriv, 2)
   expect_equal(emp_deriv, respace_analyt, tolerance = 1e-5)
@@ -73,11 +73,11 @@ test_that("C++ implementation of score and score_deriv match", {
   log_theta_g <- seq(-3, 3, length.out = 1001)
 
   score_values <- sapply(log_theta_g, function(log_theta){
-    gampoi_score_function_fast(samples, mu = mu, log_theta = log_theta, model_matrix = X, do_cr_adj = TRUE)
+    conventional_score_function_fast(samples, mu = mu, log_theta = log_theta, model_matrix = X, do_cr_adj = TRUE)
   })
   emp_deriv<- diff(score_values) / diff(log_theta_g)[1]
   analyt_deriv <- sapply(log_theta_g, function(log_theta){
-    gampoi_deriv_score_function_fast(samples, mu = mu, log_theta = log_theta, model_matrix = X, do_cr_adj = TRUE)
+    conventional_deriv_score_function_fast(samples, mu = mu, log_theta = log_theta, model_matrix = X, do_cr_adj = TRUE)
   })
   respace_analyt <- zoo::rollmean(analyt_deriv, 2)
   expect_equal(emp_deriv, respace_analyt, tolerance = 1e-5)

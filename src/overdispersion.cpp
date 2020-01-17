@@ -114,7 +114,7 @@ double score_deriv_function_bandara_fast(IntegerVector y, IntegerVector cumsumLo
 // and the parameters for the normal prior on log alpha
 
 // [[Rcpp::export]]
-double gampoi_loglikelihood_fast(NumericVector y, NumericVector mu, double log_theta, const arma::mat& model_matrix, bool do_cr_adj) {
+double conventional_loglikelihood_fast(NumericVector y, NumericVector mu, double log_theta, const arma::mat& model_matrix, bool do_cr_adj) {
   double theta = exp(log_theta);
   double cr_term = 0.0;
   if(do_cr_adj){
@@ -131,7 +131,7 @@ double gampoi_loglikelihood_fast(NumericVector y, NumericVector mu, double log_t
 // dispersion parameter alpha, given the same inputs as the previous function
 
 // [[Rcpp::export]]
-double gampoi_score_function_fast(NumericVector y, NumericVector mu, double log_theta, const arma::mat& model_matrix, bool do_cr_adj) {
+double conventional_score_function_fast(NumericVector y, NumericVector mu, double log_theta, const arma::mat& model_matrix, bool do_cr_adj) {
   double theta = exp(log_theta);
   double cr_term = 0.0;
   if(do_cr_adj){
@@ -153,7 +153,7 @@ double gampoi_score_function_fast(NumericVector y, NumericVector mu, double log_
 // dispersion parameter alpha, given the same inputs as the previous function
 
 // [[Rcpp::export]]
-double gampoi_deriv_score_function_fast(NumericVector y, NumericVector mu, double log_theta, const arma::mat& model_matrix, bool do_cr_adj) {
+double conventional_deriv_score_function_fast(NumericVector y, NumericVector mu, double log_theta, const arma::mat& model_matrix, bool do_cr_adj) {
   double theta = exp(log_theta);
   double cr_term = 0.0;
   if(do_cr_adj){
@@ -181,7 +181,7 @@ double gampoi_deriv_score_function_fast(NumericVector y, NumericVector mu, doubl
   // Note: return (d2log_post/dalpha2 * alpha^2 + dlog_post/dalpha * alpha)
   //            = (d2log_post/dalpha2 * alpha^2 + dlog_post/dlogalpha)
   // because we take derivatives w.r.t log alpha
-  double res = ((ll_part + cr_term) * R_pow_di(theta, 2) + gampoi_score_function_fast(y, mu, log_theta, model_matrix, do_cr_adj));
+  double res = ((ll_part + cr_term) * R_pow_di(theta, 2) + conventional_score_function_fast(y, mu, log_theta, model_matrix, do_cr_adj));
   return(res);
 }
 
