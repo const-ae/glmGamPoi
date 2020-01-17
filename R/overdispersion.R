@@ -22,8 +22,11 @@ gampoi_overdispersion_mle <- function(y, mean_vector = mean(y),
                                do_cox_reid_adjustment = do_cox_reid_adjustment,
                                verbose = verbose)
   }else{
-    # Do Classical
-
+    # Do conventional optimization
+    conventional_overdispersion_mle(y, mean_vector = mean_vecot,
+                                    model_matrix = model_matrix,
+                                    do_cox_reid_adjustment = do_cox_reid_adjustment,
+                                    verbose = verbose)
   }
 }
 
@@ -31,8 +34,14 @@ bandara_overdispersion_mle <- function(y, mean_vector,
                            model_matrix = NULL,
                            do_cox_reid_adjustment = TRUE,
                            verbose = FALSE){
-  return_value = list(root = NA, iterations = NA, method = "bandara", message = "")
-  far_right_value <- score_function_bandara_fast(y, mean_vector, psi=1/1000,
+  return_value = list(root = NA_real_, iterations = NA_real_, method = "bandara", message = "")
+
+  # Common thing between all function calls
+  # For explanation, see Bandara et al. (2019)
+  cslv <- makeCumSumLookupVector(y)
+
+  far_right_value <- score_function_bandara_fast(y, cumsumLookupTable = cslv,
+                                                 mean_vector, r = 1000,
                                                  model_matrix = model_matrix,
                                                  do_cr_adj = do_cox_reid_adjustment)
   if(far_right_value > 0){
@@ -90,6 +99,40 @@ bandara_overdispersion_mle <- function(y, mean_vector,
   return_value
 }
 
+
+conventional_overdispersion_mle <- function(y, mean_vector,
+                                       model_matrix = NULL,
+                                       do_cox_reid_adjustment = TRUE,
+                                       verbose = FALSE){
+  return_value = list(root = NA_real_, iterations = NA_real_, method = "conventional", message = "")
+
+  mu <- mean(y)
+  start_value <- (var(y) - mu) / mu^2
+  if(start_value < 0){
+    return_value$message <- "Failed to find start value, mean too large"
+    return(return_value)
+  }
+
+  nb_ll <- function(y, mu, theta, model_matrix, do_cox_reid_adjustment){
+    if(do_cox_reid_adjustment){
+      b <- t(model_matrix) %*% diag(1/(1/mu + theta), nrow = length(y)) %*% model_matrix
+      cr_term <- 0.5 * log(det(b))
+    }else{
+      cr_term <- 0
+    }
+    ll_term <- sum(lgamma(y + 1/theta) - lgamma(1/theta) - y * log(mu + 1/theta) - 1/theta * log(1 + mu * theta))
+    cr_term + ll_term
+  }
+
+  res <- nlminb(start = start_value,
+         objective = function(theta){
+           - nb_ll(y, mean_vector, exp(theta), model_matrix, do_cox_reid_adjustment)
+         })
+  return_value$root <- exp(res$par)
+  return_value$iterations <- res$iterations
+  return_value$message <- res$message
+  return_value
+}
 
 
 
