@@ -93,8 +93,9 @@ bandara_overdispersion_mle <- function(y, mean_vector,
                                       model_matrix = model_matrix,
                                       do_cr_adj = do_cox_reid_adjustment)
   }, tol = .Machine$double.eps^0.25)
+
   return_value$root <- 1/root_info$root
-  return_value$iterations <- root_info$iter
+  return_value$iterations <- root_info$niter
   return_value$message <- "success"
   return_value
 }
@@ -125,6 +126,7 @@ conventional_overdispersion_mle <- function(y, mean_vector,
                              model_matrix = model_matrix, do_cr_adj = do_cox_reid_adjustment)
            matrix(- res, nrow = 1, ncol = 1)
          })
+
   return_value$root <- exp(res$par)
   return_value$iterations <- res$iterations
   return_value$message <- res$message
