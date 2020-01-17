@@ -58,7 +58,8 @@ bandara_overdispersion_mle <- function(y, mean_vector,
   iter <- 1
   repeat{
     start_pos <- rmme * gamma_factor
-    if(score_function_bandara_fast(y, mean_vector, psi=1/start_pos,
+    if(score_function_bandara_fast(y, cumsumLookupTable = cslv,
+                                   mean_vector, r= start_pos,
                                    model_matrix = model_matrix,
                                    do_cr_adj = do_cox_reid_adjustment) > 0){
       break
@@ -72,12 +73,14 @@ bandara_overdispersion_mle <- function(y, mean_vector,
   }
 
   root_info <- pracma::newtonRaphson(function(r){
-    score_function_bandara_fast(y, mu = mean_vector, psi=1/r,
+    score_function_bandara_fast(y, cumsumLookupTable = cslv,
+                                mu = mean_vector, r = r,
                                 model_matrix = model_matrix,
                                 do_cr_adj = do_cox_reid_adjustment)
   }, x0 = start_pos,
   dfun = function(r){
-    score_deriv_function_bandara_fast(y, mu = mean_vector, r=r,
+    score_deriv_function_bandara_fast(y, cumsumLookupTable = cslv,
+                                      mu = mean_vector, theta=1/r,
                                       model_matrix = model_matrix,
                                       do_cr_adj = do_cox_reid_adjustment)
   }, tol = .Machine$double.eps^0.25)

@@ -6,40 +6,54 @@
 
 using namespace Rcpp;
 
-// score_function_bandara_fast
-double score_function_bandara_fast(IntegerVector y, NumericVector mu, double psi, arma::mat model_matrix, bool do_cr_adj);
-RcppExport SEXP _glmGamPoi_score_function_bandara_fast(SEXP ySEXP, SEXP muSEXP, SEXP psiSEXP, SEXP model_matrixSEXP, SEXP do_cr_adjSEXP) {
+// makeCumSumLookupVector
+IntegerVector makeCumSumLookupVector(IntegerVector y);
+RcppExport SEXP _glmGamPoi_makeCumSumLookupVector(SEXP ySEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< IntegerVector >::type y(ySEXP);
-    Rcpp::traits::input_parameter< NumericVector >::type mu(muSEXP);
-    Rcpp::traits::input_parameter< double >::type psi(psiSEXP);
-    Rcpp::traits::input_parameter< arma::mat >::type model_matrix(model_matrixSEXP);
-    Rcpp::traits::input_parameter< bool >::type do_cr_adj(do_cr_adjSEXP);
-    rcpp_result_gen = Rcpp::wrap(score_function_bandara_fast(y, mu, psi, model_matrix, do_cr_adj));
+    rcpp_result_gen = Rcpp::wrap(makeCumSumLookupVector(y));
     return rcpp_result_gen;
 END_RCPP
 }
-// score_deriv_function_bandara_fast
-double score_deriv_function_bandara_fast(IntegerVector y, NumericVector mu, double r, arma::mat model_matrix, bool do_cr_adj);
-RcppExport SEXP _glmGamPoi_score_deriv_function_bandara_fast(SEXP ySEXP, SEXP muSEXP, SEXP rSEXP, SEXP model_matrixSEXP, SEXP do_cr_adjSEXP) {
+// score_function_bandara_fast
+double score_function_bandara_fast(IntegerVector y, IntegerVector cumsumLookupTable, NumericVector mu, double r, arma::mat model_matrix, bool do_cr_adj);
+RcppExport SEXP _glmGamPoi_score_function_bandara_fast(SEXP ySEXP, SEXP cumsumLookupTableSEXP, SEXP muSEXP, SEXP rSEXP, SEXP model_matrixSEXP, SEXP do_cr_adjSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< IntegerVector >::type y(ySEXP);
+    Rcpp::traits::input_parameter< IntegerVector >::type cumsumLookupTable(cumsumLookupTableSEXP);
     Rcpp::traits::input_parameter< NumericVector >::type mu(muSEXP);
     Rcpp::traits::input_parameter< double >::type r(rSEXP);
     Rcpp::traits::input_parameter< arma::mat >::type model_matrix(model_matrixSEXP);
     Rcpp::traits::input_parameter< bool >::type do_cr_adj(do_cr_adjSEXP);
-    rcpp_result_gen = Rcpp::wrap(score_deriv_function_bandara_fast(y, mu, r, model_matrix, do_cr_adj));
+    rcpp_result_gen = Rcpp::wrap(score_function_bandara_fast(y, cumsumLookupTable, mu, r, model_matrix, do_cr_adj));
+    return rcpp_result_gen;
+END_RCPP
+}
+// score_deriv_function_bandara_fast
+double score_deriv_function_bandara_fast(IntegerVector y, IntegerVector cumsumLookupTable, NumericVector mu, double theta, arma::mat model_matrix, bool do_cr_adj);
+RcppExport SEXP _glmGamPoi_score_deriv_function_bandara_fast(SEXP ySEXP, SEXP cumsumLookupTableSEXP, SEXP muSEXP, SEXP thetaSEXP, SEXP model_matrixSEXP, SEXP do_cr_adjSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< IntegerVector >::type y(ySEXP);
+    Rcpp::traits::input_parameter< IntegerVector >::type cumsumLookupTable(cumsumLookupTableSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type mu(muSEXP);
+    Rcpp::traits::input_parameter< double >::type theta(thetaSEXP);
+    Rcpp::traits::input_parameter< arma::mat >::type model_matrix(model_matrixSEXP);
+    Rcpp::traits::input_parameter< bool >::type do_cr_adj(do_cr_adjSEXP);
+    rcpp_result_gen = Rcpp::wrap(score_deriv_function_bandara_fast(y, cumsumLookupTable, mu, theta, model_matrix, do_cr_adj));
     return rcpp_result_gen;
 END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_glmGamPoi_score_function_bandara_fast", (DL_FUNC) &_glmGamPoi_score_function_bandara_fast, 5},
-    {"_glmGamPoi_score_deriv_function_bandara_fast", (DL_FUNC) &_glmGamPoi_score_deriv_function_bandara_fast, 5},
+    {"_glmGamPoi_makeCumSumLookupVector", (DL_FUNC) &_glmGamPoi_makeCumSumLookupVector, 1},
+    {"_glmGamPoi_score_function_bandara_fast", (DL_FUNC) &_glmGamPoi_score_function_bandara_fast, 6},
+    {"_glmGamPoi_score_deriv_function_bandara_fast", (DL_FUNC) &_glmGamPoi_score_deriv_function_bandara_fast, 6},
     {NULL, NULL, 0}
 };
 
