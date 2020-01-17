@@ -6,19 +6,7 @@ using namespace Rcpp;
 // [[Rcpp::depends(RcppArmadillo)]]
 
 // [[Rcpp::export]]
-double score_function_bandara_fast(IntegerVector y, NumericVector mu, double psi, arma::mat model_matrix, bool do_cr_adj){
-  double r = 1.0 / psi;
-  double cr_term = 0.0;
-  if(do_cr_adj){
-    arma::vec w_diag = 1/(1/mu + 1/r);
-    arma::vec dw_diag = pow(mu / (mu + r), 2);
-    arma::mat b = model_matrix.t() * (model_matrix.each_col() % w_diag);
-    arma::mat db = model_matrix.t() * (model_matrix.each_col() % dw_diag);
-    double ddetb = ( det(b) * trace(b.i() * db) );
-    cr_term = -0.5 * ddetb / det(b);
-  }
-  // NumericVector y_num = as<NumericVector>(y);
-
+IntegerVector makeCumSumLookupVector(IntegerVector y){
   double max_y = max(y);
   IntegerVector lookupTable(max_y+1);
   IntegerVector cumsumLookupTable(max_y);
@@ -30,16 +18,31 @@ double score_function_bandara_fast(IntegerVector y, NumericVector mu, double psi
     cumsumLookupTable[i-1] = lookupTable[i] + lastelem;
     lastelem = cumsumLookupTable[i-1];
   }
-  double summer = 0.0;
-  for(int v = 0; v < max_y; v++){
-    summer += cumsumLookupTable[v] / (r + v + 1 - 1);
+  return cumsumLookupTable;
+}
+
+// [[Rcpp::export]]
+double score_function_bandara_fast(IntegerVector y, IntegerVector cumsumLookupTable, NumericVector mu,
+                                   double r, arma::mat model_matrix, bool do_cr_adj){
+  double cr_term = 0.0;
+  if(do_cr_adj){
+    arma::vec w_diag = 1.0/(1.0/mu + 1/r);
+    arma::vec dw_diag = pow(mu / (mu + r), 2);
+    arma::mat b = model_matrix.t() * (model_matrix.each_col() % w_diag);
+    arma::mat db = model_matrix.t() * (model_matrix.each_col() % dw_diag);
+    cr_term = 0.5 * trace(b.i() * db);
   }
-  // return summer - sum(log(1 + mu/r) + (y_num - mu) / r / (mu / r + 1));
-  double summer2 = 0.0;
+
+  double digammaSummand = 0.0;
+  for(int v = 0; v < cumsumLookupTable.size(); v++){
+    digammaSummand += cumsumLookupTable[v] / (r + v + 1 - 1);
+  }
+
+  double otherSummand = 0.0;
   for(int i = 0; i < y.size(); ++i){
-    summer2 += log(1 + mu[i]/r) + (y[i] - mu[i]) / r / (mu[i] / r + 1);
+    otherSummand += log(1 + mu[i] / r) + (y[i] - mu[i]) / (mu[i] + r);
   }
-  return summer - summer2 + cr_term;
+  return digammaSummand - otherSummand + cr_term;
 }
 
 
