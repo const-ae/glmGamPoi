@@ -129,4 +129,37 @@ test_that("Estimation methods can handle mu = 0", {
 })
 
 
+test_that("Identical y values work", {
+  # Underdispersed data -> theta = 0
+  samples <- rep(6, times = 10)
+  mu <- rep(mean(samples), length(samples))
+  ban <- bandara_overdispersion_mle(y = samples, mean_vector = mu,
+                             do_cox_reid_adjustment = FALSE)
+  con <- conventional_overdispersion_mle(y = samples, mean_vector = mu,
+                                  do_cox_reid_adjustment = FALSE)
+  expect_equal(ban$root, 0)
+  expect_equal(con$root, 0)
+
+  # If mu is small enough, it works again
+  samples <- rep(6, times = 10)
+  mu <- rep(1, length(samples))
+  ban <- bandara_overdispersion_mle(y = samples, mean_vector = mu,
+                                    do_cox_reid_adjustment = FALSE)
+  con <- conventional_overdispersion_mle(y = samples, mean_vector = mu,
+                                         do_cox_reid_adjustment = FALSE)
+  expect_equal(ban$root, con$root, tolerance = 1e-4)
+
+
+  # For all y = 0 -> cannot really make inference, assume theta = 0
+  samples <- rep(0, times = 10)
+  mu <- rep(1, length(samples))
+  ban <- bandara_overdispersion_mle(y = samples, mean_vector = mu,
+                                    do_cox_reid_adjustment = FALSE)
+  con <- conventional_overdispersion_mle(y = samples, mean_vector = mu,
+                                         do_cox_reid_adjustment = FALSE)
+  expect_equal(ban$root, 0)
+  expect_equal(con$root, 0)
+
+})
+
 

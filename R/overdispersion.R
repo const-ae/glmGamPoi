@@ -41,6 +41,12 @@ bandara_overdispersion_mle <- function(y, mean_vector,
     stop("None of the entries of the mean_vector must be 0.")
   }
 
+  if(all(y == 0)){
+    return_value$message <- "All counts y are 0."
+    return_value$root <- 0
+    return(return_value)
+  }
+
   # Common thing between all function calls
   # For explanation, see Bandara et al. (2019)
   cslv <- makeCumSumLookupVector(y)
@@ -60,10 +66,10 @@ bandara_overdispersion_mle <- function(y, mean_vector,
   rmme <- my / (bvar - my)
   start_pos <- NA
   gamma_factor <- 0.9
-  if(rmme < 0 && max(y) > 1){
+  if(is.na(rmme) || (rmme < 0 && max(y) > 1)){
     # Exceptional case
     N1 <- sum(y >= 1)
-    start_13 <- (-3 + sqrt(24 * length(y) * mean(y) / N1 - 15)) / (2 * N1 / (length(y) * mean(y)))
+    start_13 <- (-3 + sqrt(24 * length(y) * my / N1 - 15)) / (2 * N1 / (length(y) * my))
     start_pos <- start_13 / gamma_factor
   }
 
@@ -115,6 +121,12 @@ conventional_overdispersion_mle <- function(y, mean_vector,
 
   if(any(mean_vector == 0)){
     stop("None of the entries of the mean_vector must be 0.")
+  }
+
+  if(all(y == 0)){
+    return_value$message <- "All counts y are 0."
+    return_value$root <- 0
+    return(return_value)
   }
 
   far_left_value <- conventional_score_function_fast(y, mu = mean_vector, log_theta = log(1/1000),
