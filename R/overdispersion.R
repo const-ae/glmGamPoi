@@ -55,7 +55,7 @@ bandara_overdispersion_mle <- function(y, mean_vector,
 
   # Common thing between all function calls
   # For explanation, see Bandara et al. (2019)
-  cslv <- makeCumSumLookupVector(y)
+  cslv <- makeCumSumLookupVector(round(y))  # Cannot handle non integer values
 
   far_right_value <- score_function_bandara_fast(y, cumsumLookupTable = cslv,
                                                  mean_vector, r = 1000,
