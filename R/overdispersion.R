@@ -30,7 +30,7 @@ gampoi_overdispersion_mle <- function(y, mean_vector = mean(y),
                                verbose = verbose)
   }else{
     # Do conventional optimization
-    conventional_overdispersion_mle(y, mean_vector = mean_vecot,
+    conventional_overdispersion_mle(y, mean_vector = mean_vector,
                                     model_matrix = model_matrix,
                                     do_cox_reid_adjustment = do_cox_reid_adjustment,
                                     verbose = verbose)

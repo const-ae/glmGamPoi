@@ -7,7 +7,7 @@ using namespace Rcpp;
 
 // [[Rcpp::export]]
 IntegerVector makeCumSumLookupVector(IntegerVector y){
-  double max_y = max(y);
+  int max_y = max(y);
   IntegerVector lookupTable(max_y+1);
   IntegerVector cumsumLookupTable(max_y);
   for(int i = 0; i < y.size(); i++){
