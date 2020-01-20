@@ -13,9 +13,15 @@ gampoi_overdispersion_mle <- function(y, mean_vector = mean(y),
     mean_vector <- rep(mean_vector, length(y))
   }
   stopifnot(length(y) == length(mean_vector))
+  stopifnot(all(y >= 0))
   stopifnot(all(mean_vector > 0))
+  stopifnot(all(! is.na(y)))   # Cannot handle missing values
+  stopifnot(all(! is.na(mean_vector)))
+  stopifnot(all(is.finite(y)))
+  stopifnot(all(is.finite(mean_vector)))
 
   # Decide if I use the Bandara approach or classical MLE
+  # Rule is a rough heuristic
   if(max(y) < length(y)){
     # Do Bandara
     bandara_overdispersion_mle(y, mean_vector = mean_vector,
