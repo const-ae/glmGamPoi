@@ -12,7 +12,7 @@ test_that("makeCumSumLookupVector works", {
 
 
 # Create Data useful for many tests
-
+set.seed(1)
 samples <- distraltparam::raltnbinom(n = 30, mean = 4, dispersion = 0.7)
 mu <- rnorm(n = 30, mean = 4)
 X <- matrix(rnorm(n = 30 * 4), nrow = 30, ncol = 4)
