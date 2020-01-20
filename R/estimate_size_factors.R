@@ -7,6 +7,7 @@
 #'
 #'
 #' Not exported
+#' @keywords internal
 estimate_size_factors <- function(Y){
 
 }

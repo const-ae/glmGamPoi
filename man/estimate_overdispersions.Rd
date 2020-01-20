@@ -10,3 +10,4 @@ estimate_overdispersions(Y, mean_matrix, model_matrix,
 \description{
 Not exported
 }
+\keyword{internal}

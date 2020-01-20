@@ -12,3 +12,4 @@ Estimate the Size Factors
 \details{
 Not exported
 }
+\keyword{internal}

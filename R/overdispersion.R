@@ -173,6 +173,7 @@ conventional_overdispersion_mle <- function(y, mean_vector,
 #' Call gp_overdispersion_mle multiple times
 #'
 #' Not exported
+#' @keywords internal
 estimate_overdispersions <- function(Y, mean_matrix, model_matrix, do_cox_reid_adjustment){
   stopifnot(all(!missing(c(Y, mean_matrix, model_matrix, do_cox_reid_adjustment))))
 }
