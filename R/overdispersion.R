@@ -13,6 +13,7 @@ gampoi_overdispersion_mle <- function(y, mean_vector = mean(y),
     mean_vector <- rep(mean_vector, length(y))
   }
   stopifnot(length(y) == length(mean_vector))
+  stopifnot(all(mean_vector > 0))
 
   # Decide if I use the Bandara approach or classical MLE
   if(max(y) < length(y)){
@@ -35,6 +36,10 @@ bandara_overdispersion_mle <- function(y, mean_vector,
                            do_cox_reid_adjustment = TRUE,
                            verbose = FALSE){
   return_value = list(root = NA_real_, iterations = NA_real_, method = "bandara", message = "")
+
+  if(any(mean_vector == 0)){
+    stop("None of the entries of the mean_vector must be 0.")
+  }
 
   # Common thing between all function calls
   # For explanation, see Bandara et al. (2019)
@@ -108,6 +113,9 @@ conventional_overdispersion_mle <- function(y, mean_vector,
                                        verbose = FALSE){
   return_value = list(root = NA_real_, iterations = NA_real_, method = "conventional", message = "")
 
+  if(any(mean_vector == 0)){
+    stop("None of the entries of the mean_vector must be 0.")
+  }
 
   far_left_value <- conventional_score_function_fast(y, mu = mean_vector, log_theta = log(1/1000),
                                    model_matrix = model_matrix, do_cr_adj = do_cox_reid_adjustment)
@@ -123,7 +131,7 @@ conventional_overdispersion_mle <- function(y, mean_vector,
     start_value <- 0.5
   }
 
-  res <- nlminb(start = start_value,
+  res <- nlminb(start = log(start_value),
          objective = function(log_theta){
            - conventional_loglikelihood_fast(y, mu = mean_vector, log_theta = log_theta,
                              model_matrix = model_matrix, do_cr_adj = do_cox_reid_adjustment)
