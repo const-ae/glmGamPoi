@@ -31,7 +31,7 @@ gampoi_overdispersion_mle <- function(y, mean_vector = mean(y),
 }
 
 bandara_overdispersion_mle <- function(y, mean_vector,
-                           model_matrix = NULL,
+                           model_matrix = matrix(1, nrow = length(y), ncol = 1),
                            do_cox_reid_adjustment = TRUE,
                            verbose = FALSE){
   return_value = list(root = NA_real_, iterations = NA_real_, method = "bandara", message = "")
@@ -45,7 +45,8 @@ bandara_overdispersion_mle <- function(y, mean_vector,
                                                  model_matrix = model_matrix,
                                                  do_cr_adj = do_cox_reid_adjustment)
   if(far_right_value > 0){
-    return_value$message <- "Even for very large theta, no maximum identified"
+    return_value$message <- "Even for very small theta, no maximum identified"
+    return_value$root <- 0
     return(return_value)
   }
 
@@ -102,16 +103,24 @@ bandara_overdispersion_mle <- function(y, mean_vector,
 
 
 conventional_overdispersion_mle <- function(y, mean_vector,
-                                       model_matrix = NULL,
+                                       model_matrix = matrix(1, nrow = length(y), ncol = 1),
                                        do_cox_reid_adjustment = TRUE,
                                        verbose = FALSE){
   return_value = list(root = NA_real_, iterations = NA_real_, method = "conventional", message = "")
 
+
+  far_left_value <- conventional_score_function_fast(y, mu = mean_vector, log_theta = log(1/1000),
+                                   model_matrix = model_matrix, do_cr_adj = do_cox_reid_adjustment)
+  if(far_left_value < 0){
+    return_value$message <-  "Even for very small theta, no maximum identified"
+    return_value$root <- 0
+    return(return_value)
+  }
+
   mu <- mean(y)
   start_value <- (var(y) - mu) / mu^2
   if(start_value < 0){
-    return_value$message <- "Failed to find start value, mean too large"
-    return(return_value)
+    start_value <- 0.5
   }
 
   res <- nlminb(start = start_value,

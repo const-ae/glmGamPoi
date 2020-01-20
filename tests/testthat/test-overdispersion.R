@@ -86,3 +86,30 @@ test_that("C++ implementation of score and score_deriv match", {
 
 
 
+test_that("Estimation methods can handle under-dispersion", {
+
+  # I know that for seed 1, this produces an under-dispersed sample
+  set.seed(1)
+  samples <- rpois(n = 100, lambda = 5)
+  expect_gt(mean(samples), var(samples))  # Proof of underdispersion
+  mu <- rep(mean(samples), length(samples))
+  ban_wo_cr <- bandara_overdispersion_mle(y = samples, mean_vector = mu,
+                                         do_cox_reid_adjustment = FALSE)$root
+  con_wo_cr <- conventional_overdispersion_mle(y = samples, mean_vector = mu,
+                                         do_cox_reid_adjustment = FALSE)$root
+
+  expect_equal(ban_wo_cr, 0)
+  expect_equal(con_wo_cr, 0)
+
+  # However, if mu is large then again a theta can be estimated
+  mu <- rep(10, length(samples))
+  ban_wo_cr <- bandara_overdispersion_mle(y = samples, mean_vector = mu,
+                                          do_cox_reid_adjustment = FALSE)$root
+  con_wo_cr <- conventional_overdispersion_mle(y = samples, mean_vector = mu,
+                                               do_cox_reid_adjustment = FALSE)$root
+  expect_true(ban_wo_cr != 0 && con_wo_cr != 0)
+  expect_equal(ban_wo_cr, con_wo_cr)
+})
+
+
+
