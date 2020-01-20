@@ -19,17 +19,23 @@ X <- matrix(rnorm(n = 30 * 4), nrow = 30, ncol = 4)
 
 
 test_that("Convential and Bandara approach produce the same estimates", {
+  pbl_w_cr <- gampoi_overdispersion_mle(y = samples, mean_vector = mu,
+                                        model_matrix = X, do_cox_reid_adjustment = TRUE)$root
   ban_w_cr <- bandara_overdispersion_mle(y = samples, mean_vector = mu,
                                      model_matrix = X, do_cox_reid_adjustment = TRUE)$root
   con_w_cr <- conventional_overdispersion_mle(y = samples, mean_vector = mu,
                                           model_matrix = X, do_cox_reid_adjustment = TRUE)$root
   expect_equal(ban_w_cr, con_w_cr, tolerance = 1e-4)
+  expect_equal(ban_w_cr, pbl_w_cr, tolerance = 1e-4)
 
+  pbl_wo_cr <- gampoi_overdispersion_mle(y = samples, mean_vector = mu,
+                                        model_matrix = X, do_cox_reid_adjustment = FALSE)$root
   ban_wo_cr <- bandara_overdispersion_mle(y = samples, mean_vector = mu,
                                      model_matrix = X, do_cox_reid_adjustment = FALSE)$root
   con_wo_cr <- conventional_overdispersion_mle(y = samples, mean_vector = mu,
                                           model_matrix = X, do_cox_reid_adjustment = FALSE)$root
   expect_equal(ban_wo_cr, con_wo_cr, tolerance = 1e-4)
+  expect_equal(ban_wo_cr, pbl_wo_cr, tolerance = 1e-4)
 })
 
 
