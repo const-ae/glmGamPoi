@@ -5,6 +5,10 @@ fitBeta <- function(y, x, nf, alpha_hatSEXP, beta_matSEXP, tolSEXP, maxitSEXP, m
     .Call(`_glmGamPoi_fitBeta`, y, x, nf, alpha_hatSEXP, beta_matSEXP, tolSEXP, maxitSEXP, minmuSEXP)
 }
 
+fitBeta_one_group <- function(Y, log_offsets, thetas, beta_start_values, tolerance, maxIter) {
+    .Call(`_glmGamPoi_fitBeta_one_group`, Y, log_offsets, thetas, beta_start_values, tolerance, maxIter)
+}
+
 makeCumSumLookupVector <- function(y) {
     .Call(`_glmGamPoi_makeCumSumLookupVector`, y)
 }

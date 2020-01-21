@@ -160,3 +160,54 @@ List fitBeta(const arma::mat& y, const arma::mat& x, const arma::mat& nf, SEXP a
                       Named("hat_diagonals",hat_diagonals),
                       Named("deviance",deviance));
 }
+
+
+
+
+// If there is only one group, there is no need to do the full Fisher-scoring
+// Instead a simple Newton-Raphson algorithm will do
+// [[Rcpp::export]]
+List fitBeta_one_group(NumericMatrix Y, NumericMatrix log_offsets,
+                       NumericVector thetas, NumericVector beta_start_values,
+                       double tolerance, int maxIter) {
+  int n_samples = Y.ncol();
+  int n_genes = Y.nrow();
+  NumericVector result(n_genes);
+  IntegerVector iterations(n_genes);
+
+  for(int gene_idx = 0; gene_idx < n_genes; gene_idx++){
+    if (gene_idx % 100 == 0) checkUserInterrupt();
+    NumericMatrix::Row counts = Y(gene_idx, _);
+    NumericMatrix::Row log_off = log_offsets(gene_idx, _);
+    const double& theta = thetas(gene_idx);
+    double beta = beta_start_values(gene_idx);
+    // Newton-Raphson
+    int iter = 0;
+    for(; iter < maxIter; iter++){
+      double dl = 0.0;
+      double ddl = 0.0;
+      for(int sample_iter = 0; sample_iter < n_samples; sample_iter++){
+        const int count = counts[sample_iter];
+        const double mu = std::exp(beta + log_off[sample_iter]);
+        const double denom = 1.0 + mu * theta;
+        dl += (count - mu) / denom;
+        ddl += mu * (1.0 + count * theta) / denom / denom;
+        // ddl += mu / denom;           // This is what edgeR is using
+      }
+      const double step = dl / ddl;
+      beta += step;
+      if(abs(step) < tolerance){
+        break;
+      }
+    }
+    result(gene_idx) = beta;
+    iterations(gene_idx) = iter;
+  }
+  return List::create(
+    Named("beta", result),
+    Named("iter", iterations)
+  );
+}
+
+
+

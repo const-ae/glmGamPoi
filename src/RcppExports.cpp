@@ -24,6 +24,22 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// fitBeta_one_group
+List fitBeta_one_group(NumericMatrix Y, NumericMatrix log_offsets, NumericVector thetas, NumericVector beta_start_values, double tolerance, int maxIter);
+RcppExport SEXP _glmGamPoi_fitBeta_one_group(SEXP YSEXP, SEXP log_offsetsSEXP, SEXP thetasSEXP, SEXP beta_start_valuesSEXP, SEXP toleranceSEXP, SEXP maxIterSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< NumericMatrix >::type Y(YSEXP);
+    Rcpp::traits::input_parameter< NumericMatrix >::type log_offsets(log_offsetsSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type thetas(thetasSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type beta_start_values(beta_start_valuesSEXP);
+    Rcpp::traits::input_parameter< double >::type tolerance(toleranceSEXP);
+    Rcpp::traits::input_parameter< int >::type maxIter(maxIterSEXP);
+    rcpp_result_gen = Rcpp::wrap(fitBeta_one_group(Y, log_offsets, thetas, beta_start_values, tolerance, maxIter));
+    return rcpp_result_gen;
+END_RCPP
+}
 // makeCumSumLookupVector
 IntegerVector makeCumSumLookupVector(IntegerVector y);
 RcppExport SEXP _glmGamPoi_makeCumSumLookupVector(SEXP ySEXP) {
@@ -115,6 +131,7 @@ END_RCPP
 
 static const R_CallMethodDef CallEntries[] = {
     {"_glmGamPoi_fitBeta", (DL_FUNC) &_glmGamPoi_fitBeta, 8},
+    {"_glmGamPoi_fitBeta_one_group", (DL_FUNC) &_glmGamPoi_fitBeta_one_group, 6},
     {"_glmGamPoi_makeCumSumLookupVector", (DL_FUNC) &_glmGamPoi_makeCumSumLookupVector, 1},
     {"_glmGamPoi_score_function_bandara_fast", (DL_FUNC) &_glmGamPoi_score_function_bandara_fast, 6},
     {"_glmGamPoi_score_deriv_function_bandara_fast", (DL_FUNC) &_glmGamPoi_score_deriv_function_bandara_fast, 6},
