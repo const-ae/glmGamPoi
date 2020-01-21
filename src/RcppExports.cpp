@@ -6,6 +6,19 @@
 
 using namespace Rcpp;
 
+// compute_gp_deviance
+double compute_gp_deviance(double y, double mu, double theta);
+RcppExport SEXP _glmGamPoi_compute_gp_deviance(SEXP ySEXP, SEXP muSEXP, SEXP thetaSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< double >::type y(ySEXP);
+    Rcpp::traits::input_parameter< double >::type mu(muSEXP);
+    Rcpp::traits::input_parameter< double >::type theta(thetaSEXP);
+    rcpp_result_gen = Rcpp::wrap(compute_gp_deviance(y, mu, theta));
+    return rcpp_result_gen;
+END_RCPP
+}
 // fitBeta
 List fitBeta(const arma::mat& y, const arma::mat& x, const arma::mat& nf, SEXP alpha_hatSEXP, SEXP beta_matSEXP, SEXP tolSEXP, SEXP maxitSEXP, SEXP minmuSEXP);
 RcppExport SEXP _glmGamPoi_fitBeta(SEXP ySEXP, SEXP xSEXP, SEXP nfSEXP, SEXP alpha_hatSEXPSEXP, SEXP beta_matSEXPSEXP, SEXP tolSEXPSEXP, SEXP maxitSEXPSEXP, SEXP minmuSEXPSEXP) {
@@ -130,6 +143,7 @@ END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
+    {"_glmGamPoi_compute_gp_deviance", (DL_FUNC) &_glmGamPoi_compute_gp_deviance, 3},
     {"_glmGamPoi_fitBeta", (DL_FUNC) &_glmGamPoi_fitBeta, 8},
     {"_glmGamPoi_fitBeta_one_group", (DL_FUNC) &_glmGamPoi_fitBeta_one_group, 6},
     {"_glmGamPoi_makeCumSumLookupVector", (DL_FUNC) &_glmGamPoi_makeCumSumLookupVector, 1},

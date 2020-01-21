@@ -46,7 +46,6 @@ estimate_betas_one_group <- function(Y, offset_matrix,
                                      dispersions = NULL, beta_vec_init = NULL){
 
   if(is.null(beta_vec_init)){
-    # beta_vec_init <- log(rowMeans(Y)) - log(rowMeans(offset_matrix))
     beta_vec_init <- log(rowMeans(Y / exp(offset_matrix)))
   }
   if(is.null(dispersions)){
@@ -56,6 +55,7 @@ estimate_betas_one_group <- function(Y, offset_matrix,
 
 
   betaRes <- fitBeta_one_group(Y, offset_matrix, thetas = dispersions,
-                               beta_start_values = beta_vec_init, tolerance = 1e-8, maxIter = 100)
+                               beta_start_values = beta_vec_init,
+                               tolerance = 1e-8, maxIter = 100)
   betaRes
 }

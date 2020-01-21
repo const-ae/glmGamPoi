@@ -4,7 +4,7 @@
 using namespace Rcpp;
 
 
-
+// [[Rcpp::export]]
 double compute_gp_deviance (double y, double mu, double theta) {
   if(theta < 1e-6){
     // If theta is so small, calculate Poisson deviance
