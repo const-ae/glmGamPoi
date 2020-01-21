@@ -6,6 +6,24 @@
 
 using namespace Rcpp;
 
+// fitBeta
+List fitBeta(const arma::mat& y, const arma::mat& x, const arma::mat& nf, SEXP alpha_hatSEXP, SEXP beta_matSEXP, SEXP tolSEXP, SEXP maxitSEXP, SEXP minmuSEXP);
+RcppExport SEXP _glmGamPoi_fitBeta(SEXP ySEXP, SEXP xSEXP, SEXP nfSEXP, SEXP alpha_hatSEXPSEXP, SEXP beta_matSEXPSEXP, SEXP tolSEXPSEXP, SEXP maxitSEXPSEXP, SEXP minmuSEXPSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const arma::mat& >::type y(ySEXP);
+    Rcpp::traits::input_parameter< const arma::mat& >::type x(xSEXP);
+    Rcpp::traits::input_parameter< const arma::mat& >::type nf(nfSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type alpha_hatSEXP(alpha_hatSEXPSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type beta_matSEXP(beta_matSEXPSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type tolSEXP(tolSEXPSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type maxitSEXP(maxitSEXPSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type minmuSEXP(minmuSEXPSEXP);
+    rcpp_result_gen = Rcpp::wrap(fitBeta(y, x, nf, alpha_hatSEXP, beta_matSEXP, tolSEXP, maxitSEXP, minmuSEXP));
+    return rcpp_result_gen;
+END_RCPP
+}
 // makeCumSumLookupVector
 IntegerVector makeCumSumLookupVector(IntegerVector y);
 RcppExport SEXP _glmGamPoi_makeCumSumLookupVector(SEXP ySEXP) {
@@ -96,6 +114,7 @@ END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
+    {"_glmGamPoi_fitBeta", (DL_FUNC) &_glmGamPoi_fitBeta, 8},
     {"_glmGamPoi_makeCumSumLookupVector", (DL_FUNC) &_glmGamPoi_makeCumSumLookupVector, 1},
     {"_glmGamPoi_score_function_bandara_fast", (DL_FUNC) &_glmGamPoi_score_function_bandara_fast, 6},
     {"_glmGamPoi_score_deriv_function_bandara_fast", (DL_FUNC) &_glmGamPoi_score_deriv_function_bandara_fast, 6},
