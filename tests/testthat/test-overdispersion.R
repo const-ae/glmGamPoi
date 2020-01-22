@@ -165,4 +165,12 @@ test_that("Identical y values work", {
 
 })
 
+test_that("one value is enough to get an answer", {
+  expect_equal(gampoi_overdispersion_mle(y = 3)$root, 0)
+  expect_equal(bandara_overdispersion_mle(y = 3, mean_vector = 3)$root, 0)
+  expect_equal(conventional_overdispersion_mle(y = 3, mean_vector = 3)$root, 0)
+  expect_false(bandara_overdispersion_mle(y = 3, mean_vector = 1.3)$root == 0)
+  expect_equal(bandara_overdispersion_mle(y = 3, mean_vector = 1.3)$root, conventional_overdispersion_mle(y = 3, mean_vector = 1.3)$root)
+})
+
 
