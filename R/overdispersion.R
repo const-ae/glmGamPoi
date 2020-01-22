@@ -175,8 +175,28 @@ conventional_overdispersion_mle <- function(y, mean_vector,
 #' Not exported
 #' @keywords internal
 estimate_overdispersions <- function(Y, mean_matrix, model_matrix, do_cox_reid_adjustment){
-  stopifnot(all(!missing(c(Y, mean_matrix, model_matrix, do_cox_reid_adjustment))))
+
+  vapply(seq_len(nrow(Y)), function(gene_idx){
+    gampoi_overdispersion_mle(y = Y[gene_idx, ], mean_vector = mean_matrix[gene_idx, ],
+                              model_matrix = model_matrix, do_cox_reid_adjustment = do_cox_reid_adjustment)$root
+  }, FUN.VALUE = 0.0)
+
 }
 
 
+
+
+estimate_dispersion_by_moment <- function(Y, model_matrix, offset_matrix){
+  xim <- 1/mean(matrixStats::colMeans2(exp(offset_matrix)))
+  bv <- matrixStats::rowVars(Y)
+  bm <- matrixStats::rowMeans2(Y)
+  (bv - xim * bm) / bm^2
+}
+
+estimate_dispersions_roughly <- function(Y, model_matrix, offset_matrix){
+  roughDisp <- DESeq2:::roughDispEstimate(y = Y / exp(offset_matrix),
+                                          x = model_matrix)
+  momentsDisp <- estimate_dispersion_by_moment(Y, model_matrix, offset_matrix)
+  pmax(pmin(roughDisp, momentsDisp), 0)
+}
 
