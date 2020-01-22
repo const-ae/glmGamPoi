@@ -39,13 +39,13 @@ glm_gp_impl <- function(Y, design_matrix,
   # Estimate the betas
   if(verbose){ message("Estimate beta") }
   if(only_intercept_model){
-    Beta_est <- estimate_betas_one_group(Y, offset_matrix = offset_matrix, dispersion = disp_init)
+    Beta_est <- estimate_betas_one_group(Y, offset_matrix = offset_matrix, dispersion = disp_init)$Beta
   }else{
     # Init beta with reasonable values
     if(verbose){ message("Make rough initial beta estimate") }
     beta_init <- estimate_betas_roughly(Y, design_matrix, offset_matrix = offset_matrix)
     Beta_est <- estimate_betas(Y, model_matrix = design_matrix, offset_matrix = offset_matrix,
-                               dispersions = disp_init, beta_mat_init = beta_init)
+                               dispersions = disp_init, beta_mat_init = beta_init)$Beta
   }
 
   # Calculate corresponding predictions
@@ -64,10 +64,10 @@ glm_gp_impl <- function(Y, design_matrix,
   if(verbose){ message("Estimate beta again") }
   if(only_intercept_model){
     Beta_est <- estimate_betas_one_group(Y, offset_matrix = offset_matrix,
-                                         dispersion = disp_est, beta_vec_init = Beta_est[,1])
+                                         dispersion = disp_est, beta_vec_init = Beta_est[,1])$Beta
   }else{
     Beta_est <- estimate_betas(Y, model_matrix = design_matrix, offset_matrix = offset_matrix,
-                               dispersion = disp_est, beta_mat_init = Beta_est)
+                               dispersion = disp_est, beta_mat_init = Beta_est)$Beta
   }
 
   # Calculate corresponding predictions

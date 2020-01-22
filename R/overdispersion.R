@@ -14,7 +14,7 @@ gampoi_overdispersion_mle <- function(y, mean_vector = mean(y),
   }
   stopifnot(length(y) == length(mean_vector))
   stopifnot(all(y >= 0))
-  stopifnot(all(mean_vector > 0))
+  stopifnot(all(mean_vector >= 0))
   stopifnot(all(! is.na(y)))   # Cannot handle missing values
   stopifnot(all(! is.na(mean_vector)))
   stopifnot(all(is.finite(y)))
@@ -43,15 +43,15 @@ bandara_overdispersion_mle <- function(y, mean_vector,
                            verbose = FALSE){
   return_value = list(root = NA_real_, iterations = NA_real_, method = "bandara", message = "")
 
-  if(any(mean_vector == 0)){
-    stop("None of the entries of the mean_vector must be 0.")
-  }
 
   if(all(y == 0)){
     return_value$message <- "All counts y are 0."
     return_value$root <- 0
     return(return_value)
   }
+
+  # Mu = 0 makes problems
+  mean_vector[mean_vector == 0] <- 1e-6
 
   # Common thing between all function calls
   # For explanation, see Bandara et al. (2019)
@@ -125,15 +125,15 @@ conventional_overdispersion_mle <- function(y, mean_vector,
                                        verbose = FALSE){
   return_value = list(root = NA_real_, iterations = NA_real_, method = "conventional", message = "")
 
-  if(any(mean_vector == 0)){
-    stop("None of the entries of the mean_vector must be 0.")
-  }
 
   if(all(y == 0)){
     return_value$message <- "All counts y are 0."
     return_value$root <- 0
     return(return_value)
   }
+
+  # Mu = 0 makes problems
+  mean_vector[mean_vector == 0] <- 1e-6
 
   far_left_value <- conventional_score_function_fast(y, mu = mean_vector, log_theta = log(1/1000),
                                    model_matrix = model_matrix, do_cr_adj = do_cox_reid_adjustment)
@@ -197,6 +197,7 @@ estimate_dispersions_roughly <- function(Y, model_matrix, offset_matrix){
   roughDisp <- DESeq2:::roughDispEstimate(y = Y / exp(offset_matrix),
                                           x = model_matrix)
   momentsDisp <- estimate_dispersion_by_moment(Y, model_matrix, offset_matrix)
-  pmax(pmin(roughDisp, momentsDisp), 0)
+  disp_rough <- pmin(roughDisp, momentsDisp)
+  ifelse(is.na(disp_rough) | disp_rough < 0, 0, disp_rough)
 }
 

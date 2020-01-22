@@ -64,6 +64,35 @@ test_that("Beta estimation works", {
   expect_equal(coef(edgeR_res)[,1], coef(dds)[,1] / log2(exp(1)), tolerance = 1e-6)
 })
 
+test_that("glm_gp_impl can handle all zero rows", {
+  Y <- matrix(0, nrow = 2, ncol = 10)
+  Y[1, ] <- rpois(n = 10, lambda = 3)
+  X <- matrix(1, nrow = 10, ncol = 1)
+  res <- glm_gp_impl(Y, X)
+  expect_equal(res$Beta_est[2,1], -Inf)
+  expect_equal(res$Mu_est[2, ], rep(0, 10))
+})
+
+
+test_that("glm_gp_impl can handle all zero columns", {
+  Y <- matrix(0, nrow = 1, ncol = 10)
+  Y[1, 1] <- 3
+  X <- matrix(1, nrow = 10, ncol = 1)
+  res <- glm_gp_impl(Y, X)
+  expect_equal(res$size_factors[2:10], rep(0.001, times = 9))
+})
+
+test_that("glm_gp_impl can handle all values zero", {
+  Y <- matrix(0, nrow = 3, ncol = 10)
+  X <- matrix(1, nrow = 10, ncol = 1)
+  res <- glm_gp_impl(Y, X)
+  expect_equal(res$size_factors, rep(0.001, times = 10))
+  expect_equal(res$overdispersions, rep(0, times = 3))
+  expect_equal(res$Beta_est[,1], rep(-Inf, times = 3))
+  expect_true(all(res$Mu_est == 0))
+})
+
+
 
 test_that("glm_gp_impl works as expected", {
   skip("No workable tests here")

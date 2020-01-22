@@ -177,22 +177,30 @@ List fitBeta_one_group(NumericMatrix Y, NumericMatrix log_offsets,
 
   for(int gene_idx = 0; gene_idx < n_genes; gene_idx++){
     if (gene_idx % 100 == 0) checkUserInterrupt();
+
+    double beta = beta_start_values(gene_idx);
+    const double& theta = thetas(gene_idx);
+
     NumericMatrix::Row counts = Y(gene_idx, _);
     NumericMatrix::Row log_off = log_offsets(gene_idx, _);
-    const double& theta = thetas(gene_idx);
-    double beta = beta_start_values(gene_idx);
     // Newton-Raphson
     int iter = 0;
     for(; iter < maxIter; iter++){
       double dl = 0.0;
       double ddl = 0.0;
+      bool all_zero = true;
       for(int sample_iter = 0; sample_iter < n_samples; sample_iter++){
         const int count = counts[sample_iter];
+        all_zero = all_zero && count == 0;
         const double mu = std::exp(beta + log_off[sample_iter]);
         const double denom = 1.0 + mu * theta;
         dl += (count - mu) / denom;
         ddl += mu * (1.0 + count * theta) / denom / denom;
         // ddl += mu / denom;           // This is what edgeR is using
+      }
+      if(all_zero){
+        beta = R_NegInf;
+        break;
       }
       const double step = dl / ddl;
       beta += step;

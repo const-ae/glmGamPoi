@@ -123,14 +123,11 @@ test_that("Estimation methods can handle mu = 0", {
 
   mu <- c(head(mu, length(samples)-1), 0)
 
-  expect_error({
-    bandara_overdispersion_mle(y = samples, mean_vector = mu,
-                               do_cox_reid_adjustment = FALSE)
-  })
-  expect_error({
-    conventional_overdispersion_mle(y = samples, mean_vector = mu,
-                                    do_cox_reid_adjustment = FALSE)
-  })
+  b_res <- bandara_overdispersion_mle(y = samples, mean_vector = mu,
+                             do_cox_reid_adjustment = FALSE)
+  c_res <- conventional_overdispersion_mle(y = samples, mean_vector = mu,
+                                  do_cox_reid_adjustment = FALSE)
+  expect_equal(b_res$root, c_res$root)
 
 })
 
