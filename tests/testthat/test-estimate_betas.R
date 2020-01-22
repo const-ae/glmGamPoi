@@ -24,14 +24,14 @@ test_that("Beta estimation works", {
 
   # Fit Standard Model
   my_res <- estimate_betas(Y = data$Y, model_matrix = data$X, offset_matrix = offset_matrix,
-                          dispersions = data$overdispersion)
+                          dispersion = data$overdispersion)
 
   # Fit Model for One Group
   my_res2 <- estimate_betas_one_group(Y = data$Y, offset_matrix = offset_matrix,
-                                      dispersions = data$overdispersion)
+                                      dispersion = data$overdispersion)
 
-  expect_equal(my_res$beta_mat[,1], my_res2$beta, tolerance = 1e-6)
-  expect_lt(max(my_res2$iter), 10)
+  expect_equal(my_res$Beta, my_res2$Beta, tolerance = 1e-6)
+  expect_lt(max(my_res2$iterations), 10)
 
   # Compare with edgeR
   edgeR_res <- edgeR::glmFit.default(data$Y, design = data$X,
@@ -39,8 +39,8 @@ test_that("Beta estimation works", {
                                    offset = offset_matrix[1,],
                                    prior.count = 0, weights=NULL)
 
-  expect_equal(my_res$beta_mat[,1], coef(edgeR_res)[,1], tolerance = 1e-6)
-  expect_equal(my_res2$beta, coef(edgeR_res)[,1], tolerance = 1e-6)
+  expect_equal(my_res$Beta[,1], coef(edgeR_res)[,1], tolerance = 1e-6)
+  expect_equal(my_res2$Beta[,1], coef(edgeR_res)[,1], tolerance = 1e-6)
 
 
   # Compare with DESeq2
@@ -59,11 +59,70 @@ test_that("Beta estimation works", {
   DESeq2::sizeFactors(dds) <- data$size_factor
   DESeq2::dispersions(dds) <- data$overdispersion
   dds <- DESeq2::nbinomWaldTest(dds, modelMatrix = dds_design_mat, minmu = 1e-6)
-  expect_equal(my_res$beta_mat[,1], coef(dds)[,1] / log2(exp(1)), tolerance = 1e-6)
-  expect_equal(my_res2$beta, coef(dds)[,1] / log2(exp(1)), tolerance = 1e-6)
+  expect_equal(my_res$Beta[,1], coef(dds)[,1] / log2(exp(1)), tolerance = 1e-6)
+  expect_equal(my_res2$Beta[,1], coef(dds)[,1] / log2(exp(1)), tolerance = 1e-6)
   expect_equal(coef(edgeR_res)[,1], coef(dds)[,1] / log2(exp(1)), tolerance = 1e-6)
 })
 
+
+test_that("glm_gp_impl works as expected", {
+  skip("No workable tests here")
+  # My method
+  data <- make_dataset(n_genes = 1000, n_samples = 30)
+  res <- glm_gp_impl(data$Y, design_matrix = data$X + 1e-9, verbose = TRUE)
+
+  # edgeR
+  edgeR_data <- edgeR::DGEList(data$Y)
+  edgeR_data <- edgeR::calcNormFactors(edgeR_data)
+  edgeR_data <- edgeR::estimateDisp(edgeR_data, data$X)
+  fit <- edgeR::glmFit(edgeR_data, design = data$X)
+
+  # DESeq2
+  dds <- DESeq2::DESeqDataSetFromMatrix(data$Y, colData = data.frame(name = seq_len(ncol(data$Y))),
+                                        design = ~ 1)
+  dds <- DESeq2::estimateSizeFactors(dds)
+  dds <- DESeq2::estimateDispersions(dds)
+  dds <- DESeq2::nbinomWaldTest(dds, minmu = 1e-6)
+
+  res <- glm_gp_impl(data$Y, design_matrix = data$X, size_factors = DESeq2::sizeFactors(dds),
+                     verbose = TRUE)
+  plot(res$size_factors, DESeq2::sizeFactors(dds)); abline(0,1)
+
+  plot(res$Beta_est[,1], coef(dds)[,1]  / log2(exp(1)), pch = 16, cex = 0.2, col ="red"); abline(0,1)
+  plot(res$Beta_est[,1], coef(fit)[,1]); abline(0,1)
+  plot(coef(dds)[,1]  / log2(exp(1)), coef(fit)[,1]); abline(0,1)
+
+
+  plot(res$overdispersions, SummarizedExperiment::rowData(dds)$dispGeneEst, log = "xy"); abline(0,1)
+  plot(res$overdispersions, edgeR_data$tagwise.dispersion, log = "xy"); abline(0,1)
+  plot(SummarizedExperiment::rowData(dds)$dispGeneEst, edgeR_data$tagwise.dispersion, log = "xy"); abline(0,1)
+})
+
+
+
+
+
+## More Benchmark:
+# data <- make_dataset(n_genes = 1000, n_samples = 3000)
+# profvis::profvis(
+#   glm_gp_impl(data$Y, design_matrix = data$X, verbose = TRUE)
+# )
+# bench::mark(
+#   glmGamPoi = {
+#     glm_gp_impl(data$Y, design_matrix = data$X, verbose = TRUE)
+#   # }, DESeq2 = {
+#   #   dds <- DESeq2::DESeqDataSetFromMatrix(data$Y, colData = data.frame(name = seq_len(ncol(data$Y))),
+#   #                                         design = ~ 1)
+#   #   dds <- DESeq2::estimateSizeFactors(dds)
+#   #   dds <- DESeq2::estimateDispersions(dds)
+#   #   dds <- DESeq2::nbinomWaldTest(dds, minmu = 1e-6)
+#   }, edgeR = {
+#     edgeR_data <- edgeR::DGEList(data$Y)
+#     edgeR_data <- edgeR::calcNormFactors(edgeR_data)
+#     edgeR_data <- edgeR::estimateDisp(edgeR_data, data$X)
+#     fit <- edgeR::glmFit(edgeR_data, design = data$X)
+#   }, check = FALSE
+# )
 
 
 ## Benchmark:
