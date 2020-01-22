@@ -9,6 +9,7 @@ glm_gp <- function(data, design = ~ 1,
                    size_factors = TRUE,
                    overdispersion = TRUE,
                    do_cox_reid_adjustment = TRUE,
+                   n_subsamples = min(1000, ncol(Y)),
                    verbose = FALSE){
   stop("Not yet implemented")
   # Convert the formula to a design_matrix

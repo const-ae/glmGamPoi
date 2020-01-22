@@ -7,11 +7,22 @@
 gampoi_overdispersion_mle <- function(y, mean_vector = mean(y),
                            model_matrix = matrix(1, nrow = length(y), ncol = 1),
                            do_cox_reid_adjustment = TRUE,
+                           n_subsamples = min(1000, length(y)),
                            verbose = FALSE){
 
   if(length(mean_vector) == 1){
     mean_vector <- rep(mean_vector, length(y))
   }
+  # Apply subsampling by randomly selecting elements of y and mean_vector
+  if(n_subsamples != length(y)){
+    random_sel <- sort(sample(seq_along(y), size = n_subsamples, replace = FALSE))
+    # It is important this is before subsetting y, because of lazy evaluation
+    model_matrix <- model_matrix[random_sel, , drop=FALSE]
+    y <- y[random_sel]
+    mean_vector <- mean_vector[random_sel]
+  }
+
+
   stopifnot(length(y) == length(mean_vector))
   stopifnot(all(y >= 0))
   stopifnot(all(mean_vector >= 0))
@@ -174,11 +185,15 @@ conventional_overdispersion_mle <- function(y, mean_vector,
 #'
 #' Not exported
 #' @keywords internal
-estimate_overdispersions <- function(Y, mean_matrix, model_matrix, do_cox_reid_adjustment){
+estimate_overdispersions <- function(Y, mean_matrix, model_matrix, do_cox_reid_adjustment, n_subsamples, verbose = FALSE){
+  if(n_subsamples < ncol(Y)){
+    if(verbose){ message("Subsample data to ", n_subsamples, " columns.") }
+  }
 
   vapply(seq_len(nrow(Y)), function(gene_idx){
     gampoi_overdispersion_mle(y = Y[gene_idx, ], mean_vector = mean_matrix[gene_idx, ],
-                              model_matrix = model_matrix, do_cox_reid_adjustment = do_cox_reid_adjustment)$root
+                              model_matrix = model_matrix, do_cox_reid_adjustment = do_cox_reid_adjustment,
+                              n_subsamples = n_subsamples)$root
   }, FUN.VALUE = 0.0)
 
 }

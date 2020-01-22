@@ -174,3 +174,11 @@ test_that("one value is enough to get an answer", {
 })
 
 
+test_that("subsampling works and does not affect performance too badly", {
+  y <- rnbinom(n = 1e4, mu = 5, size = 1 / 0.7)
+  r1 <- gampoi_overdispersion_mle(y = y, n_subsamples = 1e4)
+  r2 <- gampoi_overdispersion_mle(y = y, n_subsamples = 1000)
+  expect_lt(abs(r1$root - r2$root), 0.1)
+
+})
+

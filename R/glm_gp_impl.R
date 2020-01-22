@@ -9,6 +9,7 @@ glm_gp_impl <- function(Y, design_matrix,
                         size_factors = TRUE,
                         overdispersion = NULL,
                         do_cox_reid_adjustment = TRUE,
+                        n_subsamples = min(1000, ncol(Y)),
                         verbose = FALSE){
   # Error conditions
   stopifnot(is.matrix(Y))
@@ -55,7 +56,8 @@ glm_gp_impl <- function(Y, design_matrix,
   if(is.null(overdispersion)){
     if(verbose){ message("Estimate dispersion") }
     disp_est <- estimate_overdispersions(Y, Mu_est, model_matrix = design_matrix,
-                                         do_cox_reid_adjustment = TRUE)
+                                         do_cox_reid_adjustment = TRUE,
+                                         n_subsamples = n_subsamples, verbose = verbose)
   }else{
     disp_est <- disp_init
   }

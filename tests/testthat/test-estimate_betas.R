@@ -97,8 +97,8 @@ test_that("glm_gp_impl can handle all values zero", {
 test_that("glm_gp_impl works as expected", {
   skip("No workable tests here")
   # My method
-  data <- make_dataset(n_genes = 1000, n_samples = 30)
-  res <- glm_gp_impl(data$Y, design_matrix = data$X + 1e-9, verbose = TRUE)
+  data <- make_dataset(n_genes = 2000, n_samples = 30)
+  res <- glm_gp_impl(data$Y, design_matrix = data$X, verbose = TRUE)
 
   # edgeR
   edgeR_data <- edgeR::DGEList(data$Y)
