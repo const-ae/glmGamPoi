@@ -27,4 +27,5 @@ LinkingTo:
     beachmat
 Imports: 
     Rcpp,
-    pracma
+    pracma,
+    DelayedMatrixStats
