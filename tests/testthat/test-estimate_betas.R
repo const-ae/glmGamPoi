@@ -16,6 +16,20 @@ test_that("deviance calculation works", {
                r_gp_deviance(y = 0, mu = 3, theta = 0))
 })
 
+test_that("Rough estimation of Beta works", {
+
+  mat <- matrix(1:32, nrow = 8, ncol = 4)
+  model_matrix <- cbind(1, rnorm(n = 4))
+  offset_matrix <- combine_size_factors_and_offset(0, size_factors = TRUE, mat)$offset_matrix
+  b1 <- estimate_betas_roughly(mat, model_matrix, offset_matrix)
+
+  library(HDF5Array)
+  hdf5_mat <- as(mat, "HDF5Matrix")
+  hdf5_offset_matrix <- combine_size_factors_and_offset(0, size_factors = TRUE, hdf5_mat)$offset_matrix
+  b2 <- estimate_betas_roughly(hdf5_mat, model_matrix, hdf5_offset_matrix)
+  expect_equal(b1 , b2)
+})
+
 
 test_that("Beta estimation works", {
 

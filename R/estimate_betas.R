@@ -10,7 +10,7 @@ estimate_betas_roughly <- function(Y, model_matrix, offset_matrix, pseudo_count 
   R <- qr.R(qrx)
 
   norm_log_count_mat <- t(log((Y / exp(offset_matrix) + pseudo_count)))
-  t(solve(R, t(Q) %*% norm_log_count_mat))
+  t(solve(R, as.matrix(t(Q) %*% norm_log_count_mat)))
 }
 
 
