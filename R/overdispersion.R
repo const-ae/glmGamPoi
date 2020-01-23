@@ -200,19 +200,19 @@ estimate_overdispersions <- function(Y, mean_matrix, model_matrix, do_cox_reid_a
 
 
 
-
 estimate_dispersion_by_moment <- function(Y, model_matrix, offset_matrix){
-  xim <- 1/mean(matrixStats::colMeans2(exp(offset_matrix)))
-  bv <- matrixStats::rowVars(Y)
-  bm <- matrixStats::rowMeans2(Y)
+  xim <- 1/mean(DelayedMatrixStats::colMeans2(exp(offset_matrix)))
+  bv <- DelayedMatrixStats::rowVars(Y)
+  bm <- DelayedMatrixStats::rowMeans2(Y)
   (bv - xim * bm) / bm^2
 }
 
 estimate_dispersions_roughly <- function(Y, model_matrix, offset_matrix){
-  roughDisp <- DESeq2:::roughDispEstimate(y = Y / exp(offset_matrix),
-                                          x = model_matrix)
-  momentsDisp <- estimate_dispersion_by_moment(Y, model_matrix, offset_matrix)
-  disp_rough <- pmin(roughDisp, momentsDisp)
+  # roughDisp <- DESeq2:::roughDispEstimate(y = Y / exp(offset_matrix),
+  #                                         x = model_matrix)
+  moments_disp <- estimate_dispersion_by_moment(Y, model_matrix, offset_matrix)
+  # disp_rough <- pmin(roughDisp, moments_disp)
+  disp_rough <- moments_disp
   ifelse(is.na(disp_rough) | disp_rough < 0, 0, disp_rough)
 }
 
