@@ -19,7 +19,8 @@ Suggests:
     DESeq2,
     edgeR,
     beachmat,
-    DelayedArray
+    DelayedArray,
+    HDF5Array
 RoxygenNote: 6.1.1
 LinkingTo: 
     Rcpp,
