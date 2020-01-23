@@ -12,15 +12,19 @@ Description: Fit linear models to overdispersed count data.
 License: GPL-3
 Encoding: UTF-8
 LazyData: true
+SystemRequirements: C++11
 Suggests: 
     testthat (>= 2.1.0),
     zoo,
     DESeq2,
-    edgeR
+    edgeR,
+    beachmat,
+    DelayedArray
 RoxygenNote: 6.1.1
 LinkingTo: 
     Rcpp,
-    RcppArmadillo
+    RcppArmadillo,
+    beachmat
 Imports: 
     Rcpp,
     pracma
