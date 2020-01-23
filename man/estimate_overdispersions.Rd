@@ -5,7 +5,7 @@
 \title{Call gp_overdispersion_mle multiple times}
 \usage{
 estimate_overdispersions(Y, mean_matrix, model_matrix,
-  do_cox_reid_adjustment)
+  do_cox_reid_adjustment, n_subsamples, verbose = FALSE)
 }
 \description{
 Not exported

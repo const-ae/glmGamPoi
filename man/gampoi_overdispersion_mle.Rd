@@ -6,7 +6,8 @@
 \usage{
 gampoi_overdispersion_mle(y, mean_vector = mean(y),
   model_matrix = matrix(1, nrow = length(y), ncol = 1),
-  do_cox_reid_adjustment = TRUE, verbose = FALSE)
+  do_cox_reid_adjustment = TRUE, n_subsamples = min(1000, length(y)),
+  verbose = FALSE)
 }
 \description{
 Estimate a Single Overdispersion for a Vector of Counts

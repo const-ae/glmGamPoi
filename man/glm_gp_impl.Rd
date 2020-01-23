@@ -4,9 +4,9 @@
 \alias{glm_gp_impl}
 \title{Low-level Function to Fit a Gamma-Poisson GLM}
 \usage{
-glm_gp_impl(Y, design_matrix, offset = 0, size_factors = 1,
+glm_gp_impl(Y, design_matrix, offset = 0, size_factors = TRUE,
   overdispersion = NULL, do_cox_reid_adjustment = TRUE,
-  verbose = FALSE)
+  n_subsamples = min(1000, ncol(Y)), verbose = FALSE)
 }
 \description{
 Low-level Function to Fit a Gamma-Poisson GLM

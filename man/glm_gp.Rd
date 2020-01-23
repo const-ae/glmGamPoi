@@ -6,7 +6,8 @@
 \usage{
 glm_gp(data, design = ~1, col_data = NULL, reference_level = NULL,
   size_factors = TRUE, overdispersion = TRUE,
-  do_cox_reid_adjustment = TRUE, verbose = FALSE)
+  do_cox_reid_adjustment = TRUE, n_subsamples = min(1000, ncol(Y)),
+  verbose = FALSE)
 }
 \description{
 Fit a Gamma-Poisson Generalized Linear Model
