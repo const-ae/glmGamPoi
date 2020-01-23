@@ -6,10 +6,15 @@
 \usage{
 estimate_size_factors(Y)
 }
+\arguments{
+\item{Y}{any matrix-like object (\code{base::matrix()}, \code{DelayedArray}, \code{HDF5Matrix},
+  \code{Matrix::Matrix()}, etc.)
+
+
+
+Not exported}
+}
 \description{
 Estimate the Size Factors
-}
-\details{
-Not exported
 }
 \keyword{internal}

@@ -4,17 +4,19 @@
 
 #' Estimate the Size Factors
 #'
+#' @param Y any matrix-like object (\code{base::matrix()}, \code{DelayedArray}, \code{HDF5Matrix},
+#'   \code{Matrix::Matrix()}, etc.)
+#'
 #'
 #'
 #' Not exported
 #' @keywords internal
 estimate_size_factors <- function(Y){
-  stopifnot(is.matrix(Y))
-  logGeoMeans <- rowMeans(log(Y + 0.5))
-  logGeoMeans_mat <- matrix(logGeoMeans, nrow = length(logGeoMeans), ncol=ncol(Y))
+  # Accept any matrix-like object
+  log_geometric_means <- DelayedMatrixStats::rowMeans2(log(Y + 0.5))
   Y2 <- Y
   Y2[Y2 == 0] <- NA
-  sf <- exp(matrixStats::colMedians(log(Y2) - logGeoMeans_mat, na.rm=TRUE))
+  sf <- exp(DelayedMatrixStats::colMedians(subtract_vector_from_each_row(log(Y2), log_geometric_means), na.rm = TRUE))
   all_zero_column <- is.nan(sf)
   if(any(all_zero_column)){
     sf <- sf/exp(mean(log(sf), na.rm=TRUE))
