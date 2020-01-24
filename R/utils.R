@@ -4,12 +4,7 @@
 
 
 delayed_matrix_multiply <- function(x, y){
-  old_backend <- DelayedArray::getRealizationBackend()
-  DelayedArray::setRealizationBackend("HDF5Array")
-  on.exit({
-    DelayedArray::setRealizationBackend(old_backend)
-  })
-  res_sink <- RealizationSink(c(nrow(x), ncol(y)))
+  res_sink <- HDF5RealizationSink(c(nrow(x), ncol(y)))
   on.exit({
     DelayedArray::close(res_sink)
   }, add = TRUE)
