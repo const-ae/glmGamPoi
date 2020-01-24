@@ -31,6 +31,41 @@ test_that("Rough estimation of Beta works", {
 })
 
 
+test_that("Beta estimation can handle edge cases as input", {
+
+  Y <- matrix(0, nrow = 1, ncol = 10)
+  model_matrix <- matrix(1, nrow = 10, ncol = 1)
+  offset_matrix <- matrix(1, nrow = 1, ncol = 10)
+  dispersion <- rep(0, 10)
+
+
+  res <- estimate_betas_one_group(Y, offset_matrix, dispersion, beta_vec_init = c(3))
+  expect_equal(res$Beta[1,1], -Inf)
+  skip("Fisher scoring does not converge to -Inf")
+  res2 <- estimate_betas(Y, model_matrix, offset_matrix, dispersion)
+  expect_equal(res2$Beta[1,1], -Inf)
+})
+
+
+test_that("estimate_betas_one_group can handle DelayedArray", {
+
+  mat <- matrix(1:32, nrow = 8, ncol = 4)
+  offset_matrix <- combine_size_factors_and_offset(0, size_factors = TRUE, mat)$offset_matrix
+  dispersion <- rep(0, 10)
+  mat_hdf5 <-  as(mat, "HDF5Matrix")
+  offset_matrix_hdf5 <- as(offset_matrix, "HDF5Matrix")
+
+  res <- estimate_betas_one_group(mat, offset_matrix, dispersion)
+  res2 <- estimate_betas_one_group(mat_hdf5, offset_matrix_hdf5, dispersion)
+  # This check is important, because beachmat makes life difficult for
+  # handling numeric and integer input generically
+  res3 <- estimate_betas_one_group(mat * 1.0, offset_matrix, dispersion)
+  expect_equal(res, res2)
+  expect_equal(res, res3)
+
+})
+
+
 test_that("Beta estimation works", {
 
   data <- make_dataset(n_genes = 1000, n_samples = 30)

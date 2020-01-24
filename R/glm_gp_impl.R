@@ -59,6 +59,7 @@ glm_gp_impl <- function(Y, design_matrix,
                                          do_cox_reid_adjustment = TRUE,
                                          n_subsamples = n_subsamples, verbose = verbose)
   }else{
+    # Use disp_init, because it is already in vector shape
     disp_est <- disp_init
   }
 

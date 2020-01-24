@@ -1,5 +1,8 @@
 // #include <Rcpp.h>
 #include <RcppArmadillo.h>
+#include "beachmat/numeric_matrix.h"
+#include "beachmat/integer_matrix.h"
+
 
 using namespace Rcpp;
 
@@ -166,12 +169,15 @@ List fitBeta(const arma::mat& y, const arma::mat& x, const arma::mat& nf, SEXP a
 
 // If there is only one group, there is no need to do the full Fisher-scoring
 // Instead a simple Newton-Raphson algorithm will do
-// [[Rcpp::export]]
-List fitBeta_one_group(NumericMatrix Y, NumericMatrix log_offsets,
+template<class NumericType>
+List fitBeta_one_group_internal(SEXP Y_SEXP, SEXP log_offsets_SEXP,
                        NumericVector thetas, NumericVector beta_start_values,
                        double tolerance, int maxIter) {
-  int n_samples = Y.ncol();
-  int n_genes = Y.nrow();
+  auto Y_bm = beachmat::create_matrix<NumericType>(Y_SEXP);
+
+  auto log_offsets_bm = beachmat::create_numeric_matrix(log_offsets_SEXP);
+  int n_samples = Y_bm->get_ncol();
+  int n_genes = Y_bm->get_nrow();
   NumericVector result(n_genes);
   IntegerVector iterations(n_genes);
 
@@ -181,8 +187,10 @@ List fitBeta_one_group(NumericMatrix Y, NumericMatrix log_offsets,
     double beta = beta_start_values(gene_idx);
     const double& theta = thetas(gene_idx);
 
-    NumericMatrix::Row counts = Y(gene_idx, _);
-    NumericMatrix::Row log_off = log_offsets(gene_idx, _);
+    typename NumericType::vector counts(n_samples);
+    Y_bm->get_row(gene_idx, counts.begin());
+    NumericVector log_off(n_samples);
+    log_offsets_bm->get_row(gene_idx, log_off.begin());
     // Newton-Raphson
     int iter = 0;
     for(; iter < maxIter; iter++){
@@ -190,7 +198,7 @@ List fitBeta_one_group(NumericMatrix Y, NumericMatrix log_offsets,
       double ddl = 0.0;
       bool all_zero = true;
       for(int sample_iter = 0; sample_iter < n_samples; sample_iter++){
-        const int count = counts[sample_iter];
+        const auto count = counts[sample_iter];
         all_zero = all_zero && count == 0;
         const double mu = std::exp(beta + log_off[sample_iter]);
         const double denom = 1.0 + mu * theta;
@@ -217,5 +225,17 @@ List fitBeta_one_group(NumericMatrix Y, NumericMatrix log_offsets,
   );
 }
 
-
+// [[Rcpp::export(rng = false)]]
+List fitBeta_one_group(RObject Y, RObject log_offsets,
+                        NumericVector thetas, NumericVector beta_start_values,
+                        double tolerance, int maxIter) {
+  auto mattype=beachmat::find_sexp_type(Y);
+  if (mattype==INTSXP) {
+    return fitBeta_one_group_internal<beachmat::integer_matrix>(Y, log_offsets, thetas, beta_start_values, tolerance, maxIter);
+  } else if (mattype==REALSXP) {
+    return fitBeta_one_group_internal<beachmat::numeric_matrix>(Y, log_offsets, thetas, beta_start_values, tolerance, maxIter);
+  } else {
+    throw std::runtime_error("unacceptable matrix type");
+  }
+}
 

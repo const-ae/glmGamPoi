@@ -38,13 +38,12 @@ BEGIN_RCPP
 END_RCPP
 }
 // fitBeta_one_group
-List fitBeta_one_group(NumericMatrix Y, NumericMatrix log_offsets, NumericVector thetas, NumericVector beta_start_values, double tolerance, int maxIter);
+List fitBeta_one_group(RObject Y, RObject log_offsets, NumericVector thetas, NumericVector beta_start_values, double tolerance, int maxIter);
 RcppExport SEXP _glmGamPoi_fitBeta_one_group(SEXP YSEXP, SEXP log_offsetsSEXP, SEXP thetasSEXP, SEXP beta_start_valuesSEXP, SEXP toleranceSEXP, SEXP maxIterSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< NumericMatrix >::type Y(YSEXP);
-    Rcpp::traits::input_parameter< NumericMatrix >::type log_offsets(log_offsetsSEXP);
+    Rcpp::traits::input_parameter< RObject >::type Y(YSEXP);
+    Rcpp::traits::input_parameter< RObject >::type log_offsets(log_offsetsSEXP);
     Rcpp::traits::input_parameter< NumericVector >::type thetas(thetasSEXP);
     Rcpp::traits::input_parameter< NumericVector >::type beta_start_values(beta_start_valuesSEXP);
     Rcpp::traits::input_parameter< double >::type tolerance(toleranceSEXP);

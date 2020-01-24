@@ -44,8 +44,9 @@ estimate_betas <- function(Y, model_matrix, offset_matrix,
 #' @keywords internal
 estimate_betas_one_group <- function(Y, offset_matrix,  dispersion, beta_vec_init = NULL){
   if(is.null(beta_vec_init)){
-    beta_vec_init <- log(rowMeans(Y / exp(offset_matrix)))
+    beta_vec_init <- log(DelayedMatrixStats::rowMeans2(Y / exp(offset_matrix)))
   }
+  stopifnot(length(beta_vec_init) == nrow(Y))
 
   betaRes <- fitBeta_one_group(Y, offset_matrix, thetas = dispersion,
                                beta_start_values = beta_vec_init,
