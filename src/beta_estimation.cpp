@@ -39,143 +39,126 @@ double compute_gp_deviance (double y, double mu, double theta) {
 //  * remove weights
 //  * Calculate actual deviance (2 * (log(f_NB(y | mu, theta)) - log(f_NB(y | y, theta))))
 //    instead of just 2 * log(f_NB(y | mu, theta)),
+//  * Support DelayedArrays
+//  * Remove unncessary outputs: beta_mat_var, hat_diagonals, deviance
+//  * Remove beta divergence check if abs(beta) very large
 
 
-// fit the Negative Binomial GLM.
+// fit the Negative Binomial GLM with Fisher scoring
 // note: the betas are on the natural log scale
 //
-// [[Rcpp::export]]
-List fitBeta(const arma::mat& y, const arma::mat& x, const arma::mat& nf, SEXP alpha_hatSEXP, SEXP beta_matSEXP,
-             SEXP tolSEXP, SEXP maxitSEXP, SEXP minmuSEXP) {
+template<class NumericType, class BMNumericType>
+List fitBeta_fisher_scoring_impl(RObject Y, const arma::mat& model_matrix, RObject exp_offset_matrix,
+                             NumericVector thetas, SEXP beta_matSEXP,
+                             double tolerance, int max_iter) {
+  // auto Y_bm = beachmat::create_matrix<NumericType>(Y);
+  auto Y_bm = beachmat::create_matrix<BMNumericType>(Y);
+  auto exp_offsets_bm = beachmat::create_numeric_matrix(exp_offset_matrix);
+  int n_samples = Y_bm->get_ncol();
+  int n_genes = Y_bm->get_nrow();
 
-  // arma::mat nf = as<arma::mat>(nfSEXP);
-  // arma::mat x = as<arma::mat>(xSEXP);
-  int y_n = y.n_rows;
-  int y_m = y.n_cols;
-  int x_p = x.n_cols;
-  arma::vec alpha_hat = as<arma::vec>(alpha_hatSEXP);
+  // The result
   arma::mat beta_mat = as<arma::mat>(beta_matSEXP);
-  arma::mat beta_var_mat = arma::zeros(beta_mat.n_rows, beta_mat.n_cols);
-  arma::mat contrast_num = arma::zeros(beta_mat.n_rows, 1);
-  arma::mat contrast_denom = arma::zeros(beta_mat.n_rows, 1);
-  arma::mat hat_diagonals = arma::zeros(y.n_rows, y.n_cols);
-  int maxit = as<int>(maxitSEXP);
-  arma::colvec yrow, nfrow, beta_hat, mu_hat, z;
-  arma::mat sigma;
-  arma::vec w_vec, w_sqrt_vec;
-
-  arma::colvec gamma_hat, big_z;
-  arma::vec big_w_diag;
-  arma::mat weighted_x, q, r, big_w_sqrt;
+  // The QR decomposition of the model_matrix
+  arma::mat q, r;
   // deviance, convergence and tolerance
   double dev, dev_old, conv_test;
-  double tol = as<double>(tolSEXP);
-  // bound the estimated count, as weights include 1/mu
-  double minmu = as<double>(minmuSEXP);
-  double large = 30.0;
-  NumericVector iter(y_n);
-  NumericVector deviance(y_n);
-  for (int i = 0; i < y_n; i++) {
-    if (i % 100 == 0) checkUserInterrupt();
-    nfrow = nf.row(i).t();
-    yrow = y.row(i).t();
-    beta_hat = beta_mat.row(i).t();
-    mu_hat = nfrow % exp(x * beta_hat);
-    for (int j = 0; j < y_m; j++) {
-      mu_hat(j) = fmax(mu_hat(j), minmu);
-    }
+
+  // Declare beta diverged if abs larger
+  // and use value from previous iteration
+  // In DESeq2 diverged beta values are re-calculated using optim
+  // Currently not in use.
+  // double beta_divergence_threshold = 3000.0;
+
+  NumericVector iterations(n_genes);
+  NumericVector deviance(n_genes);
+  for (int gene_idx = 0; gene_idx < n_genes; gene_idx++) {
+    if (gene_idx % 100 == 0) checkUserInterrupt();
+    arma::Col<NumericType> counts(n_samples);
+    Y_bm->get_row(gene_idx, counts.begin());
+    arma::colvec exp_off(n_samples);
+    exp_offsets_bm->get_row(gene_idx, exp_off.begin());
+
+
+    arma::colvec beta_hat = beta_mat.row(gene_idx).t();
+    arma::colvec mu_hat = exp_off % exp(model_matrix * beta_hat);
+
     dev = 0.0;
     dev_old = 0.0;
 
     // make an orthonormal design matrix
-    for (int t = 0; t < maxit; t++) {
-      iter(i)++;
-      w_vec = mu_hat/(1.0 + alpha_hat(i) * mu_hat);
-      w_sqrt_vec = sqrt(w_vec);
+    for (int t = 0; t < max_iter; t++) {
+      iterations(gene_idx)++;
+      arma::vec w_vec = mu_hat/(1.0 + thetas(gene_idx) * mu_hat);
+      arma::vec w_sqrt_vec = sqrt(w_vec);
 
       // prepare matrices
-      weighted_x = x.each_col() % w_sqrt_vec;
-      qr_econ(q, r, weighted_x);
-      big_w_diag = arma::ones(y_m);
-      big_w_diag(arma::span(0, y_m - 1)) = w_vec;
-      // big_w_sqrt = diagmat(sqrt(big_w_diag));
-      z = arma::log(mu_hat / nfrow) + (yrow - mu_hat) / mu_hat;
+      arma::mat weighted_model_matrix = model_matrix.each_col() % w_sqrt_vec;
+      qr_econ(q, r, weighted_model_matrix);
+      arma::vec big_w_diag = arma::ones(n_samples);
+      big_w_diag(arma::span(0, n_samples - 1)) = w_vec;
+
+      arma::colvec z = arma::log(mu_hat / exp_off) + (counts - mu_hat) / mu_hat;
       arma::vec w_diag = w_vec;
       arma::mat z_sqrt_w = z.each_col() % sqrt(w_diag);
-      arma::colvec big_z_sqrt_w = arma::zeros(y_m);
-      big_z_sqrt_w(arma::span(0,y_m - 1)) = z_sqrt_w;
+      arma::colvec big_z_sqrt_w = arma::zeros(n_samples);
+      big_z_sqrt_w(arma::span(0,n_samples - 1)) = z_sqrt_w;
       // IRLS with Q matrix for X
-      gamma_hat = q.t() * big_z_sqrt_w;
+      arma::colvec gamma_hat = q.t() * big_z_sqrt_w;
+
       solve(beta_hat, r, gamma_hat);
-      if (sum(abs(beta_hat) > large) > 0) {
-        iter(i) = maxit;
-        break;
-      }
-      mu_hat = nfrow % exp(x * beta_hat);
-      for (int j = 0; j < y_m; j++) {
-        mu_hat(j) = fmax(mu_hat(j), minmu);
-      }
+
+      mu_hat = exp_off % exp(model_matrix * beta_hat);
       dev = 0.0;
-      for (int j = 0; j < y_m; j++) {
-        // note the order for Rf_dnbinom_mu: x, sz, mu, lg
-        // dev = dev + -2.0 * Rf_dnbinom_mu(yrow(j), 1.0/alpha_hat(i), mu_hat(j), 1);
-        dev = dev + compute_gp_deviance(yrow(j), mu_hat(j), alpha_hat(i));
+      for (int j = 0; j < n_samples; j++) {
+        dev = dev + compute_gp_deviance(counts(j), mu_hat(j), thetas(gene_idx));
       }
       conv_test = fabs(dev - dev_old)/(fabs(dev) + 0.1);
       if (std::isnan(conv_test)) {
-        iter(i) = maxit;
+        beta_hat.fill(NA_REAL);
+        iterations(gene_idx) = max_iter;
         break;
       }
-      if ((t > 0) & (conv_test < tol)) {
+      if ((t > 0) & (conv_test < tolerance)) {
         break;
       }
       dev_old = dev;
     }
 
-    deviance(i) = dev;
-    beta_mat.row(i) = beta_hat.t();
-    // recalculate w so that this is identical if we start with beta_hat
-    w_vec = mu_hat/(1.0 + alpha_hat(i) * mu_hat);
-    w_sqrt_vec = sqrt(w_vec);
-
-    arma::vec hat_matrix_diag = arma::zeros(x.n_rows);
-    arma::mat xw = x.each_col() % w_sqrt_vec;
-    arma::mat xtwxr_inv = (x.t() * (x.each_col() % w_vec)).i();
-
-    // Verbose, but fast way to get diagonal of:
-    // hat_matrix = xw * xtwxr_inv * xw.t() ;
-    for(int jp = 0; jp < y_m; jp++){
-      for(int idx1 = 0; idx1 < x_p; idx1++){
-        for(int idx2 = 0; idx2 < x_p; idx2++){
-          hat_matrix_diag(jp) += xw(jp, idx1) * (xw(jp, idx2) * xtwxr_inv(idx2, idx1));
-        }
-      }
-    }
-    hat_diagonals.row(i) = hat_matrix_diag.t();
-    // sigma is the covariance matrix for the betas
-    sigma = (x.t() * (x.each_col() % w_vec)).i() * x.t() * (x.each_col() % w_vec) * (x.t() * (x.each_col() % w_vec)).i();
-    beta_var_mat.row(i) = diagvec(sigma).t();
+    beta_mat.row(gene_idx) = beta_hat.t();
   }
 
-  return List::create(Named("beta_mat",beta_mat),
-                      Named("beta_var_mat",beta_var_mat),
-                      Named("iter",iter),
-                      Named("hat_diagonals",hat_diagonals),
-                      Named("deviance",deviance));
+  return List::create(
+    Named("beta_mat", beta_mat),
+    Named("iter", iterations));
 }
 
+
+// [[Rcpp::export]]
+List fitBeta_fisher_scoring(RObject Y, const arma::mat& model_matrix, RObject exp_offset_matrix,
+                                  NumericVector thetas, SEXP beta_matSEXP,
+                                  double tolerance, int max_iter) {
+  auto mattype=beachmat::find_sexp_type(Y);
+  if (mattype==INTSXP) {
+    return fitBeta_fisher_scoring_impl<int, beachmat::integer_matrix>(Y, model_matrix, exp_offset_matrix, thetas,  beta_matSEXP, tolerance, max_iter);
+  } else if (mattype==REALSXP) {
+    return fitBeta_fisher_scoring_impl<double, beachmat::numeric_matrix>(Y, model_matrix, exp_offset_matrix, thetas,  beta_matSEXP, tolerance, max_iter);
+  } else {
+    throw std::runtime_error("unacceptable matrix type");
+  }
+}
 
 
 
 // If there is only one group, there is no need to do the full Fisher-scoring
 // Instead a simple Newton-Raphson algorithm will do
 template<class NumericType>
-List fitBeta_one_group_internal(SEXP Y_SEXP, SEXP log_offsets_SEXP,
+List fitBeta_one_group_internal(SEXP Y_SEXP, SEXP offsets_SEXP,
                        NumericVector thetas, NumericVector beta_start_values,
                        double tolerance, int maxIter) {
   auto Y_bm = beachmat::create_matrix<NumericType>(Y_SEXP);
 
-  auto log_offsets_bm = beachmat::create_numeric_matrix(log_offsets_SEXP);
+  auto offsets_bm = beachmat::create_numeric_matrix(offsets_SEXP);
   int n_samples = Y_bm->get_ncol();
   int n_genes = Y_bm->get_nrow();
   NumericVector result(n_genes);
@@ -189,8 +172,8 @@ List fitBeta_one_group_internal(SEXP Y_SEXP, SEXP log_offsets_SEXP,
 
     typename NumericType::vector counts(n_samples);
     Y_bm->get_row(gene_idx, counts.begin());
-    NumericVector log_off(n_samples);
-    log_offsets_bm->get_row(gene_idx, log_off.begin());
+    NumericVector off(n_samples);
+    offsets_bm->get_row(gene_idx, off.begin());
     // Newton-Raphson
     int iter = 0;
     for(; iter < maxIter; iter++){
@@ -200,7 +183,7 @@ List fitBeta_one_group_internal(SEXP Y_SEXP, SEXP log_offsets_SEXP,
       for(int sample_iter = 0; sample_iter < n_samples; sample_iter++){
         const auto count = counts[sample_iter];
         all_zero = all_zero && count == 0;
-        const double mu = std::exp(beta + log_off[sample_iter]);
+        const double mu = std::exp(beta + off[sample_iter]);
         const double denom = 1.0 + mu * theta;
         dl += (count - mu) / denom;
         ddl += mu * (1.0 + count * theta) / denom / denom;
@@ -226,14 +209,14 @@ List fitBeta_one_group_internal(SEXP Y_SEXP, SEXP log_offsets_SEXP,
 }
 
 // [[Rcpp::export(rng = false)]]
-List fitBeta_one_group(RObject Y, RObject log_offsets,
+List fitBeta_one_group(RObject Y, RObject offset_matrix,
                         NumericVector thetas, NumericVector beta_start_values,
                         double tolerance, int maxIter) {
   auto mattype=beachmat::find_sexp_type(Y);
   if (mattype==INTSXP) {
-    return fitBeta_one_group_internal<beachmat::integer_matrix>(Y, log_offsets, thetas, beta_start_values, tolerance, maxIter);
+    return fitBeta_one_group_internal<beachmat::integer_matrix>(Y, offset_matrix, thetas, beta_start_values, tolerance, maxIter);
   } else if (mattype==REALSXP) {
-    return fitBeta_one_group_internal<beachmat::numeric_matrix>(Y, log_offsets, thetas, beta_start_values, tolerance, maxIter);
+    return fitBeta_one_group_internal<beachmat::numeric_matrix>(Y, offset_matrix, thetas, beta_start_values, tolerance, maxIter);
   } else {
     throw std::runtime_error("unacceptable matrix type");
   }

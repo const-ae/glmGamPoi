@@ -18,7 +18,7 @@ estimate_betas_roughly <- function(Y, model_matrix, offset_matrix, pseudo_count 
 #'
 #'
 #' @keywords internal
-estimate_betas <- function(Y, model_matrix, offset_matrix,
+estimate_betas_fisher_scoring <- function(Y, model_matrix, offset_matrix,
                            dispersions = NULL, beta_mat_init = NULL){
 
   if(is.null(beta_mat_init)){
@@ -30,8 +30,8 @@ estimate_betas <- function(Y, model_matrix, offset_matrix,
   }
 
 
-  betaRes <- fitBeta(Y, model_matrix, exp(offset_matrix), dispersions, beta_mat_init,
-          tolSEXP = 1e-8, maxitSEXP =  100, minmuSEXP = 1e-6)
+  betaRes <- fitBeta_fisher_scoring(Y, model_matrix, exp(offset_matrix), dispersions, beta_mat_init,
+                                    tolerance = 1e-8, max_iter =  100)
 
   list(Beta = betaRes$beta_mat, iterations = betaRes$iter)
 }

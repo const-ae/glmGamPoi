@@ -65,6 +65,22 @@ test_that("estimate_betas_one_group can handle DelayedArray", {
 
 })
 
+test_that("estimate_betas_fisher_scoring can handle DelayedArray", {
+
+  mat <- matrix(1:32, nrow = 8, ncol = 4)
+  design_matrix <- cbind(1, rnorm(4, mean = 10))
+  offset_matrix <- combine_size_factors_and_offset(0, size_factors = TRUE, mat)$offset_matrix
+  dispersion <- rep(0, 10)
+  mat_hdf5 <-  as(mat, "HDF5Matrix")
+  offset_matrix_hdf5 <- as(offset_matrix, "HDF5Matrix")
+
+  res <- estimate_betas_fisher_scoring(mat, design_matrix, offset_matrix, dispersion)
+  res2 <- estimate_betas_fisher_scoring(mat_hdf5, design_matrix, offset_matrix_hdf5, dispersion)
+  res3 <- estimate_betas_fisher_scoring(mat * 1.0, design_matrix, offset_matrix, dispersion)
+  expect_equal(res, res2)
+  expect_equal(res, res3)
+})
+
 
 test_that("Beta estimation works", {
 
@@ -72,8 +88,8 @@ test_that("Beta estimation works", {
   offset_matrix <- matrix(log(data$size_factor), nrow=nrow(data$Y), ncol = ncol(data$Y), byrow = TRUE)
 
   # Fit Standard Model
-  my_res <- estimate_betas(Y = data$Y, model_matrix = data$X, offset_matrix = offset_matrix,
-                          dispersion = data$overdispersion)
+  my_res <- estimate_betas_fisher_scoring(Y = data$Y, model_matrix = data$X, offset_matrix = offset_matrix,
+                                          dispersion = data$overdispersion)
 
   # Fit Model for One Group
   my_res2 <- estimate_betas_one_group(Y = data$Y, offset_matrix = offset_matrix,
@@ -175,6 +191,8 @@ test_that("glm_gp_impl works as expected", {
   plot(res$overdispersions, edgeR_data$tagwise.dispersion, log = "xy"); abline(0,1)
   plot(SummarizedExperiment::rowData(dds)$dispGeneEst, edgeR_data$tagwise.dispersion, log = "xy"); abline(0,1)
 })
+
+
 
 
 

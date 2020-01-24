@@ -5,12 +5,12 @@ compute_gp_deviance <- function(y, mu, theta) {
     .Call(`_glmGamPoi_compute_gp_deviance`, y, mu, theta)
 }
 
-fitBeta <- function(y, x, nf, alpha_hatSEXP, beta_matSEXP, tolSEXP, maxitSEXP, minmuSEXP) {
-    .Call(`_glmGamPoi_fitBeta`, y, x, nf, alpha_hatSEXP, beta_matSEXP, tolSEXP, maxitSEXP, minmuSEXP)
+fitBeta_fisher_scoring <- function(Y, model_matrix, exp_offset_matrix, thetas, beta_matSEXP, tolerance, max_iter) {
+    .Call(`_glmGamPoi_fitBeta_fisher_scoring`, Y, model_matrix, exp_offset_matrix, thetas, beta_matSEXP, tolerance, max_iter)
 }
 
-fitBeta_one_group <- function(Y, log_offsets, thetas, beta_start_values, tolerance, maxIter) {
-    .Call(`_glmGamPoi_fitBeta_one_group`, Y, log_offsets, thetas, beta_start_values, tolerance, maxIter)
+fitBeta_one_group <- function(Y, offset_matrix, thetas, beta_start_values, tolerance, maxIter) {
+    .Call(`_glmGamPoi_fitBeta_one_group`, Y, offset_matrix, thetas, beta_start_values, tolerance, maxIter)
 }
 
 makeCumSumLookupVector <- function(y) {
