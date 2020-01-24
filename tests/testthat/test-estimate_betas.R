@@ -194,7 +194,19 @@ test_that("glm_gp_impl works as expected", {
 
 
 
+test_that("glm_gp_impl works with Delayed Input", {
+  skip("No workable tests here")
+  # My method
+  data <- make_dataset(n_genes = 2000, n_samples = 30)
+  Y_da <- HDF5Array::writeHDF5Array(data$Y)
+  res <- glm_gp_impl(data$Y, design_matrix = data$X, verbose = TRUE)
+  res2 <- glm_gp_impl(Y_da, design_matrix = data$X, verbose = TRUE)
 
+  expect_equal(res$Beta_est, res2$Beta_est)
+  expect_equal(res$overdispersions, res2$overdispersions)
+  expect_equal(res$Mu_est, as.matrix(res2$Mu_est))
+  expect_equal(res$size_factors, res2$size_factors)
+})
 
 
 

@@ -12,7 +12,7 @@ glm_gp_impl <- function(Y, design_matrix,
                         n_subsamples = min(1000, ncol(Y)),
                         verbose = FALSE){
   # Error conditions
-  stopifnot(is.matrix(Y))
+  # stopifnot(is.matrix(Y))
   stopifnot(is.matrix(design_matrix) && nrow(design_matrix) == ncol(Y))
 
   # Combine offset and size factor
@@ -75,7 +75,7 @@ glm_gp_impl <- function(Y, design_matrix,
   }
 
   # Calculate corresponding predictions
-  mu_mat <- exp(Beta_est %*% t(design_matrix) + offset_matrix)
+  Mu_est <- calculate_mu(Beta_est, design_matrix, offset_matrix)
 
   # Return everything
   list(Beta_est = Beta_est, overdispersions = disp_est,
