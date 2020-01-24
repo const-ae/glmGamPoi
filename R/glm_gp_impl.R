@@ -50,7 +50,8 @@ glm_gp_impl <- function(Y, design_matrix,
   }
 
   # Calculate corresponding predictions
-  Mu_est <- exp(Beta_est %*% t(design_matrix) + offset_matrix)
+  # Mu_est <- exp(Beta_est %*% t(design_matrix) + offset_matrix)
+  Mu_est <- calculate_mu(Beta_est, design_matrix, offset_matrix)
 
   # Make estimate of over-disperion
   if(is.null(overdispersion)){
