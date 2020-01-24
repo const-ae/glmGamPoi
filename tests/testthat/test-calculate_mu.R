@@ -27,7 +27,7 @@ test_that("calculating mu with DelayedArrays works properly", {
 
   Beta_da <- DelayedArray::DelayedArray(Beta)
   design_matrix_da <- DelayedArray::DelayedArray(design_matrix)
-  offset_matrix_hdf5 <- HDF5Array::writeHDF5Array(offset_matrix, "HDF5Matrix")
+  offset_matrix_hdf5 <- HDF5Array::writeHDF5Array(offset_matrix)
   mu2 <- calculate_mu(Beta_da, design_matrix_da, offset_matrix_hdf5)
 
   expect_equal(mu, as.matrix(mu2))

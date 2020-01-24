@@ -4,12 +4,12 @@
 
 
 delayed_matrix_multiply <- function(x, y){
-  res_sink <- HDF5RealizationSink(c(nrow(x), ncol(y)))
+  res_sink <- HDF5Array::HDF5RealizationSink(c(nrow(x), ncol(y)))
   on.exit({
     DelayedArray::close(res_sink)
   }, add = TRUE)
 
-  res_grid <- blockGrid(res_sink)
+  res_grid <- DelayedArray::blockGrid(res_sink)
 
   row_ticks <- cumsum(sapply(seq_len(dim(res_grid)[1]), function(idx){
     dim(res_grid[[idx, 1L]])[1]
@@ -20,20 +20,20 @@ delayed_matrix_multiply <- function(x, y){
 
 
 
-  x_grid <- ArbitraryArrayGrid(tickmarks = list(row_ticks, ncol(x)))
-  y_grid <- ArbitraryArrayGrid(tickmarks = list(nrow(y), col_ticks))
+  x_grid <- DelayedArray::ArbitraryArrayGrid(tickmarks = list(row_ticks, ncol(x)))
+  y_grid <- DelayedArray::ArbitraryArrayGrid(tickmarks = list(nrow(y), col_ticks))
 
 
   for (coord1 in seq_len(ncol(res_grid))) {
     for(coord2 in seq_len(nrow(res_grid))){
-      x_block <- read_block(x, x_grid[[coord2]])
-      y_block <- read_block(y, y_grid[[coord1]])
+      x_block <- DelayedArray::read_block(x, x_grid[[coord2]])
+      y_block <- DelayedArray::read_block(y, y_grid[[coord1]])
       res_block <- x_block %*% y_block
-      write_block(res_sink, res_grid[[coord2, coord1]], res_block)
+      DelayedArray::write_block(res_sink, res_grid[[coord2, coord1]], res_block)
     }
   }
 
- as(res_sink, "DelayedArray")
+  as(res_sink, "DelayedArray")
 }
 
 

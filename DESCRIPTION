@@ -18,9 +18,7 @@ Suggests:
     zoo,
     DESeq2,
     edgeR,
-    beachmat,
-    DelayedArray,
-    HDF5Array
+    beachmat
 RoxygenNote: 6.1.1
 LinkingTo: 
     Rcpp,
@@ -29,4 +27,6 @@ LinkingTo:
 Imports: 
     Rcpp,
     pracma,
-    DelayedMatrixStats
+    DelayedMatrixStats,
+    DelayedArray,
+    HDF5Array
