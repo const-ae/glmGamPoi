@@ -37,3 +37,7 @@ conventional_deriv_score_function_fast <- function(y, mu, log_theta, model_matri
     .Call(`_glmGamPoi_conventional_deriv_score_function_fast`, y, mu, log_theta, model_matrix, do_cr_adj)
 }
 
+estimate_overdispersions_fast <- function(Y, mean_matrix, model_matrix, do_cox_reid_adjustment, n_subsamples) {
+    .Call(`_glmGamPoi_estimate_overdispersions_fast`, Y, mean_matrix, model_matrix, do_cox_reid_adjustment, n_subsamples)
+}
+

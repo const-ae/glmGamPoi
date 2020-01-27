@@ -1,5 +1,7 @@
 // #include <Rcpp.h>
 #include <RcppArmadillo.h>
+#include "beachmat/numeric_matrix.h"
+#include "beachmat/integer_matrix.h"
 
 using namespace Rcpp;
 
@@ -186,3 +188,45 @@ double conventional_deriv_score_function_fast(NumericVector y, NumericVector mu,
 }
 
 
+template<class NumericType>
+NumericVector estimate_overdispersions_fast_internal(RObject Y, RObject mean_matrix, NumericMatrix model_matrix, bool do_cox_reid_adjustment,
+                                       int n_subsamples){
+  auto Y_bm = beachmat::create_matrix<NumericType>(Y);
+  auto mean_mat_bm = beachmat::create_numeric_matrix(mean_matrix);
+  int n_samples = Y_bm->get_ncol();
+  int n_genes = Y_bm->get_nrow();
+  NumericVector result(n_genes);
+  if(n_genes != mean_mat_bm->get_nrow() || n_samples != mean_mat_bm->get_ncol()){
+    throw std::runtime_error("Dimensions of Y and mean_matrix do not match");
+  }
+
+  // This is calling back to R, which simplifies my code a lot
+  Function gampoi_overdispersion_mle("gampoi_overdispersion_mle");
+
+  for(int gene_idx = 0; gene_idx < n_genes; gene_idx++){
+    if (gene_idx % 100 == 0) checkUserInterrupt();
+    typename NumericType::vector counts(n_samples);
+    Y_bm->get_row(gene_idx, counts.begin());
+    NumericVector mu(n_samples);
+    mean_mat_bm->get_row(gene_idx, mu.begin());
+
+    SEXP dispRes = gampoi_overdispersion_mle(counts, mu, model_matrix, do_cox_reid_adjustment, n_subsamples);
+    SEXP disp = Rcpp::as<List>(dispRes)["root"];
+    result(gene_idx) = Rcpp::as<double>(disp);
+  }
+
+  return result;
+}
+
+// [[Rcpp::export]]
+NumericVector estimate_overdispersions_fast(RObject Y, RObject mean_matrix, NumericMatrix model_matrix, bool do_cox_reid_adjustment,
+                              int n_subsamples){
+  auto mattype=beachmat::find_sexp_type(Y);
+  if (mattype==INTSXP) {
+    return estimate_overdispersions_fast_internal<beachmat::integer_matrix>(Y, mean_matrix, model_matrix, do_cox_reid_adjustment, n_subsamples);
+  } else if (mattype==REALSXP) {
+    return estimate_overdispersions_fast_internal<beachmat::numeric_matrix>(Y, mean_matrix, model_matrix, do_cox_reid_adjustment, n_subsamples);
+  } else {
+    throw std::runtime_error("unacceptable matrix type");
+  }
+}

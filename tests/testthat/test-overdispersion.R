@@ -182,3 +182,47 @@ test_that("subsampling works and does not affect performance too badly", {
 
 })
 
+
+
+test_that("DelayedArrays are handled efficiently", {
+  n_genes <- 100
+  n_samples <- 40
+  model_matrix <- matrix(1, nrow = n_samples, ncol = 1)
+  mat <- matrix(seq_len(n_genes * n_samples), nrow = n_genes, ncol = n_samples)
+  mat_hdf5 <-  as(mat, "HDF5Matrix")
+  offset_matrix <- combine_size_factors_and_offset(TRUE, 1, mat_hdf5)$offset_matrix
+  dispersions <- estimate_dispersions_roughly(mat_hdf5, model_matrix, offset_matrix)
+
+  beta_vec_init <- estimate_betas_roughly_one_group(mat_hdf5, offset_matrix)
+  Betas <- estimate_betas_one_group(mat_hdf5, offset_matrix, dispersions, beta_vec_init)$Beta
+  mean_matrix <- calculate_mu(Betas, model_matrix, offset_matrix)
+  mean_matrix_ram <- as.matrix(mean_matrix)
+
+
+  disp_est_r_ram <- vapply(seq_len(n_genes), function(gene_idx){
+    gampoi_overdispersion_mle(y = mat_hdf5[gene_idx, ], mean_vector = mean_matrix[gene_idx, ],
+                              model_matrix = model_matrix, do_cox_reid_adjustment = TRUE,
+                              n_subsamples = n_samples)$root
+  }, FUN.VALUE = 0.0)
+  disp_est_r_hdf5 <- vapply(seq_len(n_genes), function(gene_idx){
+    gampoi_overdispersion_mle(y = mat_hdf5[gene_idx, ], mean_vector = mean_matrix[gene_idx, ],
+                              model_matrix = model_matrix, do_cox_reid_adjustment = TRUE,
+                              n_subsamples = n_samples)$root
+  }, FUN.VALUE = 0.0)
+
+  beachmat_ram <- estimate_overdispersions_fast(mat, mean_matrix_ram, model_matrix,
+                                  do_cox_reid_adjustment = TRUE, n_subsamples = n_samples)
+  beachmat_hdf5 <- estimate_overdispersions_fast(mat_hdf5, mean_matrix, model_matrix,
+                                  do_cox_reid_adjustment = TRUE, n_subsamples = n_samples)
+
+  expect_equal(disp_est_r_ram, disp_est_r_hdf5)
+  expect_equal(disp_est_r_ram, beachmat_ram)
+  expect_equal(disp_est_r_ram, beachmat_hdf5)
+})
+
+
+
+
+
+
+

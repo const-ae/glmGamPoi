@@ -181,23 +181,6 @@ conventional_overdispersion_mle <- function(y, mean_vector,
 
 
 
-#' Call gp_overdispersion_mle multiple times
-#'
-#' Not exported
-#' @keywords internal
-estimate_overdispersions <- function(Y, mean_matrix, model_matrix, do_cox_reid_adjustment, n_subsamples, verbose = FALSE){
-  if(n_subsamples < ncol(Y)){
-    if(verbose){ message("Subsample data to ", n_subsamples, " columns.") }
-  }
-
-  vapply(seq_len(nrow(Y)), function(gene_idx){
-    gampoi_overdispersion_mle(y = Y[gene_idx, ], mean_vector = mean_matrix[gene_idx, ],
-                              model_matrix = model_matrix, do_cox_reid_adjustment = do_cox_reid_adjustment,
-                              n_subsamples = n_subsamples)$root
-  }, FUN.VALUE = 0.0)
-
-}
-
 
 
 estimate_dispersions_by_moment <- function(Y, model_matrix, offset_matrix){
@@ -215,4 +198,31 @@ estimate_dispersions_roughly <- function(Y, model_matrix, offset_matrix){
   disp_rough <- moments_disp
   ifelse(is.na(disp_rough) | disp_rough < 0, 0, disp_rough)
 }
+
+
+
+#' Call gp_overdispersion_mle multiple times
+#'
+#' Not exported
+#' @keywords internal
+estimate_overdispersions <- function(Y, mean_matrix, model_matrix, do_cox_reid_adjustment, n_subsamples, verbose = FALSE){
+  if(n_subsamples < ncol(Y)){
+    if(verbose){ message("Subsample data to ", n_subsamples, " columns.") }
+  }
+
+  ## The estimate_overdispersions_fast() method is actually just doing the same
+  ## as this vapply loop. However, the beachmat caching (?) is speeding up the procedure
+  ## for HDF5 backed matrices by a factor of 50 and gives almost equivalent speed to in RAM
+  ## methods.
+  # vapply(seq_len(nrow(Y)), function(gene_idx){
+  #   gampoi_overdispersion_mle(y = Y[gene_idx, ], mean_vector = mean_matrix[gene_idx, ],
+  #                             model_matrix = model_matrix, do_cox_reid_adjustment = do_cox_reid_adjustment,
+  #                             n_subsamples = n_subsamples)$root
+  # }, FUN.VALUE = 0.0)
+  estimate_overdispersions_fast(Y, mean_matrix, model_matrix, do_cox_reid_adjustment, n_subsamples)
+
+}
+
+
+
 
