@@ -4,7 +4,7 @@
 #' Low-level Function to Fit a Gamma-Poisson GLM
 #'
 #' @export
-glm_gp_impl <- function(Y, design_matrix,
+glm_gp_impl <- function(Y, model_matrix,
                         offset = 0,
                         size_factors = TRUE,
                         overdispersion = NULL,
@@ -12,8 +12,8 @@ glm_gp_impl <- function(Y, design_matrix,
                         n_subsamples = min(1000, ncol(Y)),
                         verbose = FALSE){
   # Error conditions
-  # stopifnot(is.matrix(Y))
-  stopifnot(is.matrix(design_matrix) && nrow(design_matrix) == ncol(Y))
+  stopifnot(is.matrix(Y) || is(Y, "DelayedArray"))
+  stopifnot(is.matrix(model_matrix) && nrow(model_matrix) == ncol(Y))
 
   # Combine offset and size factor
   off_and_sf <- combine_size_factors_and_offset(offset, size_factors, Y, verbose = verbose)
@@ -21,12 +21,12 @@ glm_gp_impl <- function(Y, design_matrix,
   size_factors <- off_and_sf$size_factors
 
   # Decide if there is only the intercept
-  only_intercept_model <- ncol(design_matrix) == 1 && all(design_matrix == 1)
+  only_intercept_model <- ncol(model_matrix) == 1 && all(model_matrix == 1)
 
   # If no overdispersion, make rough first estimate
   if(is.null(overdispersion)){
     if(verbose){ message("Make initial dispersion estimate") }
-    disp_init <- estimate_dispersions_roughly(Y, design_matrix, offset_matrix = offset_matrix)
+    disp_init <- estimate_dispersions_roughly(Y, model_matrix, offset_matrix = offset_matrix)
   }else{
     stopifnot(is.numeric(overdispersion) && (length(overdispersion) == 1 || length(overdispersion) == nrow(Y)))
     if(length(overdispersion) == 1){
@@ -68,14 +68,14 @@ glm_gp_impl <- function(Y, design_matrix,
   if(verbose){ message("Estimate beta again") }
   if(only_intercept_model){
     Beta_est <- estimate_betas_one_group(Y, offset_matrix = offset_matrix,
-                                         dispersion = disp_est, beta_vec_init = Beta_est[,1])$Beta
+                                         dispersions = disp_est, beta_vec_init = Beta_est[,1])$Beta
   }else{
-    Beta_est <- estimate_betas(Y, model_matrix = design_matrix, offset_matrix = offset_matrix,
-                               dispersion = disp_est, beta_mat_init = Beta_est)$Beta
+    Beta_est <- estimate_betas_fisher_scoring(Y, model_matrix = model_matrix, offset_matrix = offset_matrix,
+                                              dispersions = disp_est, beta_mat_init = Beta_est)$Beta
   }
 
   # Calculate corresponding predictions
-  Mu_est <- calculate_mu(Beta_est, design_matrix, offset_matrix)
+  Mu_est <- calculate_mu(Beta_est, model_matrix, offset_matrix)
 
   # Return everything
   list(Beta_est = Beta_est, overdispersions = disp_est,

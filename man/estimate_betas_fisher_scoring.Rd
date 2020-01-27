@@ -4,8 +4,8 @@
 \alias{estimate_betas_fisher_scoring}
 \title{Estimate the Betas for Fixed Dispersions}
 \usage{
-estimate_betas_fisher_scoring(Y, model_matrix, offset_matrix,
-  dispersions = NULL, beta_mat_init = NULL)
+estimate_betas_fisher_scoring(Y, model_matrix, offset_matrix, dispersions,
+  beta_mat_init)
 }
 \description{
 Estimate the Betas for Fixed Dispersions

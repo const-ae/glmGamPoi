@@ -36,13 +36,14 @@ test_that("Beta estimation can handle edge cases as input", {
   Y <- matrix(0, nrow = 1, ncol = 10)
   model_matrix <- matrix(1, nrow = 10, ncol = 1)
   offset_matrix <- matrix(1, nrow = 1, ncol = 10)
-  dispersion <- rep(0, 10)
+  dispersion <- 0
 
 
   res <- estimate_betas_one_group(Y, offset_matrix, dispersion, beta_vec_init = c(3))
   expect_equal(res$Beta[1,1], -Inf)
+  beta_mat_init <- estimate_betas_roughly(Y, model_matrix, offset_matrix)
+  res2 <- estimate_betas_fisher_scoring(Y, model_matrix, offset_matrix, dispersion, beta_mat_init)
   skip("Fisher scoring does not converge to -Inf")
-  res2 <- estimate_betas(Y, model_matrix, offset_matrix, dispersion)
   expect_equal(res2$Beta[1,1], -Inf)
 })
 
@@ -51,15 +52,18 @@ test_that("estimate_betas_one_group can handle DelayedArray", {
 
   mat <- matrix(1:32, nrow = 8, ncol = 4)
   offset_matrix <- combine_size_factors_and_offset(0, size_factors = TRUE, mat)$offset_matrix
-  dispersion <- rep(0, 10)
+  dispersions <- rep(0, 8)
   mat_hdf5 <-  as(mat, "HDF5Matrix")
   offset_matrix_hdf5 <- as(offset_matrix, "HDF5Matrix")
 
-  res <- estimate_betas_one_group(mat, offset_matrix, dispersion)
-  res2 <- estimate_betas_one_group(mat_hdf5, offset_matrix_hdf5, dispersion)
+  beta_vec_init <- estimate_betas_roughly_one_group(mat, offset_matrix)
+  beta_vec_init_da <- estimate_betas_roughly_one_group(mat_hdf5, offset_matrix_hdf5)
+
+  res <- estimate_betas_one_group(mat, offset_matrix, dispersions, beta_vec_init)
+  res2 <- estimate_betas_one_group(mat_hdf5, offset_matrix_hdf5, dispersions, beta_vec_init_da)
   # This check is important, because beachmat makes life difficult for
   # handling numeric and integer input generically
-  res3 <- estimate_betas_one_group(mat * 1.0, offset_matrix, dispersion)
+  res3 <- estimate_betas_one_group(mat * 1.0, offset_matrix, dispersions, beta_vec_init)
   expect_equal(res, res2)
   expect_equal(res, res3)
 
@@ -68,15 +72,19 @@ test_that("estimate_betas_one_group can handle DelayedArray", {
 test_that("estimate_betas_fisher_scoring can handle DelayedArray", {
 
   mat <- matrix(1:32, nrow = 8, ncol = 4)
-  design_matrix <- cbind(1, rnorm(4, mean = 10))
+  model_matrix <- cbind(1, rnorm(4, mean = 10))
   offset_matrix <- combine_size_factors_and_offset(0, size_factors = TRUE, mat)$offset_matrix
-  dispersion <- rep(0, 10)
+  dispersions <- rep(0, 8)
   mat_hdf5 <-  as(mat, "HDF5Matrix")
   offset_matrix_hdf5 <- as(offset_matrix, "HDF5Matrix")
 
-  res <- estimate_betas_fisher_scoring(mat, design_matrix, offset_matrix, dispersion)
-  res2 <- estimate_betas_fisher_scoring(mat_hdf5, design_matrix, offset_matrix_hdf5, dispersion)
-  res3 <- estimate_betas_fisher_scoring(mat * 1.0, design_matrix, offset_matrix, dispersion)
+  beta_mat_init <- estimate_betas_roughly(mat, model_matrix, offset_matrix)
+  beta_mat_init_da <- estimate_betas_roughly(mat_hdf5, model_matrix, offset_matrix_hdf5)
+
+
+  res <- estimate_betas_fisher_scoring(mat, model_matrix, offset_matrix, dispersions, beta_mat_init)
+  res2 <- estimate_betas_fisher_scoring(mat_hdf5, model_matrix, offset_matrix_hdf5, dispersions, beta_mat_init_da)
+  res3 <- estimate_betas_fisher_scoring(mat * 1.0, model_matrix, offset_matrix, dispersions, beta_mat_init)
   expect_equal(res, res2)
   expect_equal(res, res3)
 })
@@ -88,12 +96,14 @@ test_that("Beta estimation works", {
   offset_matrix <- matrix(log(data$size_factor), nrow=nrow(data$Y), ncol = ncol(data$Y), byrow = TRUE)
 
   # Fit Standard Model
+  beta_mat_init <- estimate_betas_roughly(Y = data$Y, model_matrix = data$X, offset_matrix = offset_matrix)
   my_res <- estimate_betas_fisher_scoring(Y = data$Y, model_matrix = data$X, offset_matrix = offset_matrix,
-                                          dispersion = data$overdispersion)
+                                          dispersions = data$overdispersion, beta_mat_init = beta_mat_init)
 
   # Fit Model for One Group
+  beta_vec_init <- estimate_betas_roughly_one_group(Y = data$Y, offset_matrix = offset_matrix)
   my_res2 <- estimate_betas_one_group(Y = data$Y, offset_matrix = offset_matrix,
-                                      dispersion = data$overdispersion)
+                                      dispersions = data$overdispersion, beta_vec_init = beta_vec_init)
 
   expect_equal(my_res$Beta, my_res2$Beta, tolerance = 1e-6)
   expect_lt(max(my_res2$iterations), 10)
@@ -163,7 +173,7 @@ test_that("glm_gp_impl works as expected", {
   skip("No workable tests here")
   # My method
   data <- make_dataset(n_genes = 2000, n_samples = 30)
-  res <- glm_gp_impl(data$Y, design_matrix = data$X, verbose = TRUE)
+  res <- glm_gp_impl(data$Y, model_matrix = data$X, verbose = TRUE)
 
   # edgeR
   edgeR_data <- edgeR::DGEList(data$Y)
@@ -178,7 +188,7 @@ test_that("glm_gp_impl works as expected", {
   dds <- DESeq2::estimateDispersions(dds)
   dds <- DESeq2::nbinomWaldTest(dds, minmu = 1e-6)
 
-  res <- glm_gp_impl(data$Y, design_matrix = data$X, size_factors = DESeq2::sizeFactors(dds),
+  res <- glm_gp_impl(data$Y, model_matrix = data$X, size_factors = DESeq2::sizeFactors(dds),
                      verbose = TRUE)
   plot(res$size_factors, DESeq2::sizeFactors(dds)); abline(0,1)
 
@@ -195,12 +205,11 @@ test_that("glm_gp_impl works as expected", {
 
 
 test_that("glm_gp_impl works with Delayed Input", {
-  skip("No workable tests here")
   # My method
   data <- make_dataset(n_genes = 2000, n_samples = 30)
   Y_da <- HDF5Array::writeHDF5Array(data$Y)
-  res <- glm_gp_impl(data$Y, design_matrix = data$X, verbose = TRUE)
-  res2 <- glm_gp_impl(Y_da, design_matrix = data$X, verbose = TRUE)
+  res <- glm_gp_impl(data$Y, model_matrix = data$X, verbose = TRUE)
+  res2 <- glm_gp_impl(Y_da, model_matrix = data$X, verbose = TRUE)
 
   expect_equal(res$Beta_est, res2$Beta_est)
   expect_equal(res$overdispersions, res2$overdispersions)
@@ -213,11 +222,11 @@ test_that("glm_gp_impl works with Delayed Input", {
 ## More Benchmark:
 # data <- make_dataset(n_genes = 1000, n_samples = 3000)
 # profvis::profvis(
-#   glm_gp_impl(data$Y, design_matrix = data$X, verbose = TRUE)
+#   glm_gp_impl(data$Y, model_matrix = data$X, verbose = TRUE)
 # )
 # bench::mark(
 #   glmGamPoi = {
-#     glm_gp_impl(data$Y, design_matrix = data$X, verbose = TRUE)
+#     glm_gp_impl(data$Y, model_matrix = data$X, verbose = TRUE)
 #   # }, DESeq2 = {
 #   #   dds <- DESeq2::DESeqDataSetFromMatrix(data$Y, colData = data.frame(name = seq_len(ncol(data$Y))),
 #   #                                         design = ~ 1)

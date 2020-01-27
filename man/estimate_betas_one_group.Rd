@@ -4,8 +4,7 @@
 \alias{estimate_betas_one_group}
 \title{Estimate the Betas for Fixed Dispersions}
 \usage{
-estimate_betas_one_group(Y, offset_matrix, dispersion,
-  beta_vec_init = NULL)
+estimate_betas_one_group(Y, offset_matrix, dispersions, beta_vec_init)
 }
 \description{
 Estimate the Betas for Fixed Dispersions

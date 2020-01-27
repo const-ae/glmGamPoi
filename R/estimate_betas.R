@@ -19,16 +19,12 @@ estimate_betas_roughly <- function(Y, model_matrix, offset_matrix, pseudo_count 
 #'
 #' @keywords internal
 estimate_betas_fisher_scoring <- function(Y, model_matrix, offset_matrix,
-                           dispersions = NULL, beta_mat_init = NULL){
-
-  if(is.null(beta_mat_init)){
-    beta_mat_init<- estimate_betas_roughly(Y, model_matrix, offset_matrix = offset_matrix)
-  }
-  if(is.null(dispersions)){
-    mu_mat <- exp(beta_mat_init %*% t(model_matrix) + offset_matrix)
-    disps <- estimate_overdispersions(Y, mu_mat, model_matrix, do_cox_reid_adjustment = TRUE)
-  }
-
+                                          dispersions, beta_mat_init){
+  stopifnot(nrow(model_matrix) == ncol(Y))
+  stopifnot(nrow(beta_mat_init) == nrow(Y))
+  stopifnot(ncol(beta_mat_init) == ncol(model_matrix))
+  stopifnot(length(dispersions) == nrow(Y))
+  stopifnot(dim(offset_matrix) == dim(Y))
 
   betaRes <- fitBeta_fisher_scoring(Y, model_matrix, exp(offset_matrix), dispersions, beta_mat_init,
                                     tolerance = 1e-8, max_iter =  100)
@@ -37,18 +33,25 @@ estimate_betas_fisher_scoring <- function(Y, model_matrix, offset_matrix,
 }
 
 
+#' Make a quick first guess where reasonable beta would be for an individual group
+#'
+#' @keywords internal
+estimate_betas_roughly_one_group <- function(Y, offset_matrix){
+  log(DelayedMatrixStats::rowMeans2(Y / exp(offset_matrix)))
+}
+
 
 #' Estimate the Betas for Fixed Dispersions
 #'
 #'
 #' @keywords internal
-estimate_betas_one_group <- function(Y, offset_matrix,  dispersion, beta_vec_init = NULL){
-  if(is.null(beta_vec_init)){
-    beta_vec_init <- log(DelayedMatrixStats::rowMeans2(Y / exp(offset_matrix)))
-  }
+estimate_betas_one_group <- function(Y, offset_matrix,  dispersions, beta_vec_init){
   stopifnot(length(beta_vec_init) == nrow(Y))
+  stopifnot(length(dispersions) == nrow(Y))
+  stopifnot(dim(offset_matrix) == dim(Y))
 
-  betaRes <- fitBeta_one_group(Y, offset_matrix, thetas = dispersion,
+
+  betaRes <- fitBeta_one_group(Y, offset_matrix, thetas = dispersions,
                                beta_start_values = beta_vec_init,
                                tolerance = 1e-8, maxIter = 100)
 
