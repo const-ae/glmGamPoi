@@ -34,7 +34,7 @@ combine_size_factors_and_offset <- function(offset, size_factors, Y, verbose = F
   n_genes <- nrow(Y)
   n_samples <- ncol(Y)
 
-  make_offset_hdf5_mat <- is(Y, "DelayedMatrix") && is(seed(Y), "HDF5ArraySeed")
+  make_offset_hdf5_mat <- is(Y, "DelayedMatrix") && is(DelayedArray::seed(Y), "HDF5ArraySeed")
 
   if(is.matrix(offset)){
     stopifnot(dim(offset) == c(n_genes, n_samples))
@@ -42,7 +42,7 @@ combine_size_factors_and_offset <- function(offset, size_factors, Y, verbose = F
   }else{
     stopifnot(length(offset) == 1 || length(offset) == n_samples)
     if(make_offset_hdf5_mat){
-      offset_matrix <- DelayedArray(SparseArraySeed(c(n_genes, n_samples)))
+      offset_matrix <- DelayedArray::DelayedArray(DelayedArray::SparseArraySeed(c(n_genes, n_samples)))
       offset_matrix <- add_vector_to_each_row(offset_matrix, offset)
     }else{
       offset_matrix <- matrix(offset, nrow=n_genes, ncol = n_samples, byrow = TRUE)
