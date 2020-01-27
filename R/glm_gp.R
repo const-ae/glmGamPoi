@@ -12,10 +12,10 @@ glm_gp <- function(data, design = ~ 1,
                    n_subsamples = min(1000, ncol(Y)),
                    verbose = FALSE){
   stop("Not yet implemented")
-  # Convert the formula to a design_matrix
+  # Convert the formula to a model_matrix
   # (pay attention to the names of design)
 
-  # Check if the design_matrix is valid
+  # Check if the model_matrix is valid
 
   # Check if data is valid
 

@@ -38,25 +38,29 @@ glm_gp_impl <- function(Y, model_matrix,
 
 
   # Estimate the betas
-  if(verbose){ message("Estimate beta") }
   if(only_intercept_model){
-    Beta_est <- estimate_betas_one_group(Y, offset_matrix = offset_matrix, dispersion = disp_init)$Beta
+    if(verbose){ message("Make rough initial beta estimate") }
+    beta_vec_init <- estimate_betas_roughly_one_group(Y, offset_matrix)
+    if(verbose){ message("Estimate beta") }
+    Beta_est <- estimate_betas_one_group(Y, offset_matrix = offset_matrix,
+                                         dispersions = disp_init, beta_vec_init = beta_vec_init)$Beta
   }else{
     # Init beta with reasonable values
     if(verbose){ message("Make rough initial beta estimate") }
-    beta_init <- estimate_betas_roughly(Y, design_matrix, offset_matrix = offset_matrix)
-    Beta_est <- estimate_betas(Y, model_matrix = design_matrix, offset_matrix = offset_matrix,
-                               dispersions = disp_init, beta_mat_init = beta_init)$Beta
+    beta_init <- estimate_betas_roughly(Y, model_matrix, offset_matrix = offset_matrix)
+    if(verbose){ message("Estimate beta") }
+    Beta_est <- estimate_betas_fisher_scoring(Y, model_matrix = model_matrix, offset_matrix = offset_matrix,
+                                              dispersions = disp_init, beta_mat_init = beta_init)$Beta
   }
 
   # Calculate corresponding predictions
-  # Mu_est <- exp(Beta_est %*% t(design_matrix) + offset_matrix)
-  Mu_est <- calculate_mu(Beta_est, design_matrix, offset_matrix)
+  # Mu_est <- exp(Beta_est %*% t(model_matrix) + offset_matrix)
+  Mu_est <- calculate_mu(Beta_est, model_matrix, offset_matrix)
 
   # Make estimate of over-disperion
   if(is.null(overdispersion)){
     if(verbose){ message("Estimate dispersion") }
-    disp_est <- estimate_overdispersions(Y, Mu_est, model_matrix = design_matrix,
+    disp_est <- estimate_overdispersions(Y, Mu_est, model_matrix = model_matrix,
                                          do_cox_reid_adjustment = TRUE,
                                          n_subsamples = n_subsamples, verbose = verbose)
   }else{
