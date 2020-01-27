@@ -51,8 +51,8 @@
 #' @param n_subsamples the estimation of the overdispersion is the most cumbersome step when fitting
 #'   a Gamma-Poisson GLM. For datasets with many samples, it can advantageous to consider only a
 #'   random subset of samples for the estimation to speed up the method.
-#'   Default: `min(1000, ncol(Y))` which means that at most 1000 samples are considered for each gene
-#'   to estimate the overdispersion.
+#'   Default: `min(1000, ncol(data))` which means that by default at most 1000 samples are considered
+#'   for each gene to estimate the overdispersion.
 #' @param verbose a boolean that indicates if information about the individual steps are printing
 #'   while fitting the GLM. Default: `FALSE`.
 #'
@@ -119,14 +119,14 @@ glm_gp <- function(data,
                    size_factors = TRUE,
                    overdispersion = TRUE,
                    do_cox_reid_adjustment = TRUE,
-                   n_subsamples = min(1000, ncol(Y)),
+                   n_subsamples = min(1000, ncol(data)),
                    verbose = FALSE){
 
   # Validate `data`
   data_mat <- handle_data_parameter(data)
 
   # Convert the formula to a model_matrix
-  des <- handle_design_parameter(design, data, reference_level, offsets)
+  des <- handle_design_parameter(design, data, col_data, reference_level, offsets)
 
   # Call glm_gp_impl()
   res <- glm_gp_impl(data_mat,
@@ -162,7 +162,7 @@ handle_data_parameter <- function(data){
 
 
 
-handle_design_parameter <- function(design, data, reference_level){
+handle_design_parameter <- function(design, data, col_data, reference_level, offsets){
   n_samples <- ncol(data)
 
   # Handle the design parameter
@@ -194,7 +194,8 @@ handle_design_parameter <- function(design, data, reference_level){
   }
   rownames(model_matrix) <- colnames(data)
   check_valid_model_matrix(model_matrix, data)
-  list(model_matrix = model_matrix, design_formula = design_formula)
+  list(model_matrix = model_matrix, design_formula = design_formula,
+       offsets = offsets)
 }
 
 

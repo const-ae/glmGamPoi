@@ -6,7 +6,7 @@
 \usage{
 glm_gp(data, design = ~1, col_data = NULL, reference_level = NULL,
   offsets = 0, size_factors = TRUE, overdispersion = TRUE,
-  do_cox_reid_adjustment = TRUE, n_subsamples = min(1000, ncol(Y)),
+  do_cox_reid_adjustment = TRUE, n_subsamples = min(1000, ncol(data)),
   verbose = FALSE)
 }
 \arguments{
@@ -61,8 +61,8 @@ added during the optimization of the \code{overdispersion} parameter. Default: \
 \item{n_subsamples}{the estimation of the overdispersion is the most cumbersome step when fitting
 a Gamma-Poisson GLM. For datasets with many samples, it can advantageous to consider only a
 random subset of samples for the estimation to speed up the method.
-Default: \code{min(1000, ncol(Y))} which means that at most 1000 samples are considered for each gene
-to estimate the overdispersion.}
+Default: \code{min(1000, ncol(data))} which means that by default at most 1000 samples are considered
+for each gene to estimate the overdispersion.}
 
 \item{verbose}{a boolean that indicates if information about the individual steps are printing
 while fitting the GLM. Default: \code{FALSE}.}
