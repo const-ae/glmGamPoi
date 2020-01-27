@@ -8,9 +8,7 @@ estimate_size_factors(Y)
 }
 \arguments{
 \item{Y}{any matrix-like object (\code{base::matrix()}, \code{DelayedArray}, \code{HDF5Matrix},
-  \code{Matrix::Matrix()}, etc.)
-
-
+\code{Matrix::Matrix()}, etc.)
 
 Not exported}
 }

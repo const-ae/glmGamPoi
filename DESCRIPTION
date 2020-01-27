@@ -19,7 +19,6 @@ Suggests:
     DESeq2,
     edgeR,
     beachmat
-RoxygenNote: 6.1.1
 LinkingTo: 
     Rcpp,
     RcppArmadillo,
@@ -30,3 +29,5 @@ Imports:
     DelayedMatrixStats,
     DelayedArray,
     HDF5Array
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 6.1.1

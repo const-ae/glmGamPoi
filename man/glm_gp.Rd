@@ -5,10 +5,128 @@
 \title{Fit a Gamma-Poisson Generalized Linear Model}
 \usage{
 glm_gp(data, design = ~1, col_data = NULL, reference_level = NULL,
-  size_factors = TRUE, overdispersion = TRUE,
+  offsets = 0, size_factors = TRUE, overdispersion = TRUE,
   do_cox_reid_adjustment = TRUE, n_subsamples = min(1000, ncol(Y)),
   verbose = FALSE)
 }
+\arguments{
+\item{data}{any matrix-like object (e.g. \code{matrix()}, \code{DelayedArray()}, \code{HDF5Matrix()}) or
+anything that can be cast to a \code{SummerizedExperiment()} (eg. \code{MSnSet}, \code{eSet} etc.) with
+one column per sample and row per gene.}
+
+\item{design}{a specification of the experimental design used to fit the Gamma-Poisson GLM.
+It can be a \code{model.matrix()} with one row for each sample and one column for each
+coefficient. \cr
+Alternatively, \code{design} can be a \code{formula}. The entries in the
+formula can refer to global objects, columns in the \code{col_data} parameter, or the \code{colData(data)}
+of \code{data} if it is a \code{SummerizedExperiment}. \cr
+The third option is that \code{design} is a vector where each element specifies to which
+condition a sample belongs. \cr
+Default: \code{design = ~ 1}, which means that all samples are treated as if they belong to the
+same condition. Note that this is the fasted option.}
+
+\item{col_data}{a dataframe with one row for each sample in \code{data}. Default: \code{NULL}.}
+
+\item{reference_level}{a single string that specifies which level is used as reference
+when the model matrix is created. The reference level becomes the intercept and all
+other coefficients are calculated with respect to the \code{reference_level}.
+Default: \code{NULL}}
+
+\item{offsets}{Constant offset in the model in addition to \code{log(size_factors)}. It can
+either be a single number, a vector of length \code{ncol(data)} or a matrix with the
+same dimensions as \code{dim(data)}. Note that if data is a \code{DelayedArray} or \code{HDF5Matrix},
+\code{offsets} must be as well. Default: \code{0}.}
+
+\item{size_factors}{in large scale experiments, each sample is typically of different size
+(for example different sequencing depths). A size factor is an internal mechanism of GLMs to
+correct for this effect.\cr
+\code{size_factors} can either be a single boolean that indicates if the size factor for each sample should be
+calculated. Or it is a numeric vector that specifies the size factor for each sample. Note that
+\code{size_factors = 1} and \code{size_factors = FALSE} are equivalent. Default: \code{TRUE}.}
+
+\item{overdispersion}{the simplest count model is the Poisson model. However, the Poisson model
+assumes that \eqn{variance = mean}. For many applications this is too rigid and the Gamma-Poisson
+allows a more flexible mean-variance relation (\eqn{variance = mean + mean^2 * overdispersion}). \cr
+\code{overdispersion} can either be a single boolean that indicates if an overdispersion is estimated
+for each gene. Or it can be a numeric vector of length \code{nrow(data)}. Note that \code{overdispersion = 0} and
+\code{overdispersion = FALSE} are equivalent and both reduce the Gamma-Poisson to the classical Poisson
+model. Default: \code{TRUE}.}
+
+\item{do_cox_reid_adjustment}{the classical maximum likelihood estimator of the \code{overdisperion} is biased
+towards small values. McCarthy \emph{et al.} (2012) showed that it is preferable to optimize the Cox-Reid
+adjusted profile likelihood.\cr
+\code{do_cox_reid_adjustment}can be either be \code{TRUE} or \code{FALSE} to indicate if the adjustment is
+added during the optimization of the \code{overdispersion} parameter. Default: \code{TRUE}.}
+
+\item{n_subsamples}{the estimation of the overdispersion is the most cumbersome step when fitting
+a Gamma-Poisson GLM. For datasets with many samples, it can advantageous to consider only a
+random subset of samples for the estimation to speed up the method.
+Default: \code{min(1000, ncol(Y))} which means that at most 1000 samples are considered for each gene
+to estimate the overdispersion.}
+
+\item{verbose}{a boolean that indicates if information about the individual steps are printing
+while fitting the GLM. Default: \code{FALSE}.}
+}
 \description{
-Fit a Gamma-Poisson Generalized Linear Model
+This function provides a simple to use interface to fit Gamma-Poisson generalized
+linear models. It works equally well for small scale (a single model) and large scale data
+(e.g. thousands of rows and columns, potentially stored on disk). The function
+automatically determines the appropriate size factors for each sample and efficiently
+finds the best overdispersion parameter for each gene.
+}
+\details{
+The method follows the following steps:
+\enumerate{
+\item The size factors are estimated.\cr
+The code is a slightly adapted version of the procedure proposed by Anders and Huber (2010) in
+equation (5). To handle the large number of zeros the geometric means are calculated for
+\eqn{Y + 0.5} and ignored during the calculation of the median. Columns with all zeros get a
+default size factor of \eqn{0.001}.
+\item The dispersion estimates are initialized based on the moments of each row of \eqn{Y}.
+\item The coefficients of the model are estimated.\cr
+If all samples belong to the same condition (ie. \code{design = ~ 1}), the betas are estimated using
+a quick Newton-Raphson algorithm. This is similar to the behavior of \code{edgeR}. For more complex
+designs, the general Fisher-scoring algorithm is used. Here, the code is based on a fork  of the
+internal function \code{fitBeta()} in \code{DESeq2}.
+\item The mean for each gene and sample is calculate.\cr
+Note that this step can be very IO intensive if \code{data} is or contains a DelayedArray.
+\item The overdispersion is estimated.\cr
+The classical method for estimating the overdispersion for each gene is to maximize the
+Gamma-Poisson log-likelihood by iterating over each count and summing the the corresponding
+log-likelihood. It is however, much more efficient
+for genes with many small counts to work on the contigency table of the counts. Originally, this
+approach had already been used by Anscombe (1950), but only recently it has been formulated with
+an efficient Newton-Raphson approach by Bandara \emph{et al.} (2019). In this package, I have implemented an
+extension of their method that can handle general offsets.\cr
+See also \code{\link[=gampoi_overdispersion_mle]{gampoi_overdispersion_mle()}}.
+\item The beta coefficients are estimated once more with the updated overdispersion estimates
+\item The mean for each gene and sample is calculated again.
+}
+
+This method can handle not just in memory data, but also data stored on disk. This is essential for
+large scale datasets with thousands of samples, as they sometimes encountered in modern single-cell
+RNA-seq analysis. \code{glmGamPoi} relies on the \code{DelayedArray} and \code{beachmat} package to efficiently
+implement the access to the on-disk data.
+}
+\references{
+\itemize{
+\item McCarthy, D. J., Chen, Y., & Smyth, G. K. (2012). Differential expression analysis of multifactor
+RNA-Seq experiments with respect to biological variation. Nucleic Acids Research, 40(10), 4288–4297.
+\url{https://doi.org/10.1093/nar/gks042}.
+\item Anders Simon, & Huber Wolfgang. (2010). Differential expression analysis for sequence count data.
+Genome Biology. \url{https://doi.org/10.1016/j.jcf.2018.05.006}.
+\item Love, M. I., Huber, W., & Anders, S. (2014). Moderated estimation of fold change and  dispersion
+for RNA-seq data with DESeq2. Genome Biology, 15(12), 550.
+\url{https://doi.org/10.1186/s13059-014-0550-8}.
+\item Robinson, M. D., McCarthy, D. J., & Smyth, G. K. (2009). edgeR: A Bioconductor package for differential
+expression analysis of digital gene expression data. Bioinformatics, 26(1), 139–140.
+\url{https://doi.org/10.1093/bioinformatics/btp616}.
+\item Bandara, U., Gill, R., & Mitra, R. (2019). On computing maximum likelihood estimates for the negative
+binomial distribution. Statistics and Probability Letters, 148(xxxx), 54–58.
+\url{https://doi.org/10.1016/j.spl.2019.01.009}
+}
+}
+\seealso{
+\code{\link[=glm_gp_impl]{glm_gp_impl()}} and \code{\link[=gampoi_overdispersion_mle]{gampoi_overdispersion_mle()}} for the internal functions that do the
+work.
 }

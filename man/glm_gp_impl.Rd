@@ -5,7 +5,7 @@
 \title{Low-level Function to Fit a Gamma-Poisson GLM}
 \usage{
 glm_gp_impl(Y, model_matrix, offset = 0, size_factors = TRUE,
-  overdispersion = NULL, do_cox_reid_adjustment = TRUE,
+  overdispersion = TRUE, do_cox_reid_adjustment = TRUE,
   n_subsamples = min(1000, ncol(Y)), verbose = FALSE)
 }
 \description{

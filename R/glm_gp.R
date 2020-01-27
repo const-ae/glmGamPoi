@@ -2,30 +2,260 @@
 
 #' Fit a Gamma-Poisson Generalized Linear Model
 #'
+#' This function provides a simple to use interface to fit Gamma-Poisson generalized
+#' linear models. It works equally well for small scale (a single model) and large scale data
+#' (e.g. thousands of rows and columns, potentially stored on disk). The function
+#' automatically determines the appropriate size factors for each sample and efficiently
+#' finds the best overdispersion parameter for each gene.
+#'
+#' @param data any matrix-like object (e.g. `matrix()`, `DelayedArray()`, `HDF5Matrix()`) or
+#'   anything that can be cast to a `SummerizedExperiment()` (eg. `MSnSet`, `eSet` etc.) with
+#'   one column per sample and row per gene.
+#' @param design a specification of the experimental design used to fit the Gamma-Poisson GLM.
+#'   It can be a `model.matrix()` with one row for each sample and one column for each
+#'   coefficient. \cr
+#'   Alternatively, `design` can be a `formula`. The entries in the
+#'   formula can refer to global objects, columns in the `col_data` parameter, or the `colData(data)`
+#'   of `data` if it is a `SummerizedExperiment`. \cr
+#'   The third option is that `design` is a vector where each element specifies to which
+#'   condition a sample belongs. \cr
+#'   Default: `design = ~ 1`, which means that all samples are treated as if they belong to the
+#'   same condition. Note that this is the fasted option.
+#' @param col_data a dataframe with one row for each sample in `data`. Default: `NULL`.
+#' @param reference_level a single string that specifies which level is used as reference
+#'   when the model matrix is created. The reference level becomes the intercept and all
+#'   other coefficients are calculated with respect to the `reference_level`.
+#'   Default: `NULL`
+#' @param offsets Constant offset in the model in addition to `log(size_factors)`. It can
+#'   either be a single number, a vector of length `ncol(data)` or a matrix with the
+#'   same dimensions as `dim(data)`. Note that if data is a `DelayedArray` or `HDF5Matrix`,
+#'   `offsets` must be as well. Default: `0`.
+#' @param size_factors in large scale experiments, each sample is typically of different size
+#'   (for example different sequencing depths). A size factor is an internal mechanism of GLMs to
+#'   correct for this effect.\cr
+#'   `size_factors` can either be a single boolean that indicates if the size factor for each sample should be
+#'   calculated. Or it is a numeric vector that specifies the size factor for each sample. Note that
+#'   `size_factors = 1` and `size_factors = FALSE` are equivalent. Default: `TRUE`.
+#' @param overdispersion the simplest count model is the Poisson model. However, the Poisson model
+#'   assumes that \eqn{variance = mean}. For many applications this is too rigid and the Gamma-Poisson
+#'   allows a more flexible mean-variance relation (\eqn{variance = mean + mean^2 * overdispersion}). \cr
+#'   `overdispersion` can either be a single boolean that indicates if an overdispersion is estimated
+#'   for each gene. Or it can be a numeric vector of length `nrow(data)`. Note that `overdispersion = 0` and
+#'   `overdispersion = FALSE` are equivalent and both reduce the Gamma-Poisson to the classical Poisson
+#'   model. Default: `TRUE`.
+#' @param do_cox_reid_adjustment the classical maximum likelihood estimator of the `overdisperion` is biased
+#'   towards small values. McCarthy _et al._ (2012) showed that it is preferable to optimize the Cox-Reid
+#'   adjusted profile likelihood.\cr
+#'   `do_cox_reid_adjustment`can be either be `TRUE` or `FALSE` to indicate if the adjustment is
+#'   added during the optimization of the `overdispersion` parameter. Default: `TRUE`.
+#' @param n_subsamples the estimation of the overdispersion is the most cumbersome step when fitting
+#'   a Gamma-Poisson GLM. For datasets with many samples, it can advantageous to consider only a
+#'   random subset of samples for the estimation to speed up the method.
+#'   Default: `min(1000, ncol(Y))` which means that at most 1000 samples are considered for each gene
+#'   to estimate the overdispersion.
+#' @param verbose a boolean that indicates if information about the individual steps are printing
+#'   while fitting the GLM. Default: `FALSE`.
+#'
+#'
+#' @details
+#' The method follows the following steps:
+#'
+#' 1. The size factors are estimated.\cr
+#'    The code is a slightly adapted version of the procedure proposed by Anders and Huber (2010) in
+#'    equation (5). To handle the large number of zeros the geometric means are calculated for
+#'    \eqn{Y + 0.5} and ignored during the calculation of the median. Columns with all zeros get a
+#'    default size factor of \eqn{0.001}.
+#' 2. The dispersion estimates are initialized based on the moments of each row of \eqn{Y}.
+#' 3. The coefficients of the model are estimated.\cr
+#'    If all samples belong to the same condition (ie. `design = ~ 1`), the betas are estimated using
+#'    a quick Newton-Raphson algorithm. This is similar to the behavior of `edgeR`. For more complex
+#'    designs, the general Fisher-scoring algorithm is used. Here, the code is based on a fork  of the
+#'    internal function `fitBeta()` in `DESeq2`.
+#' 4. The mean for each gene and sample is calculate.\cr
+#'    Note that this step can be very IO intensive if `data` is or contains a DelayedArray.
+#' 5. The overdispersion is estimated.\cr
+#'    The classical method for estimating the overdispersion for each gene is to maximize the
+#'    Gamma-Poisson log-likelihood by iterating over each count and summing the the corresponding
+#'    log-likelihood. It is however, much more efficient
+#'    for genes with many small counts to work on the contigency table of the counts. Originally, this
+#'    approach had already been used by Anscombe (1950), but only recently it has been formulated with
+#'    an efficient Newton-Raphson approach by Bandara _et al._ (2019). In this package, I have implemented an
+#'    extension of their method that can handle general offsets.\cr
+#'    See also [gampoi_overdispersion_mle()].
+#'  6. The beta coefficients are estimated once more with the updated overdispersion estimates
+#'  7. The mean for each gene and sample is calculated again.
+#'
+#' This method can handle not just in memory data, but also data stored on disk. This is essential for
+#' large scale datasets with thousands of samples, as they sometimes encountered in modern single-cell
+#' RNA-seq analysis. `glmGamPoi` relies on the `DelayedArray` and `beachmat` package to efficiently
+#' implement the access to the on-disk data.
+#'
+#'
+#' @seealso [glm_gp_impl()] and [gampoi_overdispersion_mle()] for the internal functions that do the
+#'   work.
+#'
+#' @references
+#'   * McCarthy, D. J., Chen, Y., & Smyth, G. K. (2012). Differential expression analysis of multifactor
+#'   RNA-Seq experiments with respect to biological variation. Nucleic Acids Research, 40(10), 4288–4297.
+#'   [https://doi.org/10.1093/nar/gks042](https://doi.org/10.1093/nar/gks042).
+#'   * Anders Simon, & Huber Wolfgang. (2010). Differential expression analysis for sequence count data.
+#'   Genome Biology. [https://doi.org/10.1016/j.jcf.2018.05.006](https://doi.org/10.1016/j.jcf.2018.05.006).
+#'   * Love, M. I., Huber, W., & Anders, S. (2014). Moderated estimation of fold change and  dispersion
+#'   for RNA-seq data with DESeq2. Genome Biology, 15(12), 550.
+#'   [https://doi.org/10.1186/s13059-014-0550-8](https://doi.org/10.1186/s13059-014-0550-8).
+#'   * Robinson, M. D., McCarthy, D. J., & Smyth, G. K. (2009). edgeR: A Bioconductor package for differential
+#'   expression analysis of digital gene expression data. Bioinformatics, 26(1), 139–140.
+#'   [https://doi.org/10.1093/bioinformatics/btp616](https://doi.org/10.1093/bioinformatics/btp616).
+#'   * Bandara, U., Gill, R., & Mitra, R. (2019). On computing maximum likelihood estimates for the negative
+#'   binomial distribution. Statistics and Probability Letters, 148(xxxx), 54–58.
+#'   [https://doi.org/10.1016/j.spl.2019.01.009](https://doi.org/10.1016/j.spl.2019.01.009)
+#'
 #' @export
-glm_gp <- function(data, design = ~ 1,
+glm_gp <- function(data,
+                   design = ~ 1,
                    col_data = NULL,
                    reference_level = NULL,
+                   offsets = 0,
                    size_factors = TRUE,
                    overdispersion = TRUE,
                    do_cox_reid_adjustment = TRUE,
                    n_subsamples = min(1000, ncol(Y)),
                    verbose = FALSE){
-  stop("Not yet implemented")
+
+  # Validate `data`
+  data_mat <- handle_data_parameter(data)
+
   # Convert the formula to a model_matrix
-  # (pay attention to the names of design)
-
-  # Check if the model_matrix is valid
-
-  # Check if data is valid
+  des <- handle_design_parameter(design, data, reference_level, offsets)
 
   # Call glm_gp_impl()
-
-  # Make sure that the output is nice and
-  # beautiful
-
+  res <- glm_gp_impl(data_mat,
+              model_matrix = des$model_matrix,
+              offset = des$offsets,
+              size_factors = size_factors,
+              overdispersion = overdispersion,
+              do_cox_reid_adjustment = do_cox_reid_adjustment,
+              n_subsamples = n_subsamples,
+              verbose = verbose)
+  # Make sure that the output is nice and beautiful
+  res$model_matrix <- des$model_matrix
+  res$design_formula <- des$design_formula
+  res
 }
 
+
+handle_data_parameter <- function(data){
+  if(is.matrix(data) || is(data, "DelayedArray")){
+    data_mat <- data
+  }else if(is(data, "SummerizedExperiment")){
+    data_mat <- SummerizedExperiment::assay(data)
+  }else if(canCoerce(data, "SummarizedExperiment")){
+    se <- as(data, "SummarizedExperiment")
+    data_mat <- SummerizedExperiment::assay(se)
+  }else{
+    stop("Cannot handle data of class ", class(data), ".",
+         "It must be of type matrix, DelayedArray, SummerizedExperiment, ",
+         "or something that can be cast to a SumerizedExperiment.")
+  }
+  data_mat
+}
+
+
+
+handle_design_parameter <- function(design, data, reference_level){
+  n_samples <- ncol(data)
+
+  # Handle the design parameter
+  if(is.matrix(design)){
+    model_matrix <- design
+    design_formula <- NULL
+  }else if((is.vector(design) || is.factor(design))){
+    if(length(design) != n_samples){
+      stop(paste0("The specified design vector length (", length(design), ") does not match ",
+                  "the number of samples: ", n_samples))
+    }
+    model_matrix <- convert_chr_vec_to_model_matrix(design, reference_level)
+    design_formula <- NULL
+  }else if(inherits(design,"formula")){
+    if(design == formula(~ 1) && is.null(col_data)){
+      col_data <- as.data.frame(matrix(numeric(0), nrow=n_samples))
+    }
+    compl_col_data <- if(is(data, "SummarizedExperiment")){
+      if(is.null(col_data)) colData(data)
+      else cbind(col_data, colData(data))
+    }else{
+      col_data
+    }
+    model_matrix <- convert_formula_to_model_matrix(design, compl_col_data, reference_level)
+    design_formula <- design
+  }else{
+    stop(paste0("design argment of class ", class(design), " is not supported. Please ",
+                "specify a `model_matrix`, a `character vector`, or a `formula`."))
+  }
+  rownames(model_matrix) <- colnames(data)
+  check_valid_model_matrix(model_matrix, data)
+  list(model_matrix = model_matrix, design_formula = design_formula)
+}
+
+
+
+
+
+
+
+
+check_valid_model_matrix <- function(matrix, data){
+  stopifnot(is.matrix(matrix))
+  stopifnot(nrow(matrix) == ncol(data))
+}
+
+
+
+convert_chr_vec_to_model_matrix <- function(design, reference_level){
+  if(! is.factor(design)){
+    design_fct <- as.factor(design)
+  }else{
+    design_fct <- design
+  }
+
+  if(length(levels(design_fct)) == 1){
+    # All entries are identical build an intercept only model
+    mm <- matrix(1, nrow=length(design_fct), ncol=1)
+    colnames(mm) <- levels(design_fct)
+  }else if(is.null(reference_level)){
+    helper_df <- data.frame(x_ = design_fct)
+    mm <- stats::model.matrix.default(~ x_ - 1, helper_df)
+    colnames(mm) <- sub("^x_", "", colnames(mm))
+  }else{
+    design_fct <- stats::relevel(design_fct, ref = reference_level)
+    helper_df <- data.frame(x_ = design_fct)
+    mm <- stats::model.matrix.default(~ x_ + 1, helper_df)
+    colnames(mm)[-1] <- paste0(sub("^x_", "", colnames(mm)[-1]), "_vs_", reference_level)
+  }
+  colnames(mm)[colnames(mm) == "(Intercept)"] <- "Intercept"
+  mm
+}
+
+
+convert_formula_to_model_matrix <- function(formula, col_data, reference_level=NULL){
+  if(! is.null(reference_level)){
+    has_ref_level <- vapply(col_data, function(x){
+      any(!is.na(x) & x == reference_level)
+    }, FUN.VALUE = FALSE)
+    if(all(has_ref_level == FALSE)){
+      stop("None of the columns contains the specified reference_level.")
+    }
+    col_data[has_ref_level] <- lapply(col_data[has_ref_level], function(col){
+      if(is.character(col)){
+        col <- as.factor(col)
+      }
+      stats::relevel(col, ref = reference_level)
+    })
+  }
+  mm <- stats::model.matrix.default(formula, col_data)
+  colnames(mm)[colnames(mm) == "(Intercept)"] <- "Intercept"
+  mm
+}
 
 
 

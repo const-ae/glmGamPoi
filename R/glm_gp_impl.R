@@ -7,7 +7,7 @@
 glm_gp_impl <- function(Y, model_matrix,
                         offset = 0,
                         size_factors = TRUE,
-                        overdispersion = NULL,
+                        overdispersion = TRUE,
                         do_cox_reid_adjustment = TRUE,
                         n_subsamples = min(1000, ncol(Y)),
                         verbose = FALSE){
@@ -24,9 +24,11 @@ glm_gp_impl <- function(Y, model_matrix,
   only_intercept_model <- ncol(model_matrix) == 1 && all(model_matrix == 1)
 
   # If no overdispersion, make rough first estimate
-  if(is.null(overdispersion)){
+  if(isTRUE(overdispersion)){
     if(verbose){ message("Make initial dispersion estimate") }
     disp_init <- estimate_dispersions_roughly(Y, model_matrix, offset_matrix = offset_matrix)
+  }else if(isFALSE(overdispersion)){
+    disp_init <- rep(0, times = nrow(Y))
   }else{
     stopifnot(is.numeric(overdispersion) && (length(overdispersion) == 1 || length(overdispersion) == nrow(Y)))
     if(length(overdispersion) == 1){
@@ -39,14 +41,14 @@ glm_gp_impl <- function(Y, model_matrix,
 
   # Estimate the betas
   if(only_intercept_model){
-    if(verbose){ message("Make rough initial beta estimate") }
+    if(verbose){ message("Make initial beta estimate") }
     beta_vec_init <- estimate_betas_roughly_one_group(Y, offset_matrix)
     if(verbose){ message("Estimate beta") }
     Beta_est <- estimate_betas_one_group(Y, offset_matrix = offset_matrix,
                                          dispersions = disp_init, beta_vec_init = beta_vec_init)$Beta
   }else{
     # Init beta with reasonable values
-    if(verbose){ message("Make rough initial beta estimate") }
+    if(verbose){ message("Make initial beta estimate") }
     beta_init <- estimate_betas_roughly(Y, model_matrix, offset_matrix = offset_matrix)
     if(verbose){ message("Estimate beta") }
     Beta_est <- estimate_betas_fisher_scoring(Y, model_matrix = model_matrix, offset_matrix = offset_matrix,
@@ -58,7 +60,7 @@ glm_gp_impl <- function(Y, model_matrix,
   Mu_est <- calculate_mu(Beta_est, model_matrix, offset_matrix)
 
   # Make estimate of over-disperion
-  if(is.null(overdispersion)){
+  if(isTRUE(overdispersion)){
     if(verbose){ message("Estimate dispersion") }
     disp_est <- estimate_overdispersions(Y, Mu_est, model_matrix = model_matrix,
                                          do_cox_reid_adjustment = TRUE,
