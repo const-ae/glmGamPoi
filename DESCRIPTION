@@ -22,7 +22,7 @@ Suggests:
 LinkingTo: 
     Rcpp,
     RcppArmadillo,
-    beachmat
+    beachmat (>= 2.0.0)
 Imports: 
     Rcpp,
     pracma,
