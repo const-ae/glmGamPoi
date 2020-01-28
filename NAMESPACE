@@ -2,7 +2,6 @@
 
 export(gampoi_overdispersion_mle)
 export(glm_gp)
-export(glm_gp_impl)
 import(Rcpp)
 import(stats)
 importFrom(methods,as)

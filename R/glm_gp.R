@@ -25,11 +25,11 @@
 #' @param reference_level a single string that specifies which level is used as reference
 #'   when the model matrix is created. The reference level becomes the intercept and all
 #'   other coefficients are calculated with respect to the `reference_level`.
-#'   Default: `NULL`
-#' @param offsets Constant offset in the model in addition to `log(size_factors)`. It can
+#'   Default: `NULL`.
+#' @param offset Constant offset in the model in addition to `log(size_factors)`. It can
 #'   either be a single number, a vector of length `ncol(data)` or a matrix with the
 #'   same dimensions as `dim(data)`. Note that if data is a `DelayedArray` or `HDF5Matrix`,
-#'   `offsets` must be as well. Default: `0`.
+#'   `offset` must be as well. Default: `0`.
 #' @param size_factors in large scale experiments, each sample is typically of different size
 #'   (for example different sequencing depths). A size factor is an internal mechanism of GLMs to
 #'   correct for this effect.\cr
@@ -46,14 +46,14 @@
 #' @param do_cox_reid_adjustment the classical maximum likelihood estimator of the `overdisperion` is biased
 #'   towards small values. McCarthy _et al._ (2012) showed that it is preferable to optimize the Cox-Reid
 #'   adjusted profile likelihood.\cr
-#'   `do_cox_reid_adjustment`can be either be `TRUE` or `FALSE` to indicate if the adjustment is
+#'   `do_cox_reid_adjustment` can be either be `TRUE` or `FALSE` to indicate if the adjustment is
 #'   added during the optimization of the `overdispersion` parameter. Default: `TRUE`.
 #' @param n_subsamples the estimation of the overdispersion is the most cumbersome step when fitting
-#'   a Gamma-Poisson GLM. For datasets with many samples, it can advantageous to consider only a
-#'   random subset of samples for the estimation to speed up the method.
+#'   a Gamma-Poisson GLM. For datasets with many samples, the estimation can be considerably sped up
+#'   without loosing much precision by fitting the overdispersion only on a random subset of the samples.
 #'   Default: `min(1000, ncol(data))` which means that by default at most 1000 samples are considered
 #'   for each gene to estimate the overdispersion.
-#' @param verbose a boolean that indicates if information about the individual steps are printing
+#' @param verbose a boolean that indicates if information about the individual steps are printed
 #'   while fitting the GLM. Default: `FALSE`.
 #'
 #'
@@ -109,13 +109,16 @@
 #'   * Bandara, U., Gill, R., & Mitra, R. (2019). On computing maximum likelihood estimates for the negative
 #'   binomial distribution. Statistics and Probability Letters, 148(xxxx), 54–58.
 #'   [https://doi.org/10.1016/j.spl.2019.01.009](https://doi.org/10.1016/j.spl.2019.01.009)
+#'   * Lun ATL, Pagès H, Smith ML (2018). “beachmat: A Bioconductor C++ API for accessing high-throughput
+#'   biological data from a variety of R matrix types.” PLoS Comput. Biol., 14(5), e1006135. doi:
+#'   [10.1371/journal.pcbi.1006135.](https://doi.org/10.1371/journal.pcbi.1006135).
 #'
 #' @export
 glm_gp <- function(data,
                    design = ~ 1,
                    col_data = NULL,
                    reference_level = NULL,
-                   offsets = 0,
+                   offset = 0,
                    size_factors = TRUE,
                    overdispersion = TRUE,
                    do_cox_reid_adjustment = TRUE,
@@ -129,12 +132,12 @@ glm_gp <- function(data,
   data_mat <- handle_data_parameter(data)
 
   # Convert the formula to a model_matrix
-  des <- handle_design_parameter(design, data, col_data, reference_level, offsets)
+  des <- handle_design_parameter(design, data, col_data, reference_level, offset)
 
   # Call glm_gp_impl()
   res <- glm_gp_impl(data_mat,
               model_matrix = des$model_matrix,
-              offset = des$offsets,
+              offset = des$offset,
               size_factors = size_factors,
               overdispersion = overdispersion,
               do_cox_reid_adjustment = do_cox_reid_adjustment,
@@ -165,7 +168,7 @@ handle_data_parameter <- function(data){
 
 
 
-handle_design_parameter <- function(design, data, col_data, reference_level, offsets){
+handle_design_parameter <- function(design, data, col_data, reference_level, offset){
   n_samples <- ncol(data)
 
   # Handle the design parameter
@@ -196,9 +199,9 @@ handle_design_parameter <- function(design, data, col_data, reference_level, off
                 "specify a `model_matrix`, a `character vector`, or a `formula`."))
   }
   rownames(model_matrix) <- colnames(data)
-  check_valid_model_matrix(model_matrix, data)
+  validate_model_matrix(model_matrix, data)
   list(model_matrix = model_matrix, design_formula = design_formula,
-       offsets = offsets)
+       offset = offset)
 }
 
 
@@ -208,7 +211,7 @@ handle_design_parameter <- function(design, data, col_data, reference_level, off
 
 
 
-check_valid_model_matrix <- function(matrix, data){
+validate_model_matrix <- function(matrix, data){
   stopifnot(is.matrix(matrix))
   stopifnot(nrow(matrix) == ncol(data))
 }

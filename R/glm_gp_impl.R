@@ -1,9 +1,15 @@
 
 
 
-#' Low-level Function to Fit a Gamma-Poisson GLM
+#' Internal Function to Fit a Gamma-Poisson GLM
 #'
-#' @export
+#' @inheritParams glm_gp
+#' @inheritParams gampoi_overdispersion_mle
+#' @param Y any matrix-like object (e.g. `matrix()`, `DelayedArray()`, `HDF5Matrix()`) with
+#'   one column per sample and row per gene.
+#'
+#' @seealso [glm_gp()] and [gampoi_overdispersion_mle()]
+#' @keywords internal
 glm_gp_impl <- function(Y, model_matrix,
                         offset = 0,
                         size_factors = TRUE,

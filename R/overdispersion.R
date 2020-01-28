@@ -3,6 +3,16 @@
 
 #' Estimate a Single Overdispersion for a Vector of Counts
 #'
+#' @param y a numeric or integer vector with the counts for which
+#'   the overdispersion is estimated
+#' @param mean_vector a numeric vector of either length 1 or `length(y)`
+#'   with the predicted value for that sample. Default: `mean(y)`.
+#' @param model_matrix a numeric matrix that specifies the experimental
+#'   design. It can be produced using `stats::model.matrix()`.
+#'   Default: `matrix(1, nrow = length(y), ncol = 1)`, which is the
+#'   model matrix for a 'just-intercept-model'.
+#' @inheritParams glm_gp
+#'
 #' @export
 gampoi_overdispersion_mle <- function(y, mean_vector = mean(y),
                            model_matrix = matrix(1, nrow = length(y), ncol = 1),
@@ -10,6 +20,7 @@ gampoi_overdispersion_mle <- function(y, mean_vector = mean(y),
                            n_subsamples = min(1000, length(y)),
                            verbose = FALSE){
 
+  validate_model_matrix(model_matrix, matrix(y, nrow = 1))
   if(length(mean_vector) == 1){
     mean_vector <- rep(mean_vector, length(y))
   }

@@ -9,6 +9,33 @@ gampoi_overdispersion_mle(y, mean_vector = mean(y),
   do_cox_reid_adjustment = TRUE, n_subsamples = min(1000, length(y)),
   verbose = FALSE)
 }
+\arguments{
+\item{y}{a numeric or integer vector with the counts for which
+the overdispersion is estimated}
+
+\item{mean_vector}{a numeric vector of either length 1 or \code{length(y)}
+with the predicted value for that sample. Default: \code{mean(y)}.}
+
+\item{model_matrix}{a numeric matrix that specifies the experimental
+design. It can be produced using \code{stats::model.matrix()}.
+Default: \code{matrix(1, nrow = length(y), ncol = 1)}, which is the
+model matrix for a 'just-intercept-model'.}
+
+\item{do_cox_reid_adjustment}{the classical maximum likelihood estimator of the \code{overdisperion} is biased
+towards small values. McCarthy \emph{et al.} (2012) showed that it is preferable to optimize the Cox-Reid
+adjusted profile likelihood.\cr
+\code{do_cox_reid_adjustment} can be either be \code{TRUE} or \code{FALSE} to indicate if the adjustment is
+added during the optimization of the \code{overdispersion} parameter. Default: \code{TRUE}.}
+
+\item{n_subsamples}{the estimation of the overdispersion is the most cumbersome step when fitting
+a Gamma-Poisson GLM. For datasets with many samples, the estimation can be considerably sped up
+without loosing much precision by fitting the overdispersion only on a random subset of the samples.
+Default: \code{min(1000, ncol(data))} which means that by default at most 1000 samples are considered
+for each gene to estimate the overdispersion.}
+
+\item{verbose}{a boolean that indicates if information about the individual steps are printed
+while fitting the GLM. Default: \code{FALSE}.}
+}
 \description{
 Estimate a Single Overdispersion for a Vector of Counts
 }

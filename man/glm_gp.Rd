@@ -5,13 +5,13 @@
 \title{Fit a Gamma-Poisson Generalized Linear Model}
 \usage{
 glm_gp(data, design = ~1, col_data = NULL, reference_level = NULL,
-  offsets = 0, size_factors = TRUE, overdispersion = TRUE,
+  offset = 0, size_factors = TRUE, overdispersion = TRUE,
   do_cox_reid_adjustment = TRUE, n_subsamples = min(1000, ncol(data)),
   verbose = FALSE)
 }
 \arguments{
 \item{data}{any matrix-like object (e.g. \code{matrix()}, \code{DelayedArray()}, \code{HDF5Matrix()}) or
-anything that can be cast to a \code{SummerizedExperiment()} (eg. \code{MSnSet}, \code{eSet} etc.) with
+anything that can be cast to a \code{SummarizedExperiment()} (eg. \code{MSnSet}, \code{eSet} etc.) with
 one column per sample and row per gene.}
 
 \item{design}{a specification of the experimental design used to fit the Gamma-Poisson GLM.
@@ -19,7 +19,7 @@ It can be a \code{model.matrix()} with one row for each sample and one column fo
 coefficient. \cr
 Alternatively, \code{design} can be a \code{formula}. The entries in the
 formula can refer to global objects, columns in the \code{col_data} parameter, or the \code{colData(data)}
-of \code{data} if it is a \code{SummerizedExperiment}. \cr
+of \code{data} if it is a \code{SummarizedExperiment}. \cr
 The third option is that \code{design} is a vector where each element specifies to which
 condition a sample belongs. \cr
 Default: \code{design = ~ 1}, which means that all samples are treated as if they belong to the
@@ -30,12 +30,12 @@ same condition. Note that this is the fasted option.}
 \item{reference_level}{a single string that specifies which level is used as reference
 when the model matrix is created. The reference level becomes the intercept and all
 other coefficients are calculated with respect to the \code{reference_level}.
-Default: \code{NULL}}
+Default: \code{NULL}.}
 
-\item{offsets}{Constant offset in the model in addition to \code{log(size_factors)}. It can
+\item{offset}{Constant offset in the model in addition to \code{log(size_factors)}. It can
 either be a single number, a vector of length \code{ncol(data)} or a matrix with the
 same dimensions as \code{dim(data)}. Note that if data is a \code{DelayedArray} or \code{HDF5Matrix},
-\code{offsets} must be as well. Default: \code{0}.}
+\code{offset} must be as well. Default: \code{0}.}
 
 \item{size_factors}{in large scale experiments, each sample is typically of different size
 (for example different sequencing depths). A size factor is an internal mechanism of GLMs to
@@ -55,16 +55,16 @@ model. Default: \code{TRUE}.}
 \item{do_cox_reid_adjustment}{the classical maximum likelihood estimator of the \code{overdisperion} is biased
 towards small values. McCarthy \emph{et al.} (2012) showed that it is preferable to optimize the Cox-Reid
 adjusted profile likelihood.\cr
-\code{do_cox_reid_adjustment}can be either be \code{TRUE} or \code{FALSE} to indicate if the adjustment is
+\code{do_cox_reid_adjustment} can be either be \code{TRUE} or \code{FALSE} to indicate if the adjustment is
 added during the optimization of the \code{overdispersion} parameter. Default: \code{TRUE}.}
 
 \item{n_subsamples}{the estimation of the overdispersion is the most cumbersome step when fitting
-a Gamma-Poisson GLM. For datasets with many samples, it can advantageous to consider only a
-random subset of samples for the estimation to speed up the method.
+a Gamma-Poisson GLM. For datasets with many samples, the estimation can be considerably sped up
+without loosing much precision by fitting the overdispersion only on a random subset of the samples.
 Default: \code{min(1000, ncol(data))} which means that by default at most 1000 samples are considered
 for each gene to estimate the overdispersion.}
 
-\item{verbose}{a boolean that indicates if information about the individual steps are printing
+\item{verbose}{a boolean that indicates if information about the individual steps are printed
 while fitting the GLM. Default: \code{FALSE}.}
 }
 \description{
@@ -124,6 +124,9 @@ expression analysis of digital gene expression data. Bioinformatics, 26(1), 139�
 \item Bandara, U., Gill, R., & Mitra, R. (2019). On computing maximum likelihood estimates for the negative
 binomial distribution. Statistics and Probability Letters, 148(xxxx), 54–58.
 \url{https://doi.org/10.1016/j.spl.2019.01.009}
+\item Lun ATL, Pagès H, Smith ML (2018). “beachmat: A Bioconductor C++ API for accessing high-throughput
+biological data from a variety of R matrix types.” PLoS Comput. Biol., 14(5), e1006135. doi:
+\href{https://doi.org/10.1371/journal.pcbi.1006135}{10.1371/journal.pcbi.1006135.}.
 }
 }
 \seealso{

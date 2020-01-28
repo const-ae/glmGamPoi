@@ -2,12 +2,60 @@
 % Please edit documentation in R/glm_gp_impl.R
 \name{glm_gp_impl}
 \alias{glm_gp_impl}
-\title{Low-level Function to Fit a Gamma-Poisson GLM}
+\title{Internal Function to Fit a Gamma-Poisson GLM}
 \usage{
 glm_gp_impl(Y, model_matrix, offset = 0, size_factors = TRUE,
   overdispersion = TRUE, do_cox_reid_adjustment = TRUE,
   n_subsamples = min(1000, ncol(Y)), verbose = FALSE)
 }
-\description{
-Low-level Function to Fit a Gamma-Poisson GLM
+\arguments{
+\item{Y}{any matrix-like object (e.g. \code{matrix()}, \code{DelayedArray()}, \code{HDF5Matrix()}) with
+one column per sample and row per gene.}
+
+\item{model_matrix}{a numeric matrix that specifies the experimental
+design. It can be produced using \code{stats::model.matrix()}.
+Default: \code{matrix(1, nrow = length(y), ncol = 1)}, which is the
+model matrix for a 'just-intercept-model'.}
+
+\item{offset}{Constant offset in the model in addition to \code{log(size_factors)}. It can
+either be a single number, a vector of length \code{ncol(data)} or a matrix with the
+same dimensions as \code{dim(data)}. Note that if data is a \code{DelayedArray} or \code{HDF5Matrix},
+\code{offset} must be as well. Default: \code{0}.}
+
+\item{size_factors}{in large scale experiments, each sample is typically of different size
+(for example different sequencing depths). A size factor is an internal mechanism of GLMs to
+correct for this effect.\cr
+\code{size_factors} can either be a single boolean that indicates if the size factor for each sample should be
+calculated. Or it is a numeric vector that specifies the size factor for each sample. Note that
+\code{size_factors = 1} and \code{size_factors = FALSE} are equivalent. Default: \code{TRUE}.}
+
+\item{overdispersion}{the simplest count model is the Poisson model. However, the Poisson model
+assumes that \eqn{variance = mean}. For many applications this is too rigid and the Gamma-Poisson
+allows a more flexible mean-variance relation (\eqn{variance = mean + mean^2 * overdispersion}). \cr
+\code{overdispersion} can either be a single boolean that indicates if an overdispersion is estimated
+for each gene. Or it can be a numeric vector of length \code{nrow(data)}. Note that \code{overdispersion = 0} and
+\code{overdispersion = FALSE} are equivalent and both reduce the Gamma-Poisson to the classical Poisson
+model. Default: \code{TRUE}.}
+
+\item{do_cox_reid_adjustment}{the classical maximum likelihood estimator of the \code{overdisperion} is biased
+towards small values. McCarthy \emph{et al.} (2012) showed that it is preferable to optimize the Cox-Reid
+adjusted profile likelihood.\cr
+\code{do_cox_reid_adjustment} can be either be \code{TRUE} or \code{FALSE} to indicate if the adjustment is
+added during the optimization of the \code{overdispersion} parameter. Default: \code{TRUE}.}
+
+\item{n_subsamples}{the estimation of the overdispersion is the most cumbersome step when fitting
+a Gamma-Poisson GLM. For datasets with many samples, the estimation can be considerably sped up
+without loosing much precision by fitting the overdispersion only on a random subset of the samples.
+Default: \code{min(1000, ncol(data))} which means that by default at most 1000 samples are considered
+for each gene to estimate the overdispersion.}
+
+\item{verbose}{a boolean that indicates if information about the individual steps are printed
+while fitting the GLM. Default: \code{FALSE}.}
 }
+\description{
+Internal Function to Fit a Gamma-Poisson GLM
+}
+\seealso{
+\code{\link[=glm_gp]{glm_gp()}} and \code{\link[=gampoi_overdispersion_mle]{gampoi_overdispersion_mle()}}
+}
+\keyword{internal}
