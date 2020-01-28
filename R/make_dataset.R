@@ -10,7 +10,7 @@ make_dataset <- function(n_genes = 1000, n_samples = 30){
   Q <- Betas %*% t(X)
 
   Y <- t(sapply(seq_len(n_genes), function(i){
-    distraltparam::raltnbinom(n_samples, mean = sf * exp(Q[i, ]), dispersion = dispersions[i])
+    rnbinom(n_samples, mu = sf * exp(Q[i, ]), size = 1/dispersions[i])
   }))
 
   row_all_zero <- which(rowSums(Y) == 0)

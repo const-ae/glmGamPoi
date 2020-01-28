@@ -28,6 +28,8 @@ Imports:
     pracma,
     DelayedMatrixStats,
     DelayedArray,
-    HDF5Array
+    HDF5Array,
+    SummarizedExperiment,
+    methods
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 6.1.1

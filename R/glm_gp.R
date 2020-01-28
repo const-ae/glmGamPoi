@@ -9,14 +9,14 @@
 #' finds the best overdispersion parameter for each gene.
 #'
 #' @param data any matrix-like object (e.g. `matrix()`, `DelayedArray()`, `HDF5Matrix()`) or
-#'   anything that can be cast to a `SummerizedExperiment()` (eg. `MSnSet`, `eSet` etc.) with
+#'   anything that can be cast to a `SummarizedExperiment()` (eg. `MSnSet`, `eSet` etc.) with
 #'   one column per sample and row per gene.
 #' @param design a specification of the experimental design used to fit the Gamma-Poisson GLM.
 #'   It can be a `model.matrix()` with one row for each sample and one column for each
 #'   coefficient. \cr
 #'   Alternatively, `design` can be a `formula`. The entries in the
 #'   formula can refer to global objects, columns in the `col_data` parameter, or the `colData(data)`
-#'   of `data` if it is a `SummerizedExperiment`. \cr
+#'   of `data` if it is a `SummarizedExperiment`. \cr
 #'   The third option is that `design` is a vector where each element specifies to which
 #'   condition a sample belongs. \cr
 #'   Default: `design = ~ 1`, which means that all samples are treated as if they belong to the
@@ -150,15 +150,15 @@ glm_gp <- function(data,
 handle_data_parameter <- function(data){
   if(is.matrix(data) || is(data, "DelayedArray")){
     data_mat <- data
-  }else if(is(data, "SummerizedExperiment")){
-    data_mat <- SummerizedExperiment::assay(data)
+  }else if(is(data, "SummarizedExperiment")){
+    data_mat <- SummarizedExperiment::assay(data)
   }else if(canCoerce(data, "SummarizedExperiment")){
     se <- as(data, "SummarizedExperiment")
-    data_mat <- SummerizedExperiment::assay(se)
+    data_mat <- SummarizedExperiment::assay(se)
   }else{
     stop("Cannot handle data of class ", class(data), ".",
-         "It must be of type matrix, DelayedArray, SummerizedExperiment, ",
-         "or something that can be cast to a SumerizedExperiment.")
+         "It must be of type matrix, DelayedArray, SummarizedExperiment, ",
+         "or something that can be cast to a SummarizedExperiment")
   }
   data_mat
 }
@@ -184,8 +184,8 @@ handle_design_parameter <- function(design, data, col_data, reference_level, off
       col_data <- as.data.frame(matrix(numeric(0), nrow=n_samples))
     }
     compl_col_data <- if(is(data, "SummarizedExperiment")){
-      if(is.null(col_data)) colData(data)
-      else cbind(col_data, colData(data))
+      if(is.null(col_data)) SummarizedExperiment::colData(data)
+      else cbind(col_data, SummarizedExperiment::colData(data))
     }else{
       col_data
     }

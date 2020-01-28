@@ -1,8 +1,6 @@
 
 #' Make a quick first guess where reasonable beta would be
 #'
-#' @importFrom Matrix t
-#'
 #' @keywords internal
 estimate_betas_roughly <- function(Y, model_matrix, offset_matrix, pseudo_count = 1){
   qrx <- qr(model_matrix)
