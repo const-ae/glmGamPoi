@@ -49,10 +49,16 @@ combine_size_factors_and_offset <- function(offset, size_factors, Y, verbose = F
     }
   }
   if(isTRUE(size_factors)){
+    if(n_genes <= 1){
+      warning("Calculating the size factor does not make sense for a single gene.\n",
+              "Consider setting `size_factors = FALSE`.\n",
+              "Calculation will however proceed, be careful when interpreting the coefficients.",
+              call. = FALSE)
+    }
     if(verbose){ message("Calculate Size Factors") }
     lsf <- log(estimate_size_factors(Y))
   }else if(isFALSE(size_factors)){
-    lsf <- 0
+    lsf <- rep(0, n_samples)
   }else{
     stopifnot(is.numeric(size_factors) && (length(size_factors) == 1 || length(size_factors) == n_samples))
     if(any(size_factors < 0)){

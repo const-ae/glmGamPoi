@@ -150,7 +150,7 @@ test_that("glm_gp_impl can handle all zero rows", {
 
 
 test_that("glm_gp_impl can handle all zero columns", {
-  Y <- matrix(0, nrow = 1, ncol = 10)
+  Y <- matrix(0, nrow = 2, ncol = 10)
   Y[1, 1] <- 3
   X <- matrix(1, nrow = 10, ncol = 1)
   res <- glm_gp_impl(Y, X)

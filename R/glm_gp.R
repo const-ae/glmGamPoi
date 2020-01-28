@@ -123,6 +123,9 @@ glm_gp <- function(data,
                    verbose = FALSE){
 
   # Validate `data`
+  if(is.vector(data)){
+    data <- matrix(data, nrow = 1)
+  }
   data_mat <- handle_data_parameter(data)
 
   # Convert the formula to a model_matrix
