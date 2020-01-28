@@ -53,6 +53,10 @@
 #'   without loosing much precision by fitting the overdispersion only on a random subset of the samples.
 #'   Default: `min(1000, ncol(data))` which means that by default at most 1000 samples are considered
 #'   for each gene to estimate the overdispersion.
+#' @param on_disk a boolean that indicates if the dataset is loaded into memory or if it is kept on disk
+#'   to reduce the memory usage. Processing in memory can be significantly faster than on disk.
+#'   Default: `NULL` which means that the data is only processed in memory if `data` is an in-memory
+#'   data structure.
 #' @param verbose a boolean that indicates if information about the individual steps are printed
 #'   while fitting the GLM. Default: `FALSE`.
 #'
@@ -123,13 +127,14 @@ glm_gp <- function(data,
                    overdispersion = TRUE,
                    do_cox_reid_adjustment = TRUE,
                    n_subsamples = min(1000, ncol(data)),
+                   on_disk = NULL,
                    verbose = FALSE){
 
   # Validate `data`
   if(is.vector(data)){
     data <- matrix(data, nrow = 1)
   }
-  data_mat <- handle_data_parameter(data)
+  data_mat <- handle_data_parameter(data, on_disk)
 
   # Convert the formula to a model_matrix
   des <- handle_design_parameter(design, data, col_data, reference_level, offset)
@@ -150,14 +155,28 @@ glm_gp <- function(data,
 }
 
 
-handle_data_parameter <- function(data){
-  if(is.matrix(data) || is(data, "DelayedArray")){
-    data_mat <- data
+handle_data_parameter <- function(data, on_disk){
+  if(is.matrix(data)){
+    if(is.null(on_disk) || isFALSE(on_disk)){
+      data_mat <- data
+    }else if(isTRUE(on_disk)){
+      data_mat <- HDF5Array::writeHDF5Array(data)
+    }else{
+      stop("Illegal argument type for on_disk. Can only handle 'NULL', 'TRUE', or 'FALSE'")
+    }
+  }else if(is(data, "DelayedArray")){
+    if(is.null(on_disk) || isTRUE(on_disk)){
+      data_mat <- data
+    }else if(isFALSE(on_disk)){
+      data_mat <- as.matrix(data)
+    }else{
+      stop("Illegal argument type for on_disk. Can only handle 'NULL', 'TRUE', or 'FALSE'")
+    }
   }else if(is(data, "SummarizedExperiment")){
-    data_mat <- SummarizedExperiment::assay(data)
+    data_mat <- handle_data_parameter(SummarizedExperiment::assay(data), on_disk)
   }else if(canCoerce(data, "SummarizedExperiment")){
     se <- as(data, "SummarizedExperiment")
-    data_mat <- SummarizedExperiment::assay(se)
+    data_mat <- handle_data_parameter(SummarizedExperiment::assay(se), on_disk)
   }else{
     stop("Cannot handle data of class ", class(data), ".",
          "It must be of type matrix, DelayedArray, SummarizedExperiment, ",

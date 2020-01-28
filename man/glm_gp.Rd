@@ -7,7 +7,7 @@
 glm_gp(data, design = ~1, col_data = NULL, reference_level = NULL,
   offset = 0, size_factors = TRUE, overdispersion = TRUE,
   do_cox_reid_adjustment = TRUE, n_subsamples = min(1000, ncol(data)),
-  verbose = FALSE)
+  on_disk = NULL, verbose = FALSE)
 }
 \arguments{
 \item{data}{any matrix-like object (e.g. \code{matrix()}, \code{DelayedArray()}, \code{HDF5Matrix()}) or
@@ -63,6 +63,11 @@ a Gamma-Poisson GLM. For datasets with many samples, the estimation can be consi
 without loosing much precision by fitting the overdispersion only on a random subset of the samples.
 Default: \code{min(1000, ncol(data))} which means that by default at most 1000 samples are considered
 for each gene to estimate the overdispersion.}
+
+\item{on_disk}{a boolean that indicates if the dataset is loaded into memory or if it is kept on disk
+to reduce the memory usage. Processing in memory can be significantly faster than on disk.
+Default: \code{NULL} which means that the data is only processed in memory if \code{data} is an in-memory
+data structure.}
 
 \item{verbose}{a boolean that indicates if information about the individual steps are printed
 while fitting the GLM. Default: \code{FALSE}.}
