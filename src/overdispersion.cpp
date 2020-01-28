@@ -201,7 +201,8 @@ NumericVector estimate_overdispersions_fast_internal(RObject Y, RObject mean_mat
   }
 
   // This is calling back to R, which simplifies my code a lot
-  Function gampoi_overdispersion_mle("gampoi_overdispersion_mle");
+  Environment glmGamPoiEnv("package:glmGamPoi");
+  Function gampoi_overdispersion_mle = glmGamPoiEnv["gampoi_overdispersion_mle"];
 
   for(int gene_idx = 0; gene_idx < n_genes; gene_idx++){
     if (gene_idx % 100 == 0) checkUserInterrupt();
