@@ -8,8 +8,8 @@ output: github_document
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>",
-  fig.path = "man/figures/README-",
-  out.width = "100%"
+  fig.path = "man/figures/README-"
+  # out.width = "100%"
 )
 ```
 # glmGamPoi
@@ -50,17 +50,33 @@ The `glm_gp()` function returns a list with the results of the fit. Most importa
 
 Fitting repeated Gamma-Poisson GLMs for each gene of a single cell dataset is just as easy:
 
+I will first load an example dataset using the `TENxPBMCData` package. The dataset has 33,000 genes and 4340 cells
 ```{r}
 pbmcs <- TENxPBMCData::TENxPBMCData("pbmc4k")
 pbmcs
-# Fit the Gamma-Poisson Model. Force calculation to be in memory
-fit <- glmGamPoi::glm_gp(pbmcs, on_disk = FALSE)
-# First fitted values. -Inf indicates rows that contained only zeros.
-head(fit$Beta_est)
+```
 
-plot(fit$Mu[,1], fit$overdispersions + 1e-6, 
-     log ="xy", pch = 16, cex = 0.3,
-     main = "Trend of Overdispersion against Mean")
+I call `glm_gp()` to fit one GLM model for each gene and force the calculation to happen in memory.
+
+```{r}
+# This takes ~1 minute
+fit <- glmGamPoi::glm_gp(pbmcs, on_disk = FALSE)
+```
+
+Let's look at the result:
+
+```{r pbmc4kFitResult, fig.height=3, fig.width=5, warning=FALSE}
+# First fitted values. -Inf indicates rows that contained only zeros.
+head(c(fit$Beta_est))
+
+# Make a plot of mean-overdispersion relation
+library(ggplot2)
+ggplot(data.frame(mean=fit$Mu[,1], overdispersion=fit$overdispersions),
+       aes(x=mean, y = overdispersion)) +
+  geom_point(size = 0.1, alpha = 0.1) +
+  scale_x_log10() + scale_y_log10() +
+  labs(title = "Overdispersion Trend Against the Mean Expression",
+       caption = "Note the large number of genes with overdispersion = 0 at the bottom of the plot")
 ```
 
 
@@ -77,9 +93,9 @@ dim(pbmcs_subset)
 ```
 
 
-I compare my method running in-memory and on-disk with `DESeq2` and `edgeR`. Both are classical methods for analyzing RNA-Seq datasets and have been around for almost 10 years. (Note that both can do a lot more than just fitting the Gamma-Poisson model, so this benchmark only serves to give a general impression of the performance.)
+I compare my method (in-memory and on-disk) with `DESeq2` and `edgeR`. Both are classical methods for analyzing RNA-Seq datasets and have been around for almost 10 years. Note that both tools can do a lot more than just fitting the Gamma-Poisson model, so this benchmark only serves to give a general impression of the performance.
 
-```{r}
+```{r, warning=FALSE}
 bench::mark(
   glmGamPoi_in_memory = {
     glmGamPoi::glm_gp(pbmcs_subset, design = model_matrix, on_disk = FALSE)
@@ -96,11 +112,63 @@ bench::mark(
     edgeR_data <- edgeR::DGEList(pbmcs_subset)
     edgeR_data <- edgeR::calcNormFactors(edgeR_data)
     edgeR_data <- edgeR::estimateDisp(edgeR_data, model_matrix)
-    fit <- edgeR::glmFit(edgeR_data, design = model_matrix)
+    edgeR_fit <- edgeR::glmFit(edgeR_data, design = model_matrix)
   }, check = FALSE
 )
 ```
 
-Fitting the full `pbmc4k` dataset on a modern MacBook Pro in-memory takes ~1 minute and on-disk ~4 minutes. Fitting the `pbmc68k` (17x the size) takes ~73 minutes (17x the time) on-disk. Fitting that dataset in-memory is not possible because it is just too big: the maximum in-memory matrix size is `2^31-1 ≈ 2.1e9` is elements, the `pbmc68k` dataset however has nearly 100 million more elements.
+Fitting the full `pbmc4k` dataset on a modern MacBook Pro in-memory takes ~1 minute and on-disk ~4 minutes. Fitting the `pbmc68k` (17x the size) takes ~73 minutes (17x the time) on-disk. Fitting that dataset in-memory is not possible because it is just too big: the maximum in-memory matrix size is `2^31-1 ≈ 2.1e9` is elements, the `pbmc68k` dataset however has nearly 100 million elements more.
+
+
+Comparing the results:
+
+```{r message=FALSE, warning=FALSE}
+# Results with my method
+fit <- glmGamPoi::glm_gp(pbmcs_subset, design = model_matrix, on_disk = FALSE)
+
+# DESeq2
+dds <- DESeq2::DESeqDataSetFromMatrix(pbmcs_subset, 
+                        colData = data.frame(name = seq_len(4340)),
+                        design = ~ 1)
+dds <- DESeq2::estimateSizeFactors(dds, "poscounts")
+dds <- DESeq2::estimateDispersions(dds, quiet = TRUE)
+dds <- DESeq2::nbinomWaldTest(dds, minmu = 1e-6)
+
+#edgeR
+edgeR_data <- edgeR::DGEList(pbmcs_subset)
+edgeR_data <- edgeR::calcNormFactors(edgeR_data)
+edgeR_data <- edgeR::estimateDisp(edgeR_data, model_matrix)
+edgeR_fit <- edgeR::glmFit(edgeR_data, design = model_matrix)
+```
+
+
+```{r coefficientComparison, fig.height=5, fig.width=10, warning=FALSE, echo = FALSE}
+# fig.height=8, fig.width=5
+# par(mfrow = c(3, 2), cex.main = 2, cex.lab = 1.5)
+par(mfrow = c(2, 4), cex.main = 2, cex.lab = 1.5)
+plot(fit$Beta_est[,1], coef(dds)[,1] / log2(exp(1)), 
+     main = "Beta Coefficients", xlab = "glmGamPoi", ylab = "DESeq2")
+abline(0,1)
+plot(fit$Beta_est[,1], edgeR_fit$unshrunk.coefficients[,1],
+     main = "Beta Coefficients", xlab = "glmGamPoi", ylab = "edgeR")
+abline(0,1)
+
+plot(fit$Mu_est[,1], rowData(dds)$baseMean, log="xy",
+     main = "Gene Mean", xlab = "glmGamPoi", ylab = "DESeq2")
+abline(0,1)
+plot(fit$Mu_est[,1], edgeR_fit$fitted.values[,1], log="xy",
+     main = "Gene Mean", xlab = "glmGamPoi", ylab = "edgeR")
+abline(0,1)
+
+plot(fit$overdispersions, rowData(dds)$dispGeneEst, log="xy",
+     main = "Overdispersion", xlab = "glmGamPoi", ylab = "DESeq2")
+abline(0,1)
+plot(fit$overdispersions, edgeR_fit$dispersion, log="xy",
+     main = "Overdispersion", xlab = "glmGamPoi", ylab = "edgeR")
+abline(0,1)
+
+```
+
+The inferred Beta coefficients and gene means agree well between the methods, however the overdispersion differs quite a bit. `DESeq2` has problems estimating some of the overdispersions and sets them to `1e-8`. `edgeR` only approximates the overdispersions which explains the variation around the overdispersions calculated with `glmGamPoi`.
 
 

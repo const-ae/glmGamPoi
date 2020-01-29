@@ -19,7 +19,9 @@ Suggests:
     zoo,
     DESeq2,
     edgeR,
-    beachmat
+    beachmat,
+    ggplot2,
+    bench
 LinkingTo: 
     Rcpp,
     RcppArmadillo,
