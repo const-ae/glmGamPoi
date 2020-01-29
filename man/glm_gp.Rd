@@ -72,6 +72,24 @@ data structure.}
 \item{verbose}{a boolean that indicates if information about the individual steps are printed
 while fitting the GLM. Default: \code{FALSE}.}
 }
+\value{
+The method returns a list with the following elements:
+\describe{
+\item{\code{Beta_est}}{a matrix with dimensions \code{nrow(data) x n_coefficients} where \code{n_coefficients} is
+based on the \code{design} argument. It contains the estimated coefficients for each gene.}
+\item{\code{overdispersions}}{a vector with length \code{nrow(data)}. The overdispersion parameter for each
+gene. It describes how much more the counts vary than one would expect according to the Poisson
+model.}
+\item{\code{Mu_est}}{a matrix with the same dimensions as \code{dim(data)}. If the calculation happened on
+disk, than \code{Mu_est} is a \code{HDF5Matrix}. It contains the estimated mean value for each gene and
+sample.}
+\item{\code{size_factors}}{a vector with length \code{ncol(data)}. The size factors are the inferred
+correction factors for different sizes of each sample. They are also sometimes called the
+exposure factor.}
+\item{\code{model_matrix}}{a matrix with dimensions \code{ncol(data) x n_coefficients}. It is build based
+on the \code{design} argument.}
+}
+}
 \description{
 This function provides a simple to use interface to fit Gamma-Poisson generalized
 linear models. It works equally well for small scale (a single model) and large scale data
