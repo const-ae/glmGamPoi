@@ -131,6 +131,25 @@ large scale datasets with thousands of samples, as they sometimes encountered in
 RNA-seq analysis. \code{glmGamPoi} relies on the \code{DelayedArray} and \code{beachmat} package to efficiently
 implement the access to the on-disk data.
 }
+\examples{
+ set.seed(1)
+ # The simplest example
+ y <- rnbinom(n = 10, mu = 3, size = 1/2.4)
+ glm_gp(y, size_factors = FALSE)
+
+ # Fitting a whole matrix
+ model_matrix <- cbind(1, rnorm(5))
+ true_Beta <- cbind(rnorm(n = 30), rnorm(n = 30, mean = 3))
+ sf <- exp(rnorm(n = 5, mean = 0.7))
+ model_matrix
+ Y <- matrix(rnbinom(n = 30 * 5, mu = sf * exp(true_Beta \%*\% t(model_matrix)), size = 1/2.4),
+             nrow = 30, ncol = 5)
+
+ glm_gp(Y, design = model_matrix, size_factors = sf, verbose = TRUE)
+
+
+
+}
 \references{
 \itemize{
 \item McCarthy, D. J., Chen, Y., & Smyth, G. K. (2012). Differential expression analysis of multifactor
