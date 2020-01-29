@@ -212,7 +212,7 @@ NumericVector estimate_overdispersions_fast_internal(RObject Y, RObject mean_mat
     mean_mat_bm->get_row(gene_idx, mu.begin());
 
     SEXP dispRes = gampoi_overdispersion_mle(counts, mu, model_matrix, do_cox_reid_adjustment, n_subsamples);
-    SEXP disp = Rcpp::as<List>(dispRes)["root"];
+    SEXP disp = Rcpp::as<List>(dispRes)["estimate"];
     result(gene_idx) = Rcpp::as<double>(disp);
   }
 

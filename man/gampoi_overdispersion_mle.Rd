@@ -2,9 +2,9 @@
 % Please edit documentation in R/overdispersion.R
 \name{gampoi_overdispersion_mle}
 \alias{gampoi_overdispersion_mle}
-\title{Estimate a Single Overdispersion for a Vector of Counts}
+\title{Estimate the Overdispersion for a Vector of Counts}
 \usage{
-gampoi_overdispersion_mle(y, mean_vector = mean(y),
+gampoi_overdispersion_mle(y, mean = base::mean(y),
   model_matrix = matrix(1, nrow = length(y), ncol = 1),
   do_cox_reid_adjustment = TRUE, n_subsamples = min(1000, length(y)),
   verbose = FALSE)
@@ -13,7 +13,7 @@ gampoi_overdispersion_mle(y, mean_vector = mean(y),
 \item{y}{a numeric or integer vector with the counts for which
 the overdispersion is estimated}
 
-\item{mean_vector}{a numeric vector of either length 1 or \code{length(y)}
+\item{mean}{a numeric vector of either length 1 or \code{length(y)}
 with the predicted value for that sample. Default: \code{mean(y)}.}
 
 \item{model_matrix}{a numeric matrix that specifies the experimental
@@ -36,6 +36,51 @@ for each gene to estimate the overdispersion.}
 \item{verbose}{a boolean that indicates if information about the individual steps are printed
 while fitting the GLM. Default: \code{FALSE}.}
 }
+\value{
+The function returs a list with the following elements:
+\describe{
+\item{\code{estimate}}{the numerical estimate of the overdispersion.}
+\item{\code{iterations}}{the number of iterations it took to calculate
+the result.}
+\item{\code{method}}{the method that was used to calculate the
+overdispersion: either \code{"conventional"} or \code{"bandara"}.}
+\item{\code{message}}{additional information about the fitting process.}
+}
+}
 \description{
-Estimate a Single Overdispersion for a Vector of Counts
+Estimate the Overdispersion for a Vector of Counts
+}
+\details{
+The function employs a rough heuristic to decide if the iterative
+or the Bandara approach is used to calculate the overdispersion. If
+\code{max(y) < length(y)} Bandara's approach is used, otherwise the
+conventional one is used.
+}
+\examples{
+ set.seed(1)
+ # true overdispersion = 2.4
+ y <- rnbinom(n = 10, mu = 3, size = 1/2.4)
+ # estimate = 1.7
+ gampoi_overdispersion_mle(y)
+
+
+ # true overdispersion = 0
+ y <- rpois(n = 10, lambda = 3)
+ # estimate = 0
+ gampoi_overdispersion_mle(y)
+ # with different mu, overdispersion estimate changes
+ gampoi_overdispersion_mle(y, mean = 15)
+ # Cox-Reid adjustment changes the result
+ gampoi_overdispersion_mle(y, mean = 15, do_cox_reid_adjustment = FALSE)
+
+
+ # Many very small counts, true overdispersion = 50
+ y <- rnbinom(n = 1000, mu = 0.01, size = 1/50)
+ summary(y)
+ # estimate = 31
+ gampoi_overdispersion_mle(y)
+
+}
+\seealso{
+\code{\link[=glm_gp]{glm_gp()}}
 }

@@ -1,11 +1,11 @@
 
 
 
-#' Estimate a Single Overdispersion for a Vector of Counts
+#' Estimate the Overdispersion for a Vector of Counts
 #'
 #' @param y a numeric or integer vector with the counts for which
 #'   the overdispersion is estimated
-#' @param mean_vector a numeric vector of either length 1 or `length(y)`
+#' @param mean a numeric vector of either length 1 or `length(y)`
 #'   with the predicted value for that sample. Default: `mean(y)`.
 #' @param model_matrix a numeric matrix that specifies the experimental
 #'   design. It can be produced using `stats::model.matrix()`.
@@ -13,47 +13,89 @@
 #'   model matrix for a 'just-intercept-model'.
 #' @inheritParams glm_gp
 #'
+#' @details
+#' The function employs a rough heuristic to decide if the iterative
+#' or the Bandara approach is used to calculate the overdispersion. If
+#' `max(y) < length(y)` Bandara's approach is used, otherwise the
+#' conventional one is used.
+#'
+#' @return
+#' The function returs a list with the following elements:
+#' \describe{
+#'   \item{`estimate`}{the numerical estimate of the overdispersion.}
+#'   \item{`iterations`}{the number of iterations it took to calculate
+#'   the result.}
+#'   \item{`method`}{the method that was used to calculate the
+#'   overdispersion: either `"conventional"` or `"bandara"`.}
+#'   \item{`message`}{additional information about the fitting process.}
+#' }
+#'
+#' @examples
+#'  set.seed(1)
+#'  # true overdispersion = 2.4
+#'  y <- rnbinom(n = 10, mu = 3, size = 1/2.4)
+#'  # estimate = 1.7
+#'  gampoi_overdispersion_mle(y)
+#'
+#'
+#'  # true overdispersion = 0
+#'  y <- rpois(n = 10, lambda = 3)
+#'  # estimate = 0
+#'  gampoi_overdispersion_mle(y)
+#'  # with different mu, overdispersion estimate changes
+#'  gampoi_overdispersion_mle(y, mean = 15)
+#'  # Cox-Reid adjustment changes the result
+#'  gampoi_overdispersion_mle(y, mean = 15, do_cox_reid_adjustment = FALSE)
+#'
+#'
+#'  # Many very small counts, true overdispersion = 50
+#'  y <- rnbinom(n = 1000, mu = 0.01, size = 1/50)
+#'  summary(y)
+#'  # estimate = 31
+#'  gampoi_overdispersion_mle(y)
+#'
+#' @seealso [glm_gp()]
 #' @export
-gampoi_overdispersion_mle <- function(y, mean_vector = mean(y),
+gampoi_overdispersion_mle <- function(y, mean = base::mean(y),
                            model_matrix = matrix(1, nrow = length(y), ncol = 1),
                            do_cox_reid_adjustment = TRUE,
                            n_subsamples = min(1000, length(y)),
                            verbose = FALSE){
 
   validate_model_matrix(model_matrix, matrix(y, nrow = 1))
-  if(length(mean_vector) == 1){
-    mean_vector <- rep(mean_vector, length(y))
+  if(length(mean) == 1){
+    mean <- rep(mean, length(y))
   }
-  # Apply subsampling by randomly selecting elements of y and mean_vector
+  # Apply subsampling by randomly selecting elements of y and mean
   if(n_subsamples != length(y)){
     random_sel <- sort(sample(seq_along(y), size = n_subsamples, replace = FALSE))
     # It is important this is before subsetting y, because of lazy evaluation
     model_matrix <- model_matrix[random_sel, , drop=FALSE]
     y <- y[random_sel]
-    mean_vector <- mean_vector[random_sel]
+    mean <- mean[random_sel]
   }
 
 
-  stopifnot(length(y) == length(mean_vector))
+  stopifnot(length(y) == length(mean))
   stopifnot(all(! is.na(y)))   # Cannot handle missing values
   stopifnot(all(y >= 0))
-  stopifnot(all(! is.na(mean_vector)))
-  stopifnot(all(mean_vector >= 0))
+  stopifnot(all(! is.na(mean)))
+  stopifnot(all(mean >= 0))
   stopifnot(all(is.finite(y)))
-  stopifnot(all(is.finite(mean_vector)))
+  stopifnot(all(is.finite(mean)))
 
   # Decide if I use the Bandara approach or classical MLE
   # Rule is a rough heuristic
   # The -Inf suppresses a warning for empty y
   if(max(c(y, -Inf)) < length(y)){
     # Do Bandara
-    bandara_overdispersion_mle(y, mean_vector = mean_vector,
+    bandara_overdispersion_mle(y, mean_vector = mean,
                                model_matrix = model_matrix,
                                do_cox_reid_adjustment = do_cox_reid_adjustment,
                                verbose = verbose)
   }else{
     # Do conventional optimization
-    conventional_overdispersion_mle(y, mean_vector = mean_vector,
+    conventional_overdispersion_mle(y, mean_vector = mean,
                                     model_matrix = model_matrix,
                                     do_cox_reid_adjustment = do_cox_reid_adjustment,
                                     verbose = verbose)
@@ -64,12 +106,12 @@ bandara_overdispersion_mle <- function(y, mean_vector,
                            model_matrix = matrix(1, nrow = length(y), ncol = 1),
                            do_cox_reid_adjustment = TRUE,
                            verbose = FALSE){
-  return_value = list(root = NA_real_, iterations = NA_real_, method = "bandara", message = "")
+  return_value = list(estimate = NA_real_, iterations = NA_real_, method = "bandara", message = "")
 
 
   if(all(y == 0)){
     return_value$message <- "All counts y are 0."
-    return_value$root <- 0
+    return_value$estimate <- 0
     return(return_value)
   }
 
@@ -86,7 +128,7 @@ bandara_overdispersion_mle <- function(y, mean_vector,
                                                  do_cr_adj = do_cox_reid_adjustment)
   if(far_right_value > 0){
     return_value$message <- "Even for very small theta, no maximum identified"
-    return_value$root <- 0
+    return_value$estimate <- 0
     return(return_value)
   }
 
@@ -135,7 +177,7 @@ bandara_overdispersion_mle <- function(y, mean_vector,
                                       do_cr_adj = do_cox_reid_adjustment)
   }, tol = .Machine$double.eps^0.25)
 
-  return_value$root <- 1/root_info$root
+  return_value$estimate <- 1/root_info$root
   return_value$iterations <- root_info$niter
   return_value$message <- "success"
   return_value
@@ -146,12 +188,12 @@ conventional_overdispersion_mle <- function(y, mean_vector,
                                        model_matrix = matrix(1, nrow = length(y), ncol = 1),
                                        do_cox_reid_adjustment = TRUE,
                                        verbose = FALSE){
-  return_value = list(root = NA_real_, iterations = NA_real_, method = "conventional", message = "")
+  return_value = list(estimate = NA_real_, iterations = NA_real_, method = "conventional", message = "")
 
 
   if(all(y == 0)){
     return_value$message <- "All counts y are 0."
-    return_value$root <- 0
+    return_value$estimate <- 0
     return(return_value)
   }
 
@@ -162,7 +204,7 @@ conventional_overdispersion_mle <- function(y, mean_vector,
                                    model_matrix = model_matrix, do_cr_adj = do_cox_reid_adjustment)
   if(far_left_value < 0){
     return_value$message <-  "Even for very small theta, no maximum identified"
-    return_value$root <- 0
+    return_value$estimate <- 0
     return(return_value)
   }
 
@@ -185,7 +227,7 @@ conventional_overdispersion_mle <- function(y, mean_vector,
            matrix(- res, nrow = 1, ncol = 1)
          })
 
-  return_value$root <- exp(res$par)
+  return_value$estimate <- exp(res$par)
   return_value$iterations <- res$iterations
   return_value$message <- res$message
   return_value
@@ -229,7 +271,7 @@ estimate_overdispersions <- function(Y, mean_matrix, model_matrix, do_cox_reid_a
   # vapply(seq_len(nrow(Y)), function(gene_idx){
   #   gampoi_overdispersion_mle(y = Y[gene_idx, ], mean_vector = mean_matrix[gene_idx, ],
   #                             model_matrix = model_matrix, do_cox_reid_adjustment = do_cox_reid_adjustment,
-  #                             n_subsamples = n_subsamples)$root
+  #                             n_subsamples = n_subsamples)$estimate
   # }, FUN.VALUE = 0.0)
   estimate_overdispersions_fast(Y, mean_matrix, model_matrix, do_cox_reid_adjustment, n_subsamples)
 

@@ -19,21 +19,21 @@ X <- matrix(rnorm(n = 30 * 4), nrow = 30, ncol = 4)
 
 
 test_that("Convential and Bandara approach produce the same estimates", {
-  pbl_w_cr <- gampoi_overdispersion_mle(y = samples, mean_vector = mu,
-                                        model_matrix = X, do_cox_reid_adjustment = TRUE)$root
+  pbl_w_cr <- gampoi_overdispersion_mle(y = samples, mean = mu,
+                                        model_matrix = X, do_cox_reid_adjustment = TRUE)$estimate
   ban_w_cr <- bandara_overdispersion_mle(y = samples, mean_vector = mu,
-                                     model_matrix = X, do_cox_reid_adjustment = TRUE)$root
+                                     model_matrix = X, do_cox_reid_adjustment = TRUE)$estimate
   con_w_cr <- conventional_overdispersion_mle(y = samples, mean_vector = mu,
-                                          model_matrix = X, do_cox_reid_adjustment = TRUE)$root
+                                          model_matrix = X, do_cox_reid_adjustment = TRUE)$estimate
   expect_equal(ban_w_cr, con_w_cr, tolerance = 1e-4)
   expect_equal(ban_w_cr, pbl_w_cr, tolerance = 1e-4)
 
-  pbl_wo_cr <- gampoi_overdispersion_mle(y = samples, mean_vector = mu,
-                                        model_matrix = X, do_cox_reid_adjustment = FALSE)$root
+  pbl_wo_cr <- gampoi_overdispersion_mle(y = samples, mean = mu,
+                                        model_matrix = X, do_cox_reid_adjustment = FALSE)$estimate
   ban_wo_cr <- bandara_overdispersion_mle(y = samples, mean_vector = mu,
-                                     model_matrix = X, do_cox_reid_adjustment = FALSE)$root
+                                     model_matrix = X, do_cox_reid_adjustment = FALSE)$estimate
   con_wo_cr <- conventional_overdispersion_mle(y = samples, mean_vector = mu,
-                                          model_matrix = X, do_cox_reid_adjustment = FALSE)$root
+                                          model_matrix = X, do_cox_reid_adjustment = FALSE)$estimate
   expect_equal(ban_wo_cr, con_wo_cr, tolerance = 1e-4)
   expect_equal(ban_wo_cr, pbl_wo_cr, tolerance = 1e-4)
 })
@@ -100,9 +100,9 @@ test_that("Estimation methods can handle under-dispersion", {
   expect_gt(mean(samples), var(samples))  # Proof of underdispersion
   mu <- rep(mean(samples), length(samples))
   ban_wo_cr <- bandara_overdispersion_mle(y = samples, mean_vector = mu,
-                                         do_cox_reid_adjustment = FALSE)$root
+                                         do_cox_reid_adjustment = FALSE)$estimate
   con_wo_cr <- conventional_overdispersion_mle(y = samples, mean_vector = mu,
-                                         do_cox_reid_adjustment = FALSE)$root
+                                         do_cox_reid_adjustment = FALSE)$estimate
 
   expect_equal(ban_wo_cr, 0)
   expect_equal(con_wo_cr, 0)
@@ -110,9 +110,9 @@ test_that("Estimation methods can handle under-dispersion", {
   # However, if mu is large then again a theta can be estimated
   mu <- rep(10, length(samples))
   ban_wo_cr <- bandara_overdispersion_mle(y = samples, mean_vector = mu,
-                                          do_cox_reid_adjustment = FALSE)$root
+                                          do_cox_reid_adjustment = FALSE)$estimate
   con_wo_cr <- conventional_overdispersion_mle(y = samples, mean_vector = mu,
-                                               do_cox_reid_adjustment = FALSE)$root
+                                               do_cox_reid_adjustment = FALSE)$estimate
   expect_true(ban_wo_cr != 0 && con_wo_cr != 0)
   expect_equal(ban_wo_cr, con_wo_cr)
 })
@@ -127,7 +127,7 @@ test_that("Estimation methods can handle mu = 0", {
                              do_cox_reid_adjustment = FALSE)
   c_res <- conventional_overdispersion_mle(y = samples, mean_vector = mu,
                                   do_cox_reid_adjustment = FALSE)
-  expect_equal(b_res$root, c_res$root)
+  expect_equal(b_res$estimate, c_res$estimate)
 
 })
 
@@ -140,8 +140,8 @@ test_that("Identical y values work", {
                              do_cox_reid_adjustment = FALSE)
   con <- conventional_overdispersion_mle(y = samples, mean_vector = mu,
                                   do_cox_reid_adjustment = FALSE)
-  expect_equal(ban$root, 0)
-  expect_equal(con$root, 0)
+  expect_equal(ban$estimate, 0)
+  expect_equal(con$estimate, 0)
 
   # If mu is small enough, it works again
   samples <- rep(6, times = 10)
@@ -150,7 +150,7 @@ test_that("Identical y values work", {
                                     do_cox_reid_adjustment = FALSE)
   con <- conventional_overdispersion_mle(y = samples, mean_vector = mu,
                                          do_cox_reid_adjustment = FALSE)
-  expect_equal(ban$root, con$root, tolerance = 1e-4)
+  expect_equal(ban$estimate, con$estimate, tolerance = 1e-4)
 
 
   # For all y = 0 -> cannot really make inference, assume theta = 0
@@ -160,17 +160,17 @@ test_that("Identical y values work", {
                                     do_cox_reid_adjustment = FALSE)
   con <- conventional_overdispersion_mle(y = samples, mean_vector = mu,
                                          do_cox_reid_adjustment = FALSE)
-  expect_equal(ban$root, 0)
-  expect_equal(con$root, 0)
+  expect_equal(ban$estimate, 0)
+  expect_equal(con$estimate, 0)
 
 })
 
 test_that("one value is enough to get an answer", {
-  expect_equal(gampoi_overdispersion_mle(y = 3)$root, 0)
-  expect_equal(bandara_overdispersion_mle(y = 3, mean_vector = 3)$root, 0)
-  expect_equal(conventional_overdispersion_mle(y = 3, mean_vector = 3)$root, 0)
-  expect_false(bandara_overdispersion_mle(y = 3, mean_vector = 1.3)$root == 0)
-  expect_equal(bandara_overdispersion_mle(y = 3, mean_vector = 1.3)$root, conventional_overdispersion_mle(y = 3, mean_vector = 1.3)$root)
+  expect_equal(gampoi_overdispersion_mle(y = 3)$estimate, 0)
+  expect_equal(bandara_overdispersion_mle(y = 3, mean_vector = 3)$estimate, 0)
+  expect_equal(conventional_overdispersion_mle(y = 3, mean_vector = 3)$estimate, 0)
+  expect_false(bandara_overdispersion_mle(y = 3, mean_vector = 1.3)$estimate == 0)
+  expect_equal(bandara_overdispersion_mle(y = 3, mean_vector = 1.3)$estimate, conventional_overdispersion_mle(y = 3, mean_vector = 1.3)$estimate)
 })
 
 
@@ -178,7 +178,7 @@ test_that("subsampling works and does not affect performance too badly", {
   y <- rnbinom(n = 1e4, mu = 5, size = 1 / 0.7)
   r1 <- gampoi_overdispersion_mle(y = y, n_subsamples = 1e4)
   r2 <- gampoi_overdispersion_mle(y = y, n_subsamples = 1000)
-  expect_lt(abs(r1$root - r2$root), 0.1)
+  expect_lt(abs(r1$estimate - r2$estimate), 0.1)
 
 })
 
@@ -200,14 +200,14 @@ test_that("DelayedArrays are handled efficiently", {
 
 
   disp_est_r_ram <- vapply(seq_len(n_genes), function(gene_idx){
-    gampoi_overdispersion_mle(y = mat_hdf5[gene_idx, ], mean_vector = mean_matrix[gene_idx, ],
+    gampoi_overdispersion_mle(y = mat_hdf5[gene_idx, ], mean = mean_matrix[gene_idx, ],
                               model_matrix = model_matrix, do_cox_reid_adjustment = TRUE,
-                              n_subsamples = n_samples)$root
+                              n_subsamples = n_samples)$estimate
   }, FUN.VALUE = 0.0)
   disp_est_r_hdf5 <- vapply(seq_len(n_genes), function(gene_idx){
-    gampoi_overdispersion_mle(y = mat_hdf5[gene_idx, ], mean_vector = mean_matrix[gene_idx, ],
+    gampoi_overdispersion_mle(y = mat_hdf5[gene_idx, ], mean = mean_matrix[gene_idx, ],
                               model_matrix = model_matrix, do_cox_reid_adjustment = TRUE,
-                              n_subsamples = n_samples)$root
+                              n_subsamples = n_samples)$estimate
   }, FUN.VALUE = 0.0)
 
   beachmat_ram <- estimate_overdispersions_fast(mat, mean_matrix_ram, model_matrix,
