@@ -4,8 +4,18 @@
 #include "beachmat/integer_matrix.h"
 
 using namespace Rcpp;
-
 // [[Rcpp::depends(RcppArmadillo)]]
+
+
+
+// This correction factor is necessary to avoid estimates of
+// theta that are basically +Inf. The problem is that for
+// some combination of the y, mu, and X the term
+// lgamma(1/theta) and the log(det(t(X) %*% W %*% X))
+// with W = diag(1/(1/mu + theta)) canceled each other
+// exactly out for large theta.
+const double cr_correction_factor = 0.99;
+
 
 // [[Rcpp::export]]
 IntegerVector makeCumSumLookupVector(IntegerVector y){
@@ -39,7 +49,7 @@ double score_function_bandara_fast(IntegerVector y, IntegerVector cumsumLookupTa
     arma::vec dw_diag = pow(mu / (mu + r), 2);
     arma::mat b = model_matrix.t() * (model_matrix.each_col() % w_diag);
     arma::mat db = model_matrix.t() * (model_matrix.each_col() % dw_diag);
-    cr_term = -0.5 * trace(b.i() * db);
+    cr_term = -0.5 * trace(b.i() * db) * cr_correction_factor;
   }
 
   double digammaSummand = 0.0;
@@ -70,7 +80,7 @@ double score_deriv_function_bandara_fast(IntegerVector y, IntegerVector cumsumLo
     arma::mat b_i = b.i();
     double ddetb = ( det(b) * trace(b.i() * db) );
     double d2detb = ( det(b) * (pow(trace(b_i * db), 2) - trace(b_i * db * b_i * db) + trace(b_i * d2b)) );
-    cr_term = 0.5 * pow(ddetb/det(b), 2) - 0.5 * d2detb / det(b);
+    cr_term = (0.5 * pow(ddetb/det(b), 2) - 0.5 * d2detb / det(b)) * cr_correction_factor;
   }
 
   double digammaSummand = 0.0;
@@ -122,7 +132,7 @@ double conventional_loglikelihood_fast(NumericVector y, NumericVector mu, double
   if(do_cr_adj){
     arma::vec w_diag = pow(pow(mu, -1) + theta, -1);
     arma::mat b = model_matrix.t() * (model_matrix.each_col() % w_diag);
-    cr_term = -0.5 * log(det(b));
+    cr_term = -0.5 * log(det(b))  * cr_correction_factor;
   }
   double theta_neg1 = R_pow_di(theta, -1);
   double ll_part = sum(lgamma(y + theta_neg1) - lgamma(theta_neg1) - y * log(mu + theta_neg1) - theta_neg1 * log(1.0 + mu * theta));
@@ -142,7 +152,7 @@ double conventional_score_function_fast(NumericVector y, NumericVector mu, doubl
     arma::mat b = model_matrix.t() * (model_matrix.each_col() % w_diag);
     arma::mat db = model_matrix.t() * (model_matrix.each_col() % dw_diag);
     double ddetb = ( det(b) * trace(b.i() * db) );
-    cr_term = -0.5 * ddetb / det(b);
+    cr_term = -0.5 * ddetb / det(b)  * cr_correction_factor;
   }
   double theta_neg1 = R_pow_di(theta, -1);
   double theta_neg2 = R_pow_di(theta, -2);
@@ -171,7 +181,7 @@ double conventional_deriv_score_function_fast(NumericVector y, NumericVector mu,
     arma::mat d2b = model_matrix.t() * (model_matrix.each_col() % d2w_diag);
     double ddetb = ( det(b) * trace(b.i() * db) );
     double d2detb = ( det(b) * (R_pow_di(trace(b_i * db), 2) - trace(b_i * db * b_i * db) + trace(b_i * d2b)) );
-    cr_term = 0.5 * R_pow_di(ddetb/det(b), 2) - 0.5 * d2detb / det(b);
+    cr_term = (0.5 * R_pow_di(ddetb/det(b), 2) - 0.5 * d2detb / det(b))  * cr_correction_factor;
   }
   double theta_neg1 = R_pow_di(theta, -1);
   double theta_neg2 = R_pow_di(theta, -2);

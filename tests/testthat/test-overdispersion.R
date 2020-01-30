@@ -118,6 +118,20 @@ test_that("Estimation methods can handle under-dispersion", {
 })
 
 
+test_that("Estimation methods can handle Infinite dispersion", {
+  # For some reason this model matrix makes the dispersion estimate
+  # go to +Inf. Fixed by adding a cr_correction_factor = 0.99 to
+  # the calculation of the Cox-Reid adjustment.
+  # The problem was that the lgamma(1/theta) and CR-adjustment
+  # canceled each other exactly
+  model_matrix <- cbind(1, rnorm(n=5))
+  mean_vector <- c(0.2, 0.6, 0.8, 0.2, 0.1)
+  y <- c(0, 0, 3, 0, 0)
+
+  fit <- gampoi_overdispersion_mle(y, mean_vector, model_matrix = model_matrix)
+  expect_lt(fit$estimate, 1e5)
+})
+
 
 test_that("Estimation methods can handle mu = 0", {
 
@@ -170,7 +184,8 @@ test_that("one value is enough to get an answer", {
   expect_equal(bandara_overdispersion_mle(y = 3, mean_vector = 3)$estimate, 0)
   expect_equal(conventional_overdispersion_mle(y = 3, mean_vector = 3)$estimate, 0)
   expect_false(bandara_overdispersion_mle(y = 3, mean_vector = 1.3)$estimate == 0)
-  expect_equal(bandara_overdispersion_mle(y = 3, mean_vector = 1.3)$estimate, conventional_overdispersion_mle(y = 3, mean_vector = 1.3)$estimate)
+  expect_equal(bandara_overdispersion_mle(y = 3, mean_vector = 1.3)$estimate,
+               conventional_overdispersion_mle(y = 3, mean_vector = 1.3)$estimate, tolerance = 1e-6)
 })
 
 
