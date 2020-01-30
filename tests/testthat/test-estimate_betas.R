@@ -48,6 +48,45 @@ test_that("Beta estimation can handle edge cases as input", {
 })
 
 
+
+test_that("Beta estimation can handle any kind of model_matrix", {
+
+  # Y <- matrix(rnbinom(n = 10, mu = 50, size = 1/3.4), nrow = 1, ncol = 10)
+  # Y <- matrix(1:10, nrow = 1, ncol = 10)
+  # model_matrix <- matrix(rnorm(20), nrow = 10, ncol = 2)
+  # Y <- matrix(1:72, nrow = 9, ncol = 8)
+  # model_matrix <- matrix(rnorm(n = 8 * 4), nrow = 8, ncol = 4)
+
+  summary(glm_gp(Y, design = model_matrix, size_factors = FALSE))
+
+
+  # Y <- matrix(1:16, nrow = 2, ncol = 8)
+  Y <- matrix(1:72, nrow = 9, ncol = 8)[3:5,,drop=FALSE]
+  model_matrix <- matrix(rnorm(n = 8 * 2), nrow = 8, ncol = 2)
+  offset_matrix <- matrix(0, nrow = nrow(Y), ncol = ncol(Y))
+  disp_init <- estimate_dispersions_roughly(Y, model_matrix, offset_matrix)
+  beta_init <- estimate_betas_roughly(Y, model_matrix, offset_matrix)
+  estimate_betas_fisher_scoring(Y, model_matrix = model_matrix, offset_matrix = offset_matrix,
+                                dispersions = disp_init, beta_mat_init = beta_init)
+
+  lm(log(Y[1, ] + 1) ~ model_matrix - 1)
+
+  DESeq2:::fitBetaWrapper(ySEXP = Y, xSEXP = model_matrix, nfSEXP = exp(offset_matrix),
+                          alpha_hatSEXP = disp_init,
+                          # contrastSEXP = rep(1, 8),
+                          beta_matSEXP = beta_init,
+                          lambdaSEXP = rep(0.3, ncol(model_matrix)),
+                          weightsSEXP = array(1, dim(Y)), useWeightsSEXP = FALSE,
+                          tolSEXP = 1e-8, maxitSEXP = 100, useQRSEXP = TRUE, minmuSEXP = 1e-6)
+
+  edgeR::glmFit.default(Y, design = model_matrix,
+                        dispersion = disp_init, offset = offset_matrix[1,],
+                        prior.count = 0, weights=NULL,
+                        start = beta_init)
+})
+
+
+
 test_that("estimate_betas_one_group can handle DelayedArray", {
 
   mat <- matrix(1:32, nrow = 8, ncol = 4)
@@ -218,23 +257,41 @@ test_that("glm_gp_impl works with Delayed Input", {
 })
 
 
-
-## More Benchmark:
+# res3 <- glm_gp(data$Y)
+#
+# edgeR_data <- edgeR::DGEList(Y_hdf5)
+# edgeR_data <- edgeR::calcNormFactors(edgeR_data)
+# edgeR_data <- edgeR::estimateDisp(edgeR_data, data$X)
+# fit <- edgeR::glmFit(edgeR_data, design = data$X)
+#
+# ## More Benchmark:
 # data <- make_dataset(n_genes = 1000, n_samples = 3000)
 # profvis::profvis(
 #   glm_gp_impl(data$Y, model_matrix = data$X, verbose = TRUE)
 # )
+# Y_hdf5 <- HDF5Array::writeHDF5Array(data$Y)
+# profvis::profvis(
+#   glm_gp_impl(Y_hdf5, model_matrix = data$X, verbose = TRUE)
+# )
+#
 # bench::mark(
-#   glmGamPoi = {
+#   glmGamPoi_ram = {
 #     glm_gp_impl(data$Y, model_matrix = data$X, verbose = TRUE)
+#   }, glmGamPoi_hdf5 = {
+#     glm_gp_impl(Y_hdf5, model_matrix = data$X, verbose = TRUE)
 #   # }, DESeq2 = {
 #   #   dds <- DESeq2::DESeqDataSetFromMatrix(data$Y, colData = data.frame(name = seq_len(ncol(data$Y))),
 #   #                                         design = ~ 1)
 #   #   dds <- DESeq2::estimateSizeFactors(dds)
 #   #   dds <- DESeq2::estimateDispersions(dds)
 #   #   dds <- DESeq2::nbinomWaldTest(dds, minmu = 1e-6)
-#   }, edgeR = {
+#   }, edgeR_ram = {
 #     edgeR_data <- edgeR::DGEList(data$Y)
+#     edgeR_data <- edgeR::calcNormFactors(edgeR_data)
+#     edgeR_data <- edgeR::estimateDisp(edgeR_data, data$X)
+#     fit <- edgeR::glmFit(edgeR_data, design = data$X)
+#   }, edgeR_hdf5 = {
+#     edgeR_data <- edgeR::DGEList(Y_hdf5)
 #     edgeR_data <- edgeR::calcNormFactors(edgeR_data)
 #     edgeR_data <- edgeR::estimateDisp(edgeR_data, data$X)
 #     fit <- edgeR::glmFit(edgeR_data, design = data$X)
@@ -269,8 +326,27 @@ test_that("glm_gp_impl works with Delayed Input", {
 #   mutate(relative = c(median / first(median)))
 
 
-
-
-
+# library(TENxPBMCData)
+# pbmc4k <- TENxPBMCData("pbmc4k")
+# profvis::profvis(
+#   res <- glm_gp_impl(assay(pbmc4k), model_matrix = matrix(1, nrow = ncol(pbmc4k), ncol = 1), verbose = TRUE)
+# )
+#
+# profvis::profvis({
+#   edgeR_data <- edgeR::DGEList(assay(pbmc4k))
+#   edgeR_data <- edgeR::calcNormFactors(edgeR_data)
+#   edgeR_data <- edgeR::estimateDisp(edgeR_data, matrix(1, nrow = ncol(pbmc4k), ncol = 1))
+#   edgeR_fit <- edgeR::glmFit(edgeR_data, design = matrix(1, nrow = ncol(pbmc4k), ncol = 1))
+# })
+#
+# tibble(intercept = res$Beta_est[,1], dispersion = res$overdispersions) %>%
+#   ggplot(aes(x = intercept, y = dispersion)) +
+#     ggpointdensity::geom_pointdensity(size = 0.3) +
+#     geom_point(data = . %>% filter(dispersion == 0)) +
+#     geom_smooth() +
+#     # scale_x_log10() +
+#     # scale_y_log10() +
+#     coord_trans(ytrans = "log10") +
+#     scale_color_viridis_c()
 
 
