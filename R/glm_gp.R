@@ -186,6 +186,7 @@ glm_gp <- function(data,
   # Make sure that the output is nice and beautiful
   res$model_matrix <- des$model_matrix
   res$design_formula <- des$design_formula
+  class(res) <- "glmGamPoi"
   res
 }
 

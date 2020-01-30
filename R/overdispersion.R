@@ -178,7 +178,7 @@ bandara_overdispersion_mle <- function(y, mean_vector,
   }, tol = .Machine$double.eps^0.25)
 
   return_value$estimate <- 1/root_info$root
-  return_value$iterations <- root_info$niter
+  return_value$iterations <- root_info$niter + iter
   return_value$message <- "success"
   return_value
 }
