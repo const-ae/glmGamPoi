@@ -58,7 +58,7 @@ jobs:
           sudo -s eval "$sysreqs"
 
       - name: Install Bioconductor Dependencies
-        run: Rscript -e "install.packages('BiocManager')" -e "BiocManager::install(c('DelayedMatrixStats', 'DelayedArray', 'HDF5Array', 'SummerizedExperiment', 'DESeq2', 'edgeR'))"
+        run: Rscript -e "install.packages('BiocManager')" -e "BiocManager::install(c('DelayedMatrixStats', 'DelayedArray', 'HDF5Array', 'beachmat', 'SummerizedExperiment', 'DESeq2', 'edgeR'))"
 
       - name: Install dependencies
         run: Rscript -e "library(remotes)" -e "update(readRDS('depends.Rds'))" -e "remotes::install_cran('rcmdcheck')"
