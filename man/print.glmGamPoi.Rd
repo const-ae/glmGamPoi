@@ -2,9 +2,28 @@
 % Please edit documentation in R/print_model.R
 \name{print.glmGamPoi}
 \alias{print.glmGamPoi}
+\alias{format.glmGamPoi}
+\alias{summary.glmGamPoi}
+\alias{print.summary.glmGamPoi}
+\alias{format.summary.glmGamPoi}
 \title{Pretty print the result from glm_gp()}
 \usage{
 \method{print}{glmGamPoi}(x, ...)
+
+\method{format}{glmGamPoi}(x, ...)
+
+\method{summary}{glmGamPoi}(object, ...)
+
+\method{print}{summary.glmGamPoi}(x, ...)
+
+\method{format}{summary.glmGamPoi}(x, ...)
+}
+\arguments{
+\item{x}{the glmGamPoi object}
+
+\item{...}{additional parameters, currently ignored}
+
+\item{object}{the glmGamPoi object that is summarized}
 }
 \description{
 Pretty print the result from glm_gp()

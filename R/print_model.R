@@ -1,11 +1,14 @@
 
 #' Pretty print the result from glm_gp()
 #'
+#' @param x the glmGamPoi object
+#' @param object the glmGamPoi object that is summarized
+#' @param ... additional parameters, currently ignored
+#'
 #' @export
 print.glmGamPoi <- tools::.print.via.format
 
-#' Pretty format the result from glm_gp()
-#'
+#' @rdname print.glmGamPoi
 #' @export
 format.glmGamPoi <- function(x, ...){
   string_builder <- ""
@@ -19,8 +22,7 @@ format.glmGamPoi <- function(x, ...){
   string_builder
 }
 
-#' Create summary for the result from glm_gp()
-#'
+#' @rdname print.glmGamPoi
 #' @export
 summary.glmGamPoi <- function(object, ...){
   ans <- object
@@ -28,13 +30,11 @@ summary.glmGamPoi <- function(object, ...){
   ans
 }
 
-#' Pretty print the result from summary(glm_gp())
-#'
+#' @rdname print.glmGamPoi
 #' @export
 print.summary.glmGamPoi <- tools::.print.via.format
 
-#' Pretty format the result from summary(glm_gp())
-#'
+#' @rdname print.glmGamPoi
 #' @export
 format.summary.glmGamPoi <- function(x, ...){
   header <- paste0(format.glmGamPoi(x), "\n")
