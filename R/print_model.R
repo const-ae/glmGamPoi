@@ -74,9 +74,13 @@ format.summary.glmGamPoi <- function(x, ...){
   sf_summary <- paste0("\nsize_factors:\n", format_matrix(my_matrix_summary(sf_mat), digits = ndigits), "\n")
 
   # Make String for Mu_est
-  mu_mat <- matrix(c(x$Mu_est), ncol = 1, dimnames = list(NULL, ""))
-  mu_summary <- paste0("\nMu_est:\n", format_matrix(my_matrix_summary(mu_mat), digits = ndigits), "\n")
-
+  if(is.matrix(x$Mu_est)){
+    mu_mat <- matrix(c(x$Mu_est), ncol = 1, dimnames = list(NULL, ""))
+    mu_summary <- paste0("\nMu_est:\n", format_matrix(my_matrix_summary(mu_mat), digits = ndigits), "\n")
+  }else{
+    mu_summary <- paste0("\nMu_est is a ", class(x$Mu_est)[1], ", will skip summary to avoid ",
+                         "lengthy computation.")
+  }
 
   paste0(header, design_summary, "\n", beta_est_summary, overdisp_summary, sf_summary, mu_summary)
 }

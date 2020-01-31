@@ -61,3 +61,12 @@ test_that("fit printing works", {
 })
 
 
+test_that("fit printing can handle DelayedArrays", {
+  mat <- matrix(1:32, nrow = 8, ncol = 4)
+  mat5 <- HDF5Array::writeHDF5Array(mat)
+  fit <- glm_gp(mat5)
+  print(fit)
+  print(summary(fit))
+})
+
+
