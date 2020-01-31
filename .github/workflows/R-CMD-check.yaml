@@ -57,6 +57,9 @@ jobs:
           sysreqs=$(Rscript -e "cat(sysreqs::sysreq_commands('DESCRIPTION'))")
           sudo -s eval "$sysreqs"
 
+      - name: Install Bioconductor Dependencies
+        run: Rscript -e "install.packages('BiocManager')" -e "BiocManager::install(remotes::local_package_deps())"
+
       - name: Install dependencies
         run: Rscript -e "library(remotes)" -e "update(readRDS('depends.Rds'))" -e "remotes::install_cran('rcmdcheck')"
 
