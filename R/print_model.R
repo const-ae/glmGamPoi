@@ -1,9 +1,12 @@
 
-print.glmGamPoi <- tools::.print.via.format
-
 #' Pretty print the result from glm_gp()
 #'
-#' @keywords internal
+#' @export
+print.glmGamPoi <- tools::.print.via.format
+
+#' Pretty format the result from glm_gp()
+#'
+#' @export
 format.glmGamPoi <- function(x, ...){
   string_builder <- ""
   nrow <- nrow(x$Mu_est)
@@ -16,14 +19,23 @@ format.glmGamPoi <- function(x, ...){
   string_builder
 }
 
+#' Create summary for the result from glm_gp()
+#'
+#' @export
 summary.glmGamPoi <- function(object, ...){
   ans <- object
   class(ans) <- "summary.glmGamPoi"
   ans
 }
 
+#' Pretty print the result from summary(glm_gp())
+#'
+#' @export
 print.summary.glmGamPoi <- tools::.print.via.format
 
+#' Pretty format the result from summary(glm_gp())
+#'
+#' @export
 format.summary.glmGamPoi <- function(x, ...){
   header <- paste0(format.glmGamPoi(x), "\n")
   nrow <- nrow(x$Mu_est)
@@ -69,6 +81,11 @@ format.summary.glmGamPoi <- function(x, ...){
   paste0(header, design_summary, "\n", beta_est_summary, overdisp_summary, sf_summary, mu_summary)
 }
 
+
+#' Helper to format a matrix nicely
+#'
+#'
+#' @keywords internal
 format_matrix <- function(matrix, digits = NULL){
 
   rownames <- if(is.null(rownames(matrix))){
