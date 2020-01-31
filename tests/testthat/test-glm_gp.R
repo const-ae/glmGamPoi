@@ -11,6 +11,26 @@ test_that("glm_gp works for simple cases", {
 })
 
 
+test_that("glm_gp can handle complicated formulas", {
+
+  data <- data.frame(fav_food = sample(c("apple", "banana", "cherry"), size = 50, replace = TRUE),
+                     city = sample(c("heidelberg", "paris", "new york"), size = 50, replace = TRUE),
+                     age = rnorm(n = 50, mean = 40, sd = 15))
+  Y <- matrix(rnbinom(n = 100 * 50, mu = 3, size = 1/3.1), nrow = 100, ncol = 50)
+  rownames(Y) <- paste0("gene_", seq_len(100))
+  colnames(Y) <- paste0("person_", seq_len(50))
+
+  fit <- glm_gp(Y, design = ~ fav_food + city + age, col_data = data)
+  expect_equal(colnames(fit$Beta_est), colnames(fit$model_matrix))
+  expect_equal(rownames(fit$Beta_est), rownames(Y))
+  expect_equal(colnames(fit$Mu_est), colnames(Y))
+  expect_equal(rownames(fit$Mu_est), rownames(Y))
+  expect_equal(rownames(fit$model_matrix), colnames(Y))
+  expect_equal(names(fit$overdispersions), rownames(Y))
+  expect_equal(names(fit$size_factors), colnames(Y))
+})
+
+
 test_that("glm_gp can handle no-row input", {
 
   Y <- matrix(numeric(0), nrow = 0, ncol = 10)

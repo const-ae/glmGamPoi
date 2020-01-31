@@ -52,7 +52,7 @@ test_that("Beta estimation can handle edge cases as input", {
 test_that("Beta estimation can handle any kind of model_matrix", {
 
   # Weird input that makes DESeq2 choke
-
+  set.seed(1)
   Y <- matrix(1:72, nrow = 9, ncol = 8)[3:5,,drop=FALSE]
   model_matrix <- matrix(rnorm(n = 8 * 2), nrow = 8, ncol = 2)
   offset_matrix <- matrix(0, nrow = nrow(Y), ncol = ncol(Y))

@@ -117,7 +117,7 @@
 #'  set.seed(1)
 #'  # The simplest example
 #'  y <- rnbinom(n = 10, mu = 3, size = 1/2.4)
-#'  glm_gp(y, size_factors = FALSE)
+#'  c(glm_gp(y, size_factors = FALSE))
 #'
 #'  # Fitting a whole matrix
 #'  model_matrix <- cbind(1, rnorm(5))
@@ -127,7 +127,16 @@
 #'  Y <- matrix(rnbinom(n = 30 * 5, mu = sf * exp(true_Beta %*% t(model_matrix)), size = 1/2.4),
 #'              nrow = 30, ncol = 5)
 #'
-#'  glm_gp(Y, design = model_matrix, size_factors = sf, verbose = TRUE)
+#'  fit <- glm_gp(Y, design = model_matrix, size_factors = sf, verbose = TRUE)
+#'  summary(fit)
+#'
+#'  # Fitting a model with covariates
+#'  data <- data.frame(fav_food = sample(c("apple", "banana", "cherry"), size = 50, replace = TRUE),
+#'  city = sample(c("heidelberg", "paris", "new york"), size = 50, replace = TRUE),
+#'  age = rnorm(n = 50, mean = 40, sd = 15))
+#'  Y <- matrix(rnbinom(n = 100 * 50, mu = 3, size = 1/3.1), nrow = 100, ncol = 50)
+#'  fit <- glm_gp(Y, design = ~ fav_food + city + age, col_data = data)
+#'  summary(fit)
 #'
 #'
 #'
@@ -187,6 +196,13 @@ glm_gp <- function(data,
   # Make sure that the output is nice and beautiful
   res$model_matrix <- des$model_matrix
   res$design_formula <- des$design_formula
+  colnames(res$Beta_est) <- colnames(res$model_matrix)
+  rownames(res$Beta_est) <- rownames(data)
+  rownames(res$Mu_est) <- rownames(data)
+  colnames(res$Mu_est) <- colnames(data)
+  names(res$overdispersions) <- rownames(data)
+  names(res$size_factors) <- colnames(data)
+
   class(res) <- "glmGamPoi"
   res
 }
