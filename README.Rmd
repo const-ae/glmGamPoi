@@ -21,7 +21,7 @@ knitr::opts_chunk$set(
 
 _Gamma-Poisson is just another name for the Negative Binomial model. It however better emphasizes the overdispersed count nature of this model._
 
-`glmGamPoi` provides an easy to use interface to fit Gamma-Poisson models efficiently. It is designed to handle large scale datasets with thousands of rows and columns as they are typically encountered in modern high-throughput biology. It can automatically determine the appropriate size factors to normalize for different sizes across samples and infer the overdispersion for each row in the input matrix. The package can handle in-memory datasets, but also on-disk matrices with the `DelayedArray` package.
+The `glmGamPoi` R package provides an easy to use interface to fit Gamma-Poisson models efficiently. It is designed to handle large scale datasets with thousands of rows and columns as they are typically encountered in modern high-throughput biology. It can automatically determine the appropriate size factors to normalize for different sizes across samples and infer the overdispersion for each row in the input matrix. The package can handle in-memory datasets, but also on-disk matrices with the `DelayedArray` package.
 
 
 ## Installation
@@ -43,7 +43,11 @@ To fit a single Gamma-Poisson GLM do:
 # overdispersion = 1/size
 counts <- rnbinom(n = 10, mu = 5, size = 1/0.7)
 # size_factors = FALSE, because only a single GLM is fitted
-glmGamPoi::glm_gp(counts, design = ~ 1, size_factors = FALSE)
+fit <- glmGamPoi::glm_gp(counts, design = ~ 1, size_factors = FALSE)
+fit
+
+# Internally fit is just a list:
+c(fit)
 ```
 
 The `glm_gp()` function returns a list with the results of the fit. Most importantly, it contains the estimates for the coefficients β and the overdispersion.
@@ -66,8 +70,11 @@ fit <- glmGamPoi::glm_gp(pbmcs, on_disk = FALSE)
 Let's look at the result:
 
 ```{r pbmc4kFitResult, fig.height=3, fig.width=5, warning=FALSE}
-# First fitted values. -Inf indicates rows that contained only zeros.
-head(c(fit$Beta_est))
+# Overview of the fit: 
+summary(fit)
+
+# Best_est = -Inf means that `all(counts == 0)` for that gene
+
 
 # Make a plot of mean-overdispersion relation
 library(ggplot2)
@@ -143,27 +150,25 @@ edgeR_fit <- edgeR::glmFit(edgeR_data, design = model_matrix)
 
 
 ```{r coefficientComparison, fig.height=5, fig.width=10, warning=FALSE, echo = FALSE}
-# fig.height=8, fig.width=5
-# par(mfrow = c(3, 2), cex.main = 2, cex.lab = 1.5)
 par(mfrow = c(2, 4), cex.main = 2, cex.lab = 1.5)
-plot(fit$Beta_est[,1], coef(dds)[,1] / log2(exp(1)), 
+plot(fit$Beta_est[,1], coef(dds)[,1] / log2(exp(1)), pch = 16, 
      main = "Beta Coefficients", xlab = "glmGamPoi", ylab = "DESeq2")
 abline(0,1)
-plot(fit$Beta_est[,1], edgeR_fit$unshrunk.coefficients[,1],
+plot(fit$Beta_est[,1], edgeR_fit$unshrunk.coefficients[,1], pch = 16,
      main = "Beta Coefficients", xlab = "glmGamPoi", ylab = "edgeR")
 abline(0,1)
 
-plot(fit$Mu_est[,1], rowData(dds)$baseMean, log="xy",
+plot(fit$Mu_est[,1], rowData(dds)$baseMean, pch = 16, log="xy",
      main = "Gene Mean", xlab = "glmGamPoi", ylab = "DESeq2")
 abline(0,1)
-plot(fit$Mu_est[,1], edgeR_fit$fitted.values[,1], log="xy",
+plot(fit$Mu_est[,1], edgeR_fit$fitted.values[,1], pch = 16, log="xy",
      main = "Gene Mean", xlab = "glmGamPoi", ylab = "edgeR")
 abline(0,1)
 
-plot(fit$overdispersions, rowData(dds)$dispGeneEst, log="xy",
+plot(fit$overdispersions, rowData(dds)$dispGeneEst, pch = 16, log="xy",
      main = "Overdispersion", xlab = "glmGamPoi", ylab = "DESeq2")
 abline(0,1)
-plot(fit$overdispersions, edgeR_fit$dispersion, log="xy",
+plot(fit$overdispersions, edgeR_fit$dispersion, pch = 16, log="xy",
      main = "Overdispersion", xlab = "glmGamPoi", ylab = "edgeR")
 abline(0,1)
 

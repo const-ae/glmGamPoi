@@ -12,14 +12,14 @@
 *Gamma-Poisson is just another name for the Negative Binomial model. It
 however better emphasizes the overdispersed count nature of this model.*
 
-`glmGamPoi` provides an easy to use interface to fit Gamma-Poisson
-models efficiently. It is designed to handle large scale datasets with
-thousands of rows and columns as they are typically encountered in
-modern high-throughput biology. It can automatically determine the
-appropriate size factors to normalize for different sizes across samples
-and infer the overdispersion for each row in the input matrix. The
-package can handle in-memory datasets, but also on-disk matrices with
-the `DelayedArray` package.
+The `glmGamPoi` R package provides an easy to use interface to fit
+Gamma-Poisson models efficiently. It is designed to handle large scale
+datasets with thousands of rows and columns as they are typically
+encountered in modern high-throughput biology. It can automatically
+determine the appropriate size factors to normalize for different sizes
+across samples and infer the overdispersion for each row in the input
+matrix. The package can handle in-memory datasets, but also on-disk
+matrices with the `DelayedArray` package.
 
 ## Installation
 
@@ -42,17 +42,24 @@ To fit a single Gamma-Poisson GLM do:
 # overdispersion = 1/size
 counts <- rnbinom(n = 10, mu = 5, size = 1/0.7)
 # size_factors = FALSE, because only a single GLM is fitted
-glmGamPoi::glm_gp(counts, design = ~ 1, size_factors = FALSE)
+fit <- glmGamPoi::glm_gp(counts, design = ~ 1, size_factors = FALSE)
+fit
+#> glmGamPoiFit object:
+#> The data had 1 rows and 10 columns.
+#> A model with 1 coefficient was fitted.
+
+# Internally fit is just a list:
+c(fit)
 #> $Beta_est
 #>          [,1]
-#> [1,] 2.014903
+#> [1,] 1.774952
 #> 
 #> $overdispersions
-#> [1] 1.094721
+#> [1] 1.143448
 #> 
 #> $Mu_est
 #>      [,1] [,2] [,3] [,4] [,5] [,6] [,7] [,8] [,9] [,10]
-#> [1,]  7.5  7.5  7.5  7.5  7.5  7.5  7.5  7.5  7.5   7.5
+#> [1,]  5.9  5.9  5.9  5.9  5.9  5.9  5.9  5.9  5.9   5.9
 #> 
 #> $size_factors
 #>  [1] 1 1 1 1 1 1 1 1 1 1
@@ -118,9 +125,31 @@ fit <- glmGamPoi::glm_gp(pbmcs, on_disk = FALSE)
 Let’s look at the result:
 
 ``` r
-# First fitted values. -Inf indicates rows that contained only zeros.
-head(c(fit$Beta_est))
-#> [1]      -Inf      -Inf      -Inf -6.203719 -7.684337      -Inf
+# Overview of the fit: 
+summary(fit)
+#> glmGamPoiFit object:
+#> The data had 33694 rows and 4340 columns.
+#> A model with 1 coefficient was fitted.
+#> The design formula is: Y~1
+#> 
+#> Beta_est:
+#>       Min 1st Qu. Median 3rd Qu.  Max
+#> [1,] -Inf    -Inf  -7.68   -3.62 5.37
+#> 
+#> overdispersion:
+#>  Min 1st Qu. Median 3rd Qu.   Max
+#>    0       0      0   0.228 10311
+#> 
+#> size_factors:
+#>    Min 1st Qu. Median 3rd Qu.  Max
+#>  0.743   0.968      1    1.03 2.06
+#> 
+#> Mu_est:
+#>  Min 1st Qu.   Median 3rd Qu. Max
+#>    0       0 0.000488  0.0269 442
+
+# Best_est = -Inf means that `all(counts == 0)` for that gene
+
 
 # Make a plot of mean-overdispersion relation
 library(ggplot2)
@@ -176,10 +205,10 @@ bench::mark(
 #> # A tibble: 4 x 6
 #>   expression               min   median `itr/sec` mem_alloc `gc/sec`
 #>   <bch:expr>          <bch:tm> <bch:tm>     <dbl> <bch:byt>    <dbl>
-#> 1 glmGamPoi_in_memory 398.52ms 402.75ms    2.48    249.37MB    0    
-#> 2 glmGamPoi_on_disk      3.42s    3.42s    0.292   755.51MB    0    
-#> 3 DESeq2                13.16s   13.16s    0.0760    1.13GB    0.152
-#> 4 edgeR                  5.01s    5.01s    0.200   973.71MB    0.200
+#> 1 glmGamPoi_in_memory  390.5ms 393.09ms    2.54     248.9MB   0     
+#> 2 glmGamPoi_on_disk      3.47s    3.47s    0.289   755.26MB   0.289 
+#> 3 DESeq2                20.07s   20.07s    0.0498    1.14GB   0.0498
+#> 4 edgeR                  5.21s    5.21s    0.192   978.54MB   0.192
 ```
 
 Fitting the full `pbmc4k` dataset on a modern MacBook Pro in-memory
@@ -187,7 +216,7 @@ takes ~1 minute and on-disk ~4 minutes. Fitting the `pbmc68k` (17x the
 size) takes ~73 minutes (17x the time) on-disk. Fitting that dataset
 in-memory is not possible because it is just too big: the maximum
 in-memory matrix size is `2^31-1 ≈ 2.1e9` is elements, the `pbmc68k`
-dataset however has nearly 100 million more elements.
+dataset however has nearly 100 million elements more.
 
 Comparing the results:
 
