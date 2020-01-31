@@ -74,7 +74,8 @@
 #'    If all samples belong to the same condition (ie. `design = ~ 1`), the betas are estimated using
 #'    a quick Newton-Raphson algorithm. This is similar to the behavior of `edgeR`. For more complex
 #'    designs, the general Fisher-scoring algorithm is used. Here, the code is based on a fork  of the
-#'    internal function `fitBeta()` in `DESeq2`.
+#'    internal function `fitBeta()` from `DESeq2`. It does however contain some modification to make
+#'    the fit more robust and faster.
 #' 4. The mean for each gene and sample is calculate.\cr
 #'    Note that this step can be very IO intensive if `data` is or contains a DelayedArray.
 #' 5. The overdispersion is estimated.\cr

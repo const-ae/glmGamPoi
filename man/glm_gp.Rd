@@ -110,7 +110,8 @@ default size factor of \eqn{0.001}.
 If all samples belong to the same condition (ie. \code{design = ~ 1}), the betas are estimated using
 a quick Newton-Raphson algorithm. This is similar to the behavior of \code{edgeR}. For more complex
 designs, the general Fisher-scoring algorithm is used. Here, the code is based on a fork  of the
-internal function \code{fitBeta()} in \code{DESeq2}.
+internal function \code{fitBeta()} from \code{DESeq2}. It does however contain some modification to make
+the fit more robust and faster.
 \item The mean for each gene and sample is calculate.\cr
 Note that this step can be very IO intensive if \code{data} is or contains a DelayedArray.
 \item The overdispersion is estimated.\cr

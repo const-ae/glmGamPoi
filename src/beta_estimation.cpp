@@ -42,6 +42,7 @@ double compute_gp_deviance (double y, double mu, double theta) {
 //  * Support DelayedArrays
 //  * Remove unncessary outputs: beta_mat_var, hat_diagonals, deviance
 //  * Remove beta divergence check if abs(beta) very large
+//  * Add line search that ensures that deviance is decreasing at every step
 
 
 // fit the Negative Binomial GLM with Fisher scoring
@@ -49,9 +50,8 @@ double compute_gp_deviance (double y, double mu, double theta) {
 //
 template<class NumericType, class BMNumericType>
 List fitBeta_fisher_scoring_impl(RObject Y, const arma::mat& model_matrix, RObject exp_offset_matrix,
-                             NumericVector thetas, SEXP beta_matSEXP,
-                             double tolerance, int max_iter) {
-  // auto Y_bm = beachmat::create_matrix<NumericType>(Y);
+                                 NumericVector thetas, SEXP beta_matSEXP,
+                                 double tolerance, int max_iter) {
   auto Y_bm = beachmat::create_matrix<BMNumericType>(Y);
   auto exp_offsets_bm = beachmat::create_numeric_matrix(exp_offset_matrix);
   int n_samples = Y_bm->get_ncol();
@@ -62,7 +62,7 @@ List fitBeta_fisher_scoring_impl(RObject Y, const arma::mat& model_matrix, RObje
   // The QR decomposition of the model_matrix
   arma::mat q, r;
   // deviance, convergence and tolerance
-  double dev, dev_old, conv_test;
+  double dev, dev_old, speeding_factor, conv_test;
 
   // Declare beta diverged if abs larger
   // and use value from previous iteration
@@ -84,7 +84,11 @@ List fitBeta_fisher_scoring_impl(RObject Y, const arma::mat& model_matrix, RObje
     arma::colvec mu_hat = exp_off % exp(model_matrix * beta_hat);
 
     dev = 0.0;
-    dev_old = 0.0;
+    for (int j = 0; j < n_samples; j++) {
+      dev = dev + compute_gp_deviance(counts(j), mu_hat(j), thetas(gene_idx));
+    }
+    dev_old = dev;
+    speeding_factor = 1.0;
 
     // make an orthonormal design matrix
     for (int t = 0; t < max_iter; t++) {
@@ -95,25 +99,41 @@ List fitBeta_fisher_scoring_impl(RObject Y, const arma::mat& model_matrix, RObje
       // prepare matrices
       arma::mat weighted_model_matrix = model_matrix.each_col() % w_sqrt_vec;
       qr_econ(q, r, weighted_model_matrix);
-      arma::vec big_w_diag = arma::ones(n_samples);
-      big_w_diag(arma::span(0, n_samples - 1)) = w_vec;
+      // Not actually quite the score vec, but related
+      // See Dunn&Smyth GLM Book eq. 6.16
+      arma::colvec score_vec = (q.each_col() % w_sqrt_vec).t() * ((counts - mu_hat) / mu_hat);
+      arma::colvec step = solve(arma::trimatu(r), score_vec);
 
-      arma::colvec z = arma::log(mu_hat / exp_off) + (counts - mu_hat) / mu_hat;
-      arma::vec w_diag = w_vec;
-      arma::mat z_sqrt_w = z.each_col() % sqrt(w_diag);
-      arma::colvec big_z_sqrt_w = arma::zeros(n_samples);
-      big_z_sqrt_w(arma::span(0,n_samples - 1)) = z_sqrt_w;
-      // IRLS with Q matrix for X
-      arma::colvec gamma_hat = q.t() * big_z_sqrt_w;
-
-      solve(beta_hat, r, gamma_hat);
-
-      mu_hat = exp_off % exp(model_matrix * beta_hat);
-      dev = 0.0;
-      for (int j = 0; j < n_samples; j++) {
-        dev = dev + compute_gp_deviance(counts(j), mu_hat(j), thetas(gene_idx));
+      // Find speedfactor that actually decreases the deviance
+      arma::colvec beta_prop;
+      int line_iter = 0;
+      while(true){
+        beta_prop = beta_hat + speeding_factor * step;
+        mu_hat = exp_off % exp(model_matrix * beta_prop);
+        dev = 0.0;
+        for (int j = 0; j < n_samples; j++) {
+          dev = dev + compute_gp_deviance(counts(j), mu_hat(j), thetas(gene_idx));
+        }
+        conv_test = fabs(dev - dev_old)/(fabs(dev) + 0.1);
+        if(dev < dev_old || conv_test < tolerance){
+          break; // while loop
+        }else if(line_iter >= 100 || speeding_factor < 1e-6){
+          // speeding factor is very small, something is going wrong here
+          conv_test = std::numeric_limits<double>::quiet_NaN();
+          break; // while loop
+        }else{
+          // Halfing the speed
+          speeding_factor = speeding_factor / 2.0;
+        }
+        line_iter++;
       }
-      conv_test = fabs(dev - dev_old)/(fabs(dev) + 0.1);
+      if(line_iter == 0 && speeding_factor < 1.0){
+        // If step is directly accepted, increase speeding_factor
+        // slowly up to full speed = 1.0
+        speeding_factor = std::min(speeding_factor * 1.5, 1.0);
+      }
+      beta_hat = beta_prop;
+
       if (std::isnan(conv_test)) {
         beta_hat.fill(NA_REAL);
         iterations(gene_idx) = max_iter;

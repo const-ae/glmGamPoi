@@ -51,38 +51,43 @@ test_that("Beta estimation can handle edge cases as input", {
 
 test_that("Beta estimation can handle any kind of model_matrix", {
 
-  # Y <- matrix(rnbinom(n = 10, mu = 50, size = 1/3.4), nrow = 1, ncol = 10)
-  # Y <- matrix(1:10, nrow = 1, ncol = 10)
-  # model_matrix <- matrix(rnorm(20), nrow = 10, ncol = 2)
-  # Y <- matrix(1:72, nrow = 9, ncol = 8)
-  # model_matrix <- matrix(rnorm(n = 8 * 4), nrow = 8, ncol = 4)
+  # Weird input that makes DESeq2 choke
 
-  summary(glm_gp(Y, design = model_matrix, size_factors = FALSE))
-
-
-  # Y <- matrix(1:16, nrow = 2, ncol = 8)
   Y <- matrix(1:72, nrow = 9, ncol = 8)[3:5,,drop=FALSE]
   model_matrix <- matrix(rnorm(n = 8 * 2), nrow = 8, ncol = 2)
   offset_matrix <- matrix(0, nrow = nrow(Y), ncol = ncol(Y))
   disp_init <- estimate_dispersions_roughly(Y, model_matrix, offset_matrix)
   beta_init <- estimate_betas_roughly(Y, model_matrix, offset_matrix)
-  estimate_betas_fisher_scoring(Y, model_matrix = model_matrix, offset_matrix = offset_matrix,
+
+
+  fit <- estimate_betas_fisher_scoring(Y, model_matrix = model_matrix, offset_matrix = offset_matrix,
                                 dispersions = disp_init, beta_mat_init = beta_init)
 
-  lm(log(Y[1, ] + 1) ~ model_matrix - 1)
 
-  DESeq2:::fitBetaWrapper(ySEXP = Y, xSEXP = model_matrix, nfSEXP = exp(offset_matrix),
+  deseq2_fit <- DESeq2:::fitBetaWrapper(ySEXP = Y, xSEXP = model_matrix, nfSEXP = exp(offset_matrix),
                           alpha_hatSEXP = disp_init,
-                          # contrastSEXP = rep(1, 8),
                           beta_matSEXP = beta_init,
                           lambdaSEXP = rep(0.3, ncol(model_matrix)),
                           weightsSEXP = array(1, dim(Y)), useWeightsSEXP = FALSE,
                           tolSEXP = 1e-8, maxitSEXP = 100, useQRSEXP = TRUE, minmuSEXP = 1e-6)
 
-  edgeR::glmFit.default(Y, design = model_matrix,
+  edgeR_fit <- edgeR::glmFit.default(Y, design = model_matrix,
                         dispersion = disp_init, offset = offset_matrix[1,],
                         prior.count = 0, weights=NULL,
                         start = beta_init)
+  # My result agrees with edgeR
+  expect_equal(fit$Beta, edgeR_fit$coefficients, tolerance = 1e-3)
+  # DESeq2 however does not converge
+  expect_failure(
+    expect_equal(fit$Beta, deseq2_fit$beta_mat, tolerance = 1e-3)
+  )
+  expect_failure(
+    expect_equal(edgeR_fit$coefficients, deseq2_fit$beta_mat, tolerance = 1e-3)
+  )
+  expect_equal(deseq2_fit$iter, rep(100, 3))
+
+  # My result, however did converge
+  expect_lt(fit$iterations[1], 50)
 })
 
 
