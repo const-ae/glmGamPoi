@@ -7,6 +7,7 @@
 
 [![R build
 status](https://github.com/const-ae/glmGamPoi/workflows/R-CMD-check/badge.svg)](https://github.com/const-ae/glmGamPoi)
+[![codecov](https://codecov.io/gh/const-ae/glmGamPoi/branch/master/graph/badge.svg)](https://codecov.io/gh/const-ae/glmGamPoi)
 <!-- badges: end -->
 
 > Fit Small and Large Scale Gamma-Poisson Generalized Linear Models.
