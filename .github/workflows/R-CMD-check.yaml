@@ -73,4 +73,4 @@ jobs:
 
       - name: Test coverage
         if: matrix.config.os == 'macOS-latest' && matrix.config.r == 'release'
-        run: Rscript -e 'install.packages("covr")' -e 'covr::codecov(token = "${{secrets.CODECOV_TOKEN}}")'
+        run: Rscript -e 'install.packages("covr")' -e 'covr::codecov(type = "all", token = "${{secrets.CODECOV_TOKEN}}")'
