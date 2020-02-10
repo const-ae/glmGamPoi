@@ -245,6 +245,12 @@ handle_design_parameter <- function(design, data, col_data, reference_level, off
 
   # Handle the design parameter
   if(is.matrix(design)){
+    if(! is.null(reference_level)){
+      stop("Cannot specify `design` as a matrix and `reference_level` != NULL.\n",
+           "Either provide `design` as a formula and specify `reference_level` or ",
+           "make sure that the correct reference level is used when the matrix is created ",
+           "for example with `stats::relevel()`.")
+    }
     model_matrix <- design
     design_formula <- NULL
   }else if((is.vector(design) || is.factor(design))){
