@@ -1,5 +1,10 @@
 
 
+setup({
+  # Limit the number of workers so CRAN is happy
+  DelayedArray::setAutoBPPARAM(BiocParallel::MulticoreParam(workers = 2))
+})
+
 test_that("deviance calculation works", {
 
   r_gp_deviance <- function(y, mu, theta){

@@ -21,7 +21,8 @@ Suggests:
     edgeR,
     beachmat,
     ggplot2,
-    bench
+    bench,
+    BiocParallel
 LinkingTo: 
     Rcpp,
     RcppArmadillo,
