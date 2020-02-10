@@ -249,8 +249,14 @@ handle_design_parameter <- function(design, data, col_data, reference_level, off
     design_formula <- NULL
   }else if((is.vector(design) || is.factor(design))){
     if(length(design) != n_samples){
-      stop(paste0("The specified design vector length (", length(design), ") does not match ",
-                  "the number of samples: ", n_samples))
+      if(length(design) == 1 && design == 1){
+        stop("The specified design vector length (", length(design), ") does not match ",
+             "the number of samples: ", n_samples, "\n",
+             "Did you maybe mean: `design = ~ 1`?")
+      }else{
+        stop("The specified design vector length (", length(design), ") does not match ",
+             "the number of samples: ", n_samples)
+      }
     }
     model_matrix <- convert_chr_vec_to_model_matrix(design, reference_level)
     design_formula <- NULL

@@ -131,3 +131,37 @@ test_that("glm_gp can handle SummarizedExperiment correctly", {
   expect_equal(fit, fit_se)
 
 })
+
+
+
+test_that("glm_gp can handle design parameter of type vector", {
+
+  Y <- matrix(rnbinom(n = 10 * 50, mu = 3, size = 1/3.1), nrow = 10, ncol = 50)
+  rownames(Y) <- paste0("gene_", seq_len(10))
+  colnames(Y) <- paste0("person_", seq_len(50))
+
+  fit_intercept <- glm_gp(Y, design = ~ 1)
+  expect_error(glm_gp(Y, design = 1))
+
+  sample_assignment <- rep(1, times = 50)
+  fit_vec <- glm_gp(Y, design = sample_assignment)
+
+  expect_equal(c(fit_intercept$Beta_est), c(fit_vec$Beta_est))
+  expect_equal(colnames(fit_vec$Beta_est), "1")
+
+  sample_assignment <- sample(c("a", "b", "c"), size = 50, replace = TRUE)
+  design_mat <- model.matrix(~ x_ - 1, data = data.frame(x_ = sample_assignment))
+  colnames(design_mat) <- c("a", "b", "c")
+  fit_vec <- glm_gp(Y, design = sample_assignment)
+  fit_mat <- glm_gp(Y, design = design_mat)
+  expect_equal(fit_vec, fit_mat)
+
+
+  sample_assignment <- sample(c("a", "b", "c"), size = 50, replace = TRUE)
+  design_mat <- model.matrix(~ x_, data = data.frame(x_ = sample_assignment))
+  fit_vec <- glm_gp(Y, design = sample_assignment, reference_level = "a")
+  fit_mat <- glm_gp(Y, design = design_mat)
+  expect_equal(unname(fit_vec$Beta_est), unname(fit_mat$Beta_est))
+  expect_equal(colnames(fit_vec$Beta_est), c("Intercept", "b_vs_a", "c_vs_a"))
+})
+
