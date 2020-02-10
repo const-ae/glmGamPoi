@@ -83,3 +83,51 @@ test_that("glm_gp produces appropriate error message for negative input", {
   )
 
 })
+
+
+test_that("glm_gp can handle on_disk parameter", {
+
+  data <- data.frame(fav_food = sample(c("apple", "banana", "cherry"), size = 50, replace = TRUE),
+                     city = sample(c("heidelberg", "paris", "new york"), size = 50, replace = TRUE),
+                     age = rnorm(n = 50, mean = 40, sd = 15))
+  Y <- matrix(rnbinom(n = 10 * 50, mu = 3, size = 1/3.1), nrow = 10, ncol = 50)
+  rownames(Y) <- paste0("gene_", seq_len(10))
+  colnames(Y) <- paste0("person_", seq_len(50))
+  Y_hdf5 <- HDF5Array::writeHDF5Array(Y)
+  dimnames(Y_hdf5) <- dimnames(Y)
+
+  fit_in_memory <- glm_gp(Y, design = ~ fav_food + city + age, col_data = data, on_disk = FALSE)
+  fit_on_disk <- glm_gp(Y, design = ~ fav_food + city + age, col_data = data, on_disk = TRUE)
+
+  expect_equal(fit_in_memory[names(fit_in_memory) != "Mu_est"], fit_on_disk[names(fit_on_disk) != "Mu_est"])
+  expect_equal(c(fit_in_memory$Mu_est), c(fit_on_disk$Mu_est))
+  expect_s4_class(fit_on_disk$Mu_est, "DelayedArray")
+
+  fit_on_disk2 <- glm_gp(Y_hdf5, design = ~ fav_food + city + age, col_data = data)
+  expect_equal(fit_on_disk[names(fit_on_disk) != "Mu_est"], fit_on_disk2[names(fit_on_disk2) != "Mu_est"])
+  expect_s4_class(fit_on_disk2$Mu_est, "DelayedArray")
+
+  fit_in_memory2 <- glm_gp(Y_hdf5, design = ~ fav_food + city + age, col_data = data, on_disk = FALSE)
+  expect_equal(fit_in_memory, fit_in_memory2)
+
+})
+
+
+test_that("glm_gp can handle SummarizedExperiment correctly", {
+
+
+  data <- data.frame(fav_food = sample(c("apple", "banana", "cherry"), size = 50, replace = TRUE),
+                     city = sample(c("heidelberg", "paris", "new york"), size = 50, replace = TRUE),
+                     age = rnorm(n = 50, mean = 40, sd = 15))
+  Y <- matrix(rnbinom(n = 10 * 50, mu = 3, size = 1/3.1), nrow = 10, ncol = 50)
+  rownames(Y) <- paste0("gene_", seq_len(10))
+  colnames(Y) <- paste0("person_", seq_len(50))
+
+  se <- SummarizedExperiment::SummarizedExperiment(Y, colData = data)
+
+  fit <- glm_gp(Y, design = ~ fav_food + city + age, col_data = data)
+  fit_se <- glm_gp(se, design = ~ fav_food + city + age)
+
+  expect_equal(fit, fit_se)
+
+})
