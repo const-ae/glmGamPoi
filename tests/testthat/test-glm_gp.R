@@ -158,11 +158,15 @@ test_that("glm_gp can handle design parameter of type vector", {
 
 
   sample_assignment <- sample(c("a", "b", "c"), size = 50, replace = TRUE)
-  design_mat <- model.matrix(~ x_, data = data.frame(x_ = sample_assignment))
-  fit_vec <- glm_gp(Y, design = sample_assignment, reference_level = "a")
+  design_mat <- model.matrix(~ x_, data = data.frame(x_ = relevel(as.factor(sample_assignment), ref = "b")))
+  fit_vec <- glm_gp(Y, design = sample_assignment, reference_level = "b")
   expect_error(glm_gp(Y, design = design_mat, reference_level = "b"))
   fit_mat <- glm_gp(Y, design = design_mat)
+  fit_formula <- glm_gp(Y, design = ~ x_, col_data = data.frame(x_ = sample_assignment),
+                        reference_level = "b")
   expect_equal(unname(fit_vec$Beta_est), unname(fit_mat$Beta_est))
-  expect_equal(colnames(fit_vec$Beta_est), c("Intercept", "b_vs_a", "c_vs_a"))
+  expect_equal(colnames(fit_vec$Beta_est), c("Intercept", "a_vs_b", "c_vs_b"))
+  expect_equal(unname(fit_vec$Beta_est), unname(fit_formula$Beta_est))
+  expect_equal(colnames(fit_formula$Beta_est), c("Intercept", "x_a", "x_c"))
 })
 
