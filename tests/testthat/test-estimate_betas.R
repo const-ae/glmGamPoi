@@ -55,7 +55,7 @@ test_that("Beta estimation can handle edge cases as input", {
 
 
 test_that("Beta estimation can handle any kind of model_matrix", {
-
+  skip_if_not_installed("DESeq2")
   # Weird input that makes DESeq2 choke
   set.seed(1)
   Y <- matrix(1:72, nrow = 9, ncol = 8)[3:5,,drop=FALSE]
@@ -141,6 +141,8 @@ test_that("estimate_betas_fisher_scoring can handle DelayedArray", {
 
 test_that("Beta estimation works", {
   skip_if_not(is_macos(), "Beta estimation is unprecise on Non-MacOS architectures")
+  skip_if_not_installed("DESeq2")
+  skip_if_not_installed("edgeR")
   data <- make_dataset(n_genes = 1000, n_samples = 30)
   offset_matrix <- matrix(log(data$size_factor), nrow=nrow(data$Y), ncol = ncol(data$Y), byrow = TRUE)
 
