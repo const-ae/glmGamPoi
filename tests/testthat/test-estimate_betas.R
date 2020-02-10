@@ -140,7 +140,7 @@ test_that("estimate_betas_fisher_scoring can handle DelayedArray", {
 
 
 test_that("Beta estimation works", {
-  skip_if(is_32_bit_architecture(), "Beta estimation is unprecise on 32-bit architecture")
+  skip_if_not(is_macos(), "Beta estimation is unprecise on Non-MacOS architectures")
   data <- make_dataset(n_genes = 1000, n_samples = 30)
   offset_matrix <- matrix(log(data$size_factor), nrow=nrow(data$Y), ncol = ncol(data$Y), byrow = TRUE)
 

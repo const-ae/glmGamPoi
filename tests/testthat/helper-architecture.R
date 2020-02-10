@@ -1,4 +1,5 @@
 
-is_32_bit_architecture <- function(){
-  .Machine$sizeof.pointer == 4
+
+is_macos <- function(){
+  Sys.info()["sysname"] == "Darwin"
 }
