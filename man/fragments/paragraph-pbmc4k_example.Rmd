@@ -1,0 +1,31 @@
+I will first load an example dataset using the `TENxPBMCData` package. The dataset has 33,000 genes and 4340 cells
+```{r}
+pbmcs <- TENxPBMCData::TENxPBMCData("pbmc4k")
+pbmcs
+```
+
+I call `glm_gp()` to fit one GLM model for each gene and force the calculation to happen in memory.
+
+```{r}
+# This takes ~1 minute
+fit <- glmGamPoi::glm_gp(pbmcs, on_disk = FALSE)
+```
+
+Let's look at the result:
+
+```{r pbmc4kFitResult, fig.height=3, fig.width=5, warning=FALSE}
+# Overview of the fit:
+# Best_est = -Inf means that `all(counts[i, ] == 0)` for gene i
+summary(fit)
+
+
+
+# Make a plot of mean-overdispersion relation
+library(ggplot2)
+ggplot(data.frame(mean=fit$Mu[,1], overdispersion=fit$overdispersions),
+       aes(x=mean, y = overdispersion)) +
+  geom_point(size = 0.1, alpha = 0.1) +
+  scale_x_log10() + scale_y_log10() +
+  labs(title = "Overdispersion Trend Against the Mean Expression",
+       caption = "Note the large number of genes with overdispersion = 0 at the bottom of the plot")
+```

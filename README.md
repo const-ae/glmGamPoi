@@ -34,8 +34,8 @@ You can install the development version of `glmGamPoi` from
 devtools::install_github("const-ae/glmGamPoi")
 ```
 
-Please make sure that you are using at least version `3.6` of R and
-`3.10` of BioConductor.
+Please make sure that you are using at least R `3.6` and BioConductor
+`3.10`.
 
 ## Example
 
@@ -54,15 +54,15 @@ fit
 # Internally fit is just a list:
 c(fit)
 #> $Beta_est
-#>          [,1]
-#> [1,] 1.774952
+#>           [,1]
+#> [1,] 0.9555114
 #> 
 #> $overdispersions
-#> [1] 1.143448
+#> [1] 0
 #> 
 #> $Mu_est
 #>      [,1] [,2] [,3] [,4] [,5] [,6] [,7] [,8] [,9] [,10]
-#> [1,]  5.9  5.9  5.9  5.9  5.9  5.9  5.9  5.9  5.9   5.9
+#> [1,]  2.6  2.6  2.6  2.6  2.6  2.6  2.6  2.6  2.6   2.6
 #> 
 #> $size_factors
 #>  [1] 1 1 1 1 1 1 1 1 1 1
@@ -128,7 +128,8 @@ fit <- glmGamPoi::glm_gp(pbmcs, on_disk = FALSE)
 Let’s look at the result:
 
 ``` r
-# Overview of the fit: 
+# Overview of the fit:
+# Best_est = -Inf means that `all(counts[i, ] == 0)` for gene i
 summary(fit)
 #> glmGamPoiFit object:
 #> The data had 33694 rows and 4340 columns.
@@ -141,7 +142,7 @@ summary(fit)
 #> 
 #> overdispersion:
 #>  Min 1st Qu. Median 3rd Qu.   Max
-#>    0       0      0   0.228 10311
+#>    0       0      0   0.239 11253
 #> 
 #> size_factors:
 #>    Min 1st Qu. Median 3rd Qu.  Max
@@ -151,7 +152,6 @@ summary(fit)
 #>  Min 1st Qu.   Median 3rd Qu. Max
 #>    0       0 0.000488  0.0269 442
 
-# Best_est = -Inf means that `all(counts == 0)` for that gene
 
 
 # Make a plot of mean-overdispersion relation
@@ -169,10 +169,11 @@ ggplot(data.frame(mean=fit$Mu[,1], overdispersion=fit$overdispersions),
 ## Benchmark
 
 For demonstration purposes, I create a sample benchmark with 300
-non-empty genes from the `pbmc4k` dataset:
+non-empty genes from the `pbmc4k`
+dataset:
 
 ``` r
-non_empty_rows <- which(DelayedMatrixStats::rowSums2(assay(pbmcs)) > 0)
+non_empty_rows <- which(DelayedMatrixStats::rowSums2(SummarizedExperiment::assay(pbmcs)) > 0)
 pbmcs_subset <- as.matrix(SummarizedExperiment::assay(pbmcs)[sample(non_empty_rows, 300), ])
 model_matrix <- matrix(1, nrow = ncol(pbmcs_subset))
 dim(pbmcs_subset)
@@ -192,7 +193,7 @@ bench::mark(
   }, glmGamPoi_on_disk = {
     glmGamPoi::glm_gp(pbmcs_subset, design = model_matrix, on_disk = TRUE)
   }, DESeq2 = suppressMessages({
-    dds <- DESeq2::DESeqDataSetFromMatrix(pbmcs_subset, 
+    dds <- DESeq2::DESeqDataSetFromMatrix(pbmcs_subset,
                         colData = data.frame(name = seq_len(4340)),
                         design = ~ 1)
     dds <- DESeq2::estimateSizeFactors(dds, "poscounts")
@@ -208,18 +209,18 @@ bench::mark(
 #> # A tibble: 4 x 6
 #>   expression               min   median `itr/sec` mem_alloc `gc/sec`
 #>   <bch:expr>          <bch:tm> <bch:tm>     <dbl> <bch:byt>    <dbl>
-#> 1 glmGamPoi_in_memory  390.5ms 393.09ms    2.54     248.9MB   0     
-#> 2 glmGamPoi_on_disk      3.47s    3.47s    0.289   755.26MB   0.289 
-#> 3 DESeq2                20.07s   20.07s    0.0498    1.14GB   0.0498
-#> 4 edgeR                  5.21s    5.21s    0.192   978.54MB   0.192
+#> 1 glmGamPoi_in_memory  425.6ms 427.57ms    2.34    249.62MB    0    
+#> 2 glmGamPoi_on_disk      3.53s    3.53s    0.284   756.17MB    0    
+#> 3 DESeq2                15.76s   15.76s    0.0635    1.13GB    0.127
+#> 4 edgeR                  5.25s    5.25s    0.191   983.76MB    0.381
 ```
 
 Fitting the full `pbmc4k` dataset on a modern MacBook Pro in-memory
-takes ~1 minute and on-disk ~4 minutes. Fitting the `pbmc68k` (17x the
-size) takes ~73 minutes (17x the time) on-disk. Fitting that dataset
-in-memory is not possible because it is just too big: the maximum
-in-memory matrix size is `2^31-1 ≈ 2.1e9` is elements, the `pbmc68k`
-dataset however has nearly 100 million elements more.
+takes ~1 minute and on-disk a little over 4 minutes. Fitting the
+`pbmc68k` (17x the size) takes ~73 minutes (17x the time) on-disk.
+Fitting that dataset in-memory is not possible because it is just too
+big: the maximum in-memory matrix size is `2^31-1 ≈ 2.1e9` is elements,
+the `pbmc68k` dataset however has nearly 100 million elements more.
 
 Comparing the results:
 

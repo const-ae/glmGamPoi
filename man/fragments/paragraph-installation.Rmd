@@ -1,0 +1,9 @@
+You can install the development version of `glmGamPoi` from [Github](https://github.com/const-ae/glmGamPoi):
+
+``` r
+# install.packages("devtools")
+devtools::install_github("const-ae/glmGamPoi")
+```
+
+Please make sure that you are using at least R `3.6` and
+BioConductor `3.10`.
