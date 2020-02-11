@@ -22,7 +22,10 @@ Suggests:
     beachmat,
     ggplot2,
     bench,
-    BiocParallel
+    BiocParallel,
+    knitr,
+    rmarkdown,
+    BiocStyle
 LinkingTo: 
     Rcpp,
     RcppArmadillo,
@@ -40,3 +43,4 @@ RoxygenNote: 6.1.1
 URL: https://github.com/const-ae/glmGamPoi
 BugReports: https://github.com/const-ae/glmGamPoi/issues
 biocViews:
+VignetteBuilder: knitr

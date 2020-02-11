@@ -1,0 +1,51 @@
+---
+title: "glmGamPoi Introduction"
+author: Constantin Ahlmann-Eltze
+date: "`r Sys.Date()`"
+output: BiocStyle::html_document
+vignette: >
+  %\VignetteIndexEntry{README-vignette}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.path = "man/figures/README-"
+)
+```
+
+
+```{r child = "../man/fragments/paragraph-intro.Rmd"}
+```
+
+
+# Installation
+
+```{r child = "../man/fragments/paragraph-installation.Rmd"}
+```
+
+
+# Example
+
+```{r child = "../man/fragments/paragraph-simple_example.Rmd"}
+```
+
+Fitting repeated Gamma-Poisson GLMs for each gene of a single cell dataset is just as easy:
+
+```{r child = "../man/fragments/paragraph-small_matrix_example.Rmd"}
+```
+
+
+*Note: I present here only a small example due to the runtime limitations of R vignettes. For a full example on the `TENxPBMCData("pbmc4k")` dataset and a benchmark comparison with `edgeR` and `DESeq2` see the README on [GitHub](https://github.com/const-ae/glmGamPoi).*
+
+
+# Session Info
+
+```{r}
+sessionInfo()
+```
+
+
