@@ -66,6 +66,11 @@ gampoi_overdispersion_mle <- function(y, mean = base::mean(y),
   if(length(mean) == 1){
     mean <- rep(mean, length(y))
   }
+  # Validate n_subsampling
+  stopifnot(length(n_subsamples) == 1, n_subsamples >= 0)
+  if(n_subsamples > length(y)){
+    n_subsamples <- length(y)
+  }
   # Apply subsampling by randomly selecting elements of y and mean
   if(n_subsamples != length(y)){
     random_sel <- sort(sample(seq_along(y), size = n_subsamples, replace = FALSE))

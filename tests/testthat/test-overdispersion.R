@@ -198,6 +198,25 @@ test_that("subsampling works and does not affect performance too badly", {
 })
 
 
+test_that("weird subsampling values are handled correctly", {
+  y <- rnbinom(n = 20, mu = 5, size = 1 / 0.7)
+  r1 <- gampoi_overdispersion_mle(y = y, n_subsamples = 1)
+  r0 <- gampoi_overdispersion_mle(y = y, n_subsamples = 0)
+  expect_equal(r0$estimate, 0)
+  expect_error(
+    gampoi_overdispersion_mle(y = y, n_subsamples = -3)
+  )
+  expect_error(
+    gampoi_overdispersion_mle(y = y, n_subsamples = c(3, 10))
+  )
+  rfull <- gampoi_overdispersion_mle(y = y)
+  r3000 <- gampoi_overdispersion_mle(y = y, n_subsamples = 3000)
+  rInf <- gampoi_overdispersion_mle(y = y, n_subsamples = Inf)
+  expect_equal(rfull, r3000)
+  expect_equal(rfull, rInf)
+})
+
+
 
 test_that("DelayedArrays are handled efficiently", {
   n_genes <- 100
