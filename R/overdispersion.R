@@ -73,7 +73,7 @@ gampoi_overdispersion_mle <- function(y, mean = base::mean(y),
   }
   # Apply subsampling by randomly selecting elements of y and mean
   if(n_subsamples != length(y)){
-    random_sel <- sort(sample(seq_along(y), size = n_subsamples, replace = FALSE))
+    random_sel <- sort(sample(seq_along(y), size = round(n_subsamples), replace = FALSE))
     # It is important this is before subsetting y, because of lazy evaluation
     model_matrix <- model_matrix[random_sel, , drop=FALSE]
     y <- y[random_sel]

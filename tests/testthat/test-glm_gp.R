@@ -84,6 +84,13 @@ test_that("glm_gp produces appropriate error message for negative input", {
 
 })
 
+test_that("glm_gp works for n_subsample = Inf", {
+  y <- rpois(n = 10, lambda = 3)
+  tmp <- glm_gp(y, design = ~ 1, size_factors = FALSE)
+  tmpInf <- glm_gp(y, design = ~ 1, size_factors = FALSE, n_subsamples = Inf)
+  expect_equal(tmp, tmpInf)
+})
+
 
 test_that("glm_gp can handle on_disk parameter", {
 

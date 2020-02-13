@@ -200,7 +200,7 @@ double conventional_deriv_score_function_fast(NumericVector y, NumericVector mu,
 
 template<class NumericType>
 NumericVector estimate_overdispersions_fast_internal(RObject Y, RObject mean_matrix, NumericMatrix model_matrix, bool do_cox_reid_adjustment,
-                                       int n_subsamples){
+                                       double n_subsamples){
   auto Y_bm = beachmat::create_matrix<NumericType>(Y);
   auto mean_mat_bm = beachmat::create_numeric_matrix(mean_matrix);
   int n_samples = Y_bm->get_ncol();
@@ -231,7 +231,7 @@ NumericVector estimate_overdispersions_fast_internal(RObject Y, RObject mean_mat
 
 // [[Rcpp::export]]
 NumericVector estimate_overdispersions_fast(RObject Y, RObject mean_matrix, NumericMatrix model_matrix, bool do_cox_reid_adjustment,
-                              int n_subsamples){
+                              double n_subsamples){
   auto mattype=beachmat::find_sexp_type(Y);
   if (mattype==INTSXP) {
     return estimate_overdispersions_fast_internal<beachmat::integer_matrix>(Y, mean_matrix, model_matrix, do_cox_reid_adjustment, n_subsamples);
