@@ -13,6 +13,10 @@ fitBeta_one_group <- function(Y, offset_matrix, thetas, beta_start_values, toler
     .Call(`_glmGamPoi_fitBeta_one_group`, Y, offset_matrix, thetas, beta_start_values, tolerance, maxIter)
 }
 
+fitBeta_diagonal_fisher_scoring <- function(Y, model_matrix, exp_offset_matrix, thetas, beta_matSEXP, tolerance, max_iter) {
+    .Call(`_glmGamPoi_fitBeta_diagonal_fisher_scoring`, Y, model_matrix, exp_offset_matrix, thetas, beta_matSEXP, tolerance, max_iter)
+}
+
 makeCumSumLookupVector <- function(y) {
     .Call(`_glmGamPoi_makeCumSumLookupVector`, y)
 }

@@ -24,8 +24,17 @@ estimate_betas_fisher_scoring <- function(Y, model_matrix, offset_matrix,
   stopifnot(length(dispersions) == nrow(Y))
   stopifnot(dim(offset_matrix) == dim(Y))
 
-  betaRes <- fitBeta_fisher_scoring(Y, model_matrix, exp(offset_matrix), dispersions, beta_mat_init,
-                                    tolerance = 1e-8, max_iter =  100)
+  # The decision p > 30 is a rough heuristic:
+  # For large p calculating the full info matrix (Xt W X) is not
+  # worth the additional precision and it is faster to
+  # approximate the info matrix with the diagonal element of Xt W X
+  if(ncol(model_matrix) > 30){
+    betaRes <- fitBeta_fisher_scoring(Y, model_matrix, exp(offset_matrix), dispersions, beta_mat_init,
+                                      tolerance = 1e-8, max_iter =  100)
+  }else{
+    betaRes <- fitBeta_diagonal_fisher_scoring(Y, model_matrix, exp(offset_matrix), dispersions, beta_mat_init,
+                                               tolerance = 1e-8, max_iter =  100)
+  }
 
   list(Beta = betaRes$beta_mat, iterations = betaRes$iter)
 }

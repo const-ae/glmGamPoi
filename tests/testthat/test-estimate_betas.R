@@ -190,6 +190,36 @@ test_that("Beta estimation works", {
   expect_equal(coef(edgeR_res)[,1], coef(dds)[,1] / log2(exp(1)), tolerance = 1e-6)
 })
 
+
+
+test_that("Fisher scoring and diagonal fisher scoring give consistent results", {
+
+  data <- make_dataset(n_genes = 1, n_samples = 300)
+  offset_matrix <- matrix(log(data$size_factor), nrow=nrow(data$Y), ncol = ncol(data$Y), byrow = TRUE)
+
+  # Fit Standard Model
+  beta_mat_init <- estimate_betas_roughly(Y = data$Y, model_matrix = data$X, offset_matrix = offset_matrix)
+  res1 <- fitBeta_fisher_scoring(Y = data$Y, model_matrix = data$X, exp_offset_matrix = exp(offset_matrix),
+                                 thetas = data$overdispersion, beta_matSEXP = beta_mat_init,
+                                 tolerance = 1e-8, max_iter =  100)
+  res2 <- fitBeta_diagonal_fisher_scoring(Y = data$Y, model_matrix = data$X, exp_offset_matrix = exp(offset_matrix),
+                                 thetas = data$overdispersion, beta_matSEXP = beta_mat_init,
+                                 tolerance = 1e-8, max_iter =  100)
+  expect_equal(res1, res2  )
+
+  new_model_matrix <- cbind(1, matrix(rnorm(n = 300 * 50), nrow = 300, ncol = 50))
+  beta_mat_init <- estimate_betas_roughly(Y = data$Y, model_matrix = new_model_matrix, offset_matrix = offset_matrix)
+  res1 <- fitBeta_fisher_scoring(Y = data$Y, model_matrix = new_model_matrix, exp_offset_matrix = exp(offset_matrix),
+                                 thetas = data$overdispersion, beta_matSEXP = beta_mat_init,
+                                 tolerance = 1e-8, max_iter =  100)
+  res2 <- fitBeta_diagonal_fisher_scoring(Y = data$Y, model_matrix = new_model_matrix, exp_offset_matrix = exp(offset_matrix),
+                                          thetas = data$overdispersion, beta_matSEXP = beta_mat_init,
+                                          tolerance = 1e-8, max_iter =  100)
+  expect_equal(res1$beta_mat, res2$beta_mat, tolerance = 1e-4)
+  expect_gt(res2$iter, res1$iter)
+})
+
+
 test_that("glm_gp_impl can handle all zero rows", {
   Y <- matrix(0, nrow = 2, ncol = 10)
   Y[1, ] <- rpois(n = 10, lambda = 3)

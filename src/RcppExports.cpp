@@ -51,6 +51,23 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// fitBeta_diagonal_fisher_scoring
+List fitBeta_diagonal_fisher_scoring(RObject Y, const arma::mat& model_matrix, RObject exp_offset_matrix, NumericVector thetas, SEXP beta_matSEXP, double tolerance, int max_iter);
+RcppExport SEXP _glmGamPoi_fitBeta_diagonal_fisher_scoring(SEXP YSEXP, SEXP model_matrixSEXP, SEXP exp_offset_matrixSEXP, SEXP thetasSEXP, SEXP beta_matSEXPSEXP, SEXP toleranceSEXP, SEXP max_iterSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< RObject >::type Y(YSEXP);
+    Rcpp::traits::input_parameter< const arma::mat& >::type model_matrix(model_matrixSEXP);
+    Rcpp::traits::input_parameter< RObject >::type exp_offset_matrix(exp_offset_matrixSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type thetas(thetasSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type beta_matSEXP(beta_matSEXPSEXP);
+    Rcpp::traits::input_parameter< double >::type tolerance(toleranceSEXP);
+    Rcpp::traits::input_parameter< int >::type max_iter(max_iterSEXP);
+    rcpp_result_gen = Rcpp::wrap(fitBeta_diagonal_fisher_scoring(Y, model_matrix, exp_offset_matrix, thetas, beta_matSEXP, tolerance, max_iter));
+    return rcpp_result_gen;
+END_RCPP
+}
 // makeCumSumLookupVector
 IntegerVector makeCumSumLookupVector(IntegerVector y);
 RcppExport SEXP _glmGamPoi_makeCumSumLookupVector(SEXP ySEXP) {
@@ -159,6 +176,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_glmGamPoi_compute_gp_deviance", (DL_FUNC) &_glmGamPoi_compute_gp_deviance, 3},
     {"_glmGamPoi_fitBeta_fisher_scoring", (DL_FUNC) &_glmGamPoi_fitBeta_fisher_scoring, 7},
     {"_glmGamPoi_fitBeta_one_group", (DL_FUNC) &_glmGamPoi_fitBeta_one_group, 6},
+    {"_glmGamPoi_fitBeta_diagonal_fisher_scoring", (DL_FUNC) &_glmGamPoi_fitBeta_diagonal_fisher_scoring, 7},
     {"_glmGamPoi_makeCumSumLookupVector", (DL_FUNC) &_glmGamPoi_makeCumSumLookupVector, 1},
     {"_glmGamPoi_score_function_bandara_fast", (DL_FUNC) &_glmGamPoi_score_function_bandara_fast, 6},
     {"_glmGamPoi_score_deriv_function_bandara_fast", (DL_FUNC) &_glmGamPoi_score_deriv_function_bandara_fast, 6},
