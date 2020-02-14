@@ -194,7 +194,7 @@ test_that("Beta estimation works", {
 
 test_that("Fisher scoring and diagonal fisher scoring give consistent results", {
 
-  data <- make_dataset(n_genes = 1, n_samples = 300)
+  data <- make_dataset(n_genes = 1, n_samples = 3000)
   offset_matrix <- matrix(log(data$size_factor), nrow=nrow(data$Y), ncol = ncol(data$Y), byrow = TRUE)
 
   # Fit Standard Model
@@ -206,16 +206,24 @@ test_that("Fisher scoring and diagonal fisher scoring give consistent results", 
                                  thetas = data$overdispersion, beta_matSEXP = beta_mat_init,
                                  tolerance = 1e-8, max_iter =  100)
   expect_equal(res1, res2  )
-
-  new_model_matrix <- cbind(1, matrix(rnorm(n = 300 * 50), nrow = 300, ncol = 50))
+  
+  set.seed(1)
+  df <- data.frame(
+    city = sample(c("Heidelberg", "Berlin", "New York"), size = 3000, replace = TRUE),
+    fruit = sample(c("Apple", "Cherry", "Banana"), size = 3000, replace = TRUE),
+    age = rnorm(3000, mean = 50, sd = 15),
+    car = sample(c("blue", "big", "truck"), size = 3000, replace = TRUE),
+    letter = LETTERS[1:10]
+  )
+  new_model_matrix <- model.matrix(~ . - 1, df)
   beta_mat_init <- estimate_betas_roughly(Y = data$Y, model_matrix = new_model_matrix, offset_matrix = offset_matrix)
   res1 <- fitBeta_fisher_scoring(Y = data$Y, model_matrix = new_model_matrix, exp_offset_matrix = exp(offset_matrix),
                                  thetas = data$overdispersion, beta_matSEXP = beta_mat_init,
                                  tolerance = 1e-8, max_iter =  100)
   res2 <- fitBeta_diagonal_fisher_scoring(Y = data$Y, model_matrix = new_model_matrix, exp_offset_matrix = exp(offset_matrix),
                                           thetas = data$overdispersion, beta_matSEXP = beta_mat_init,
-                                          tolerance = 1e-8, max_iter =  100)
-  expect_equal(res1$beta_mat, res2$beta_mat, tolerance = 1e-4)
+                                          tolerance = 1e-8, max_iter =  1000)
+  expect_equal(res1$beta_mat, res2$beta_mat, tolerance = 0.01)
   expect_gt(res2$iter, res1$iter)
 })
 
