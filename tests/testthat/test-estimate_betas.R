@@ -268,6 +268,17 @@ test_that("glm_gp_impl can handle dispersion of zero", {
 })
 
 
+test_that("glm_gp_impl can handle weird input", {
+  Y <- matrix(c(7, 0, 0, 0, 0), nrow = 1)
+  X <- cbind(1, c(0.64, -2.7, -0.94, 0.6, 0.56))
+  offset <- matrix(0, nrow = 1, ncol = 5)
+  init <- matrix(c(1,1), nrow = 1)
+  # This used to return c(NA, NA) because mu got exactly zero
+  res <- estimate_betas_fisher_scoring(Y, X, offset, dispersions = 0, beta_mat_init = init)
+  expect_false(any(is.na(c(res$Beta))))
+})
+
+
 
 
 test_that("glm_gp_impl works as expected", {
