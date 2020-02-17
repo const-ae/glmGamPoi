@@ -257,6 +257,18 @@ test_that("glm_gp_impl can handle all values zero", {
 })
 
 
+test_that("glm_gp_impl can handle dispersion of zero", {
+  Y <- matrix(rnbinom(10, mu = 10, size = 1 / 2.3), nrow = 1, ncol = 10)
+  X <- cbind(1, rnorm(10))
+  res <- glm_gp_impl(Y, X, overdispersion = 0, size_factors = FALSE)
+  res2 <- glm(c(Y) ~ X - 1, family = "poisson")
+
+  expect_equal(c(res$Beta_est), unname(coef(res2)))
+
+})
+
+
+
 
 test_that("glm_gp_impl works as expected", {
   skip("No workable tests here")
