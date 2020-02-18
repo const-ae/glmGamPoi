@@ -275,6 +275,18 @@ test_that("glm_gp_impl can handle weird input", {
   init <- matrix(c(1,1), nrow = 1)
   # This used to return c(NA, NA) because mu got exactly zero
   res <- estimate_betas_fisher_scoring(Y, X, offset, dispersions = 0, beta_mat_init = init)
+  # fitBeta_diagonal_fisher_scoring(Y, X, exp(offset), 0, init, tolerance = 1e-8, max_iter =  5000000)
+  expect_false(any(is.na(c(res$Beta))))
+})
+
+
+test_that("glm_gp_impl can handle weird input 2", {
+  Y <- matrix(c(34, 130, 1, 27, 1), nrow = 1)
+  X <- cbind(c(0.03, -0.4, -0.4, 0.8, 0.1),
+             c(-0.1, -0.7, 0.7, -0.03, 0.2))
+  offset <- matrix(0, nrow = 1, ncol = 5)
+  init <- matrix(c(3000, -141), nrow = 1)
+  res <- estimate_betas_fisher_scoring(Y, X, offset, dispersions = 0, beta_mat_init = init)
   expect_false(any(is.na(c(res$Beta))))
 })
 

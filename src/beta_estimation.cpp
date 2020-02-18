@@ -29,6 +29,16 @@ double compute_gp_deviance (double y, double mu, double theta) {
 }
 
 
+template<class NumericType>
+void clamp_inplace(arma::Mat<NumericType>& v, double min, double max){
+  for(int i = 0; i < v.n_rows; i++){
+    if(v[i] < min){
+      v[i] = min;
+    }else if(v[i] > max){
+      v[i] = max;
+    }
+  }
+}
 
 
 
@@ -82,6 +92,7 @@ List fitBeta_fisher_scoring_impl(RObject Y, const arma::mat& model_matrix, RObje
 
     arma::colvec beta_hat = beta_mat.row(gene_idx).t();
     arma::colvec mu_hat = exp_off % exp(model_matrix * beta_hat);
+    clamp_inplace(mu_hat, 1e-50, 1e50);
 
     dev = 0.0;
     for (int j = 0; j < n_samples; j++) {
@@ -110,11 +121,7 @@ List fitBeta_fisher_scoring_impl(RObject Y, const arma::mat& model_matrix, RObje
       while(true){
         beta_prop = beta_hat + speeding_factor * step;
         mu_hat = exp_off % exp(model_matrix * beta_prop);
-        for(int mi = 0; mi < mu_hat.n_rows; mi++){
-          if(mu_hat[mi] < 1e-50){                // if mu becomes actually 0, the code would break
-            mu_hat[mi] = 1e-50;
-          }
-        }
+        clamp_inplace(mu_hat, 1e-50, 1e50);
         dev = 0.0;
         for (int j = 0; j < n_samples; j++) {
           dev = dev + compute_gp_deviance(counts(j), mu_hat(j), thetas(gene_idx));
@@ -122,7 +129,7 @@ List fitBeta_fisher_scoring_impl(RObject Y, const arma::mat& model_matrix, RObje
         conv_test = fabs(dev - dev_old)/(fabs(dev) + 0.1);
         if(dev < dev_old || conv_test < tolerance){
           break; // while loop
-        }else if(line_iter >= 100 || speeding_factor < 1e-6){
+        }else if(line_iter >= 100){
           // speeding factor is very small, something is going wrong here
           conv_test = std::numeric_limits<double>::quiet_NaN();
           break; // while loop
@@ -292,6 +299,7 @@ List fitBeta_diagonal_fisher_scoring_impl(RObject Y, const arma::mat& model_matr
 
     arma::colvec beta_hat = beta_mat.row(gene_idx).t();
     arma::colvec mu_hat = exp_off % exp(model_matrix * beta_hat);
+    clamp_inplace(mu_hat, 1e-50, 1e50);
 
     dev = 0.0;
     for (int j = 0; j < n_samples; j++) {
@@ -318,11 +326,7 @@ List fitBeta_diagonal_fisher_scoring_impl(RObject Y, const arma::mat& model_matr
       while(true){
         beta_prop = beta_hat + speeding_factor * step;
         mu_hat = exp_off % exp(model_matrix * beta_prop);
-        for(int mi = 0; mi < mu_hat.n_rows; mi++){
-          if(mu_hat[mi] < 1e-50){                // if mu becomes actually 0, the code would break
-            mu_hat[mi] = 1e-50;
-          }
-        }
+        clamp_inplace(mu_hat, 1e-50, 1e50);
         dev = 0.0;
         for (int j = 0; j < n_samples; j++) {
           dev = dev + compute_gp_deviance(counts(j), mu_hat(j), thetas(gene_idx));
