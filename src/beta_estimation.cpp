@@ -28,14 +28,38 @@ double compute_gp_deviance (double y, double mu, double theta) {
   }
 }
 
+template<class NumericType>
+double compute_gp_deviance_sum(const arma::Mat<NumericType>& Y,
+                               const arma::Mat<double>& Mu,
+                               const NumericVector& thetas){
+  double dev = 0.0;
+  int nrows = Y.n_rows;
+  for (int i = 0; i < Y.n_elem; i++) {
+    dev += compute_gp_deviance(Y.at(i), Mu.at(i), thetas(i % nrows));
+  }
+  return dev;
+}
+
+template<class NumericType>
+double compute_gp_deviance_sum(const arma::Mat<NumericType>& Y,
+                               const arma::Mat<double>& Mu,
+                               double theta){
+  double dev = 0.0;
+  for (int i = 0; i < Y.n_elem; i++) {
+    dev += compute_gp_deviance(Y.at(i), Mu.at(i), theta);
+  }
+  return dev;
+}
+
+
 
 template<class NumericType>
 void clamp_inplace(arma::Mat<NumericType>& v, double min, double max){
-  for(int i = 0; i < v.n_rows; i++){
-    if(v[i] < min){
-      v[i] = min;
-    }else if(v[i] > max){
-      v[i] = max;
+  for(int i = 0; i < v.n_elem; i++){
+    if(v.at(i) < min){
+      v.at(i) = min;
+    }else if(v.at(i) > max){
+      v.at(i) = max;
     }
   }
 }
@@ -84,27 +108,24 @@ List fitBeta_fisher_scoring_impl(RObject Y, const arma::mat& model_matrix, RObje
   NumericVector deviance(n_genes);
   for (int gene_idx = 0; gene_idx < n_genes; gene_idx++) {
     if (gene_idx % 100 == 0) checkUserInterrupt();
-    arma::Col<NumericType> counts(n_samples);
+    arma::Row<NumericType> counts(n_samples);
     Y_bm->get_row(gene_idx, counts.begin());
-    arma::colvec exp_off(n_samples);
+    arma::Row<double> exp_off(n_samples);
     exp_offsets_bm->get_row(gene_idx, exp_off.begin());
 
 
-    arma::colvec beta_hat = beta_mat.row(gene_idx).t();
-    arma::colvec mu_hat = exp_off % exp(model_matrix * beta_hat);
+    arma::Row<double> beta_hat = beta_mat.row(gene_idx);
+    arma::Row<double> mu_hat = exp_off % exp(beta_hat * model_matrix.t());
     clamp_inplace(mu_hat, 1e-50, 1e50);
 
-    dev = 0.0;
-    for (int j = 0; j < n_samples; j++) {
-      dev = dev + compute_gp_deviance(counts(j), mu_hat(j), thetas(gene_idx));
-    }
+    dev = compute_gp_deviance_sum(counts, mu_hat, thetas(gene_idx));
     dev_old = dev;
     speeding_factor = 1.0;
 
     // make an orthonormal design matrix
     for (int t = 0; t < max_iter; t++) {
       iterations(gene_idx)++;
-      arma::vec w_vec = mu_hat/(1.0 + thetas(gene_idx) * mu_hat);
+      arma::vec w_vec = (mu_hat/(1.0 + thetas(gene_idx) * mu_hat)).t();
       arma::vec w_sqrt_vec = sqrt(w_vec);
 
       // prepare matrices
@@ -112,20 +133,17 @@ List fitBeta_fisher_scoring_impl(RObject Y, const arma::mat& model_matrix, RObje
       qr_econ(q, r, weighted_model_matrix);
       // Not actually quite the score vec, but related
       // See Dunn&Smyth GLM Book eq. 6.16
-      arma::colvec score_vec = (q.each_col() % w_sqrt_vec).t() * ((counts - mu_hat) / mu_hat);
-      arma::colvec step = solve(arma::trimatu(r), score_vec);
+      arma::rowvec score_vec = ((counts - mu_hat) / mu_hat) * (q.each_col() % w_sqrt_vec);
+      arma::rowvec step = solve(arma::trimatu(r), score_vec.t()).t();
 
       // Find speedfactor that actually decreases the deviance
-      arma::colvec beta_prop;
+      arma::Row<double> beta_prop;
       int line_iter = 0;
       while(true){
         beta_prop = beta_hat + speeding_factor * step;
-        mu_hat = exp_off % exp(model_matrix * beta_prop);
+        mu_hat = exp_off % exp(beta_prop * model_matrix.t());
         clamp_inplace(mu_hat, 1e-50, 1e50);
-        dev = 0.0;
-        for (int j = 0; j < n_samples; j++) {
-          dev = dev + compute_gp_deviance(counts(j), mu_hat(j), thetas(gene_idx));
-        }
+        dev = compute_gp_deviance_sum(counts, mu_hat, thetas(gene_idx));
         conv_test = fabs(dev - dev_old)/(fabs(dev) + 0.1);
         if(dev < dev_old || conv_test < tolerance){
           break; // while loop
@@ -157,7 +175,7 @@ List fitBeta_fisher_scoring_impl(RObject Y, const arma::mat& model_matrix, RObje
       dev_old = dev;
     }
 
-    beta_mat.row(gene_idx) = beta_hat.t();
+    beta_mat.row(gene_idx) = beta_hat;
   }
 
   return List::create(

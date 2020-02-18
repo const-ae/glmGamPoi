@@ -206,7 +206,7 @@ test_that("Fisher scoring and diagonal fisher scoring give consistent results", 
                                  thetas = data$overdispersion, beta_matSEXP = beta_mat_init,
                                  tolerance = 1e-8, max_iter =  100)
   expect_equal(res1, res2  )
-  
+
   set.seed(1)
   df <- data.frame(
     city = sample(c("Heidelberg", "Berlin", "New York"), size = 3000, replace = TRUE),
