@@ -30,11 +30,11 @@ estimate_betas_fisher_scoring <- function(Y, model_matrix, offset_matrix,
   # approximate the info matrix with the diagonal element of Xt W X
   if(ncol(model_matrix) < 30){
     betaRes <- fitBeta_fisher_scoring(Y, model_matrix, exp(offset_matrix), dispersions, beta_mat_init,
-                                      tolerance = 1e-8, max_iter =  100)
+                                      tolerance = 1e-8, max_iter =  1000)
   }else{
     # This one fails if there is considerable colinearity between columns
     betaRes <- fitBeta_diagonal_fisher_scoring(Y, model_matrix, exp(offset_matrix), dispersions, beta_mat_init,
-                                               tolerance = 1e-8, max_iter =  500)
+                                               tolerance = 1e-8, max_iter =  5000)
   }
 
   list(Beta = betaRes$beta_mat, iterations = betaRes$iter)
