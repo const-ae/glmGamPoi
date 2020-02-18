@@ -98,11 +98,6 @@ List fitBeta_fisher_scoring_impl(RObject Y, const arma::mat& model_matrix, RObje
   // deviance, convergence and tolerance
   double dev, dev_old, speeding_factor, conv_test;
 
-  // Declare beta diverged if abs larger
-  // and use value from previous iteration
-  // In DESeq2 diverged beta values are re-calculated using optim
-  // Currently not in use.
-  // double beta_divergence_threshold = 3000.0;
 
   NumericVector iterations(n_genes);
   NumericVector deviance(n_genes);
@@ -309,46 +304,40 @@ List fitBeta_diagonal_fisher_scoring_impl(RObject Y, const arma::mat& model_matr
   NumericVector deviance(n_genes);
   for (int gene_idx = 0; gene_idx < n_genes; gene_idx++) {
     if (gene_idx % 100 == 0) checkUserInterrupt();
-    arma::Col<NumericType> counts(n_samples);
+    arma::Row<NumericType> counts(n_samples);
     Y_bm->get_row(gene_idx, counts.begin());
-    arma::colvec exp_off(n_samples);
+    arma::Row<double> exp_off(n_samples);
     exp_offsets_bm->get_row(gene_idx, exp_off.begin());
 
 
-    arma::colvec beta_hat = beta_mat.row(gene_idx).t();
-    arma::colvec mu_hat = exp_off % exp(model_matrix * beta_hat);
+    arma::Row<double> beta_hat = beta_mat.row(gene_idx);
+    arma::Row<double> mu_hat = exp_off % exp(beta_hat * model_matrix.t());
     clamp_inplace(mu_hat, 1e-50, 1e50);
 
-    dev = 0.0;
-    for (int j = 0; j < n_samples; j++) {
-      dev = dev + compute_gp_deviance(counts(j), mu_hat(j), thetas(gene_idx));
-    }
+    dev = compute_gp_deviance_sum(counts, mu_hat, thetas(gene_idx));
     dev_old = dev;
     speeding_factor = 1.0;
 
     // make an orthonormal design matrix
     for (int t = 0; t < max_iter; t++) {
       iterations(gene_idx)++;
-      arma::vec w_vec = mu_hat/(1.0 + thetas(gene_idx) * mu_hat);
+      arma::vec w_vec = (mu_hat/(1.0 + thetas(gene_idx) * mu_hat)).t();
 
       // prepare matrices
       arma::mat weighted_model_matrix = model_matrix.each_col() % w_vec;
-      arma::colvec score_vec = weighted_model_matrix.t() * ((counts - mu_hat) / mu_hat);
+      arma::rowvec score_vec = ((counts - mu_hat) / mu_hat) * weighted_model_matrix;
       // This calculates the diag(Xˆt W X) efficiently. arma::sum(mat, 0) = colSums()
-      arma::colvec info_vec =arma::sum(arma::mat(arma::pow(model_matrix, 2)).each_col() % w_vec, 0).t();
-      arma::colvec step = score_vec / info_vec;
+      arma::rowvec info_vec = arma::sum(arma::mat(arma::pow(model_matrix, 2)).each_col() % w_vec, 0);
+      arma::rowvec step = score_vec / info_vec;
 
       // Find speedfactor that actually decreases the deviance
-      arma::colvec beta_prop;
+      arma::Row<double> beta_prop;
       int line_iter = 0;
       while(true){
         beta_prop = beta_hat + speeding_factor * step;
-        mu_hat = exp_off % exp(model_matrix * beta_prop);
+        mu_hat = exp_off % exp(beta_prop * model_matrix.t());
         clamp_inplace(mu_hat, 1e-50, 1e50);
-        dev = 0.0;
-        for (int j = 0; j < n_samples; j++) {
-          dev = dev + compute_gp_deviance(counts(j), mu_hat(j), thetas(gene_idx));
-        }
+        dev = compute_gp_deviance_sum(counts, mu_hat, thetas(gene_idx));
         conv_test = fabs(dev - dev_old)/(fabs(dev) + 0.1);
         if(dev < dev_old || conv_test < tolerance){
           break; // while loop
@@ -380,7 +369,7 @@ List fitBeta_diagonal_fisher_scoring_impl(RObject Y, const arma::mat& model_matr
       dev_old = dev;
     }
 
-    beta_mat.row(gene_idx) = beta_hat.t();
+    beta_mat.row(gene_idx) = beta_hat;
   }
 
   return List::create(
