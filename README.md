@@ -54,7 +54,7 @@ fit
 # Internally fit is just a list:
 c(fit)
 #> $Beta_est
-#>           [,1]
+#>      Intercept
 #> [1,] 0.9555114
 #> 
 #> $overdispersions
@@ -98,23 +98,22 @@ The dataset has 33,000 genes and 4340 cells
 
 ``` r
 pbmcs <- TENxPBMCData::TENxPBMCData("pbmc4k")
-#> snapshotDate(): 2019-04-29
+#> snapshotDate(): 2019-10-22
 #> see ?TENxPBMCData and browseVignettes('TENxPBMCData') for documentation
-#> downloading 0 resources
-#> loading from cache 
-#>     'EH1613 : 1613'
+#> loading from cache
 pbmcs
 #> class: SingleCellExperiment 
 #> dim: 33694 4340 
 #> metadata(0):
 #> assays(1): counts
-#> rownames(33694): ENSG00000243485 ENSG00000237613 ...
-#>   ENSG00000277475 ENSG00000268674
+#> rownames(33694): ENSG00000243485 ENSG00000237613 ... ENSG00000277475
+#>   ENSG00000268674
 #> rowData names(3): ENSEMBL_ID Symbol_TENx Symbol
 #> colnames: NULL
 #> colData names(11): Sample Barcode ... Individual Date_published
 #> reducedDimNames(0):
 #> spikeNames(0):
+#> altExpNames(0):
 ```
 
 I call `glm_gp()` to fit one GLM model for each gene and force the
@@ -137,8 +136,8 @@ summary(fit)
 #> The design formula is: Y~1
 #> 
 #> Beta_est:
-#>       Min 1st Qu. Median 3rd Qu.  Max
-#> [1,] -Inf    -Inf  -7.68   -3.62 5.37
+#>            Min 1st Qu. Median 3rd Qu.  Max
+#> Intercept -Inf    -Inf  -7.68   -3.62 5.37
 #> 
 #> overdispersion:
 #>  Min 1st Qu. Median 3rd Qu.   Max
@@ -209,10 +208,10 @@ bench::mark(
 #> # A tibble: 4 x 6
 #>   expression               min   median `itr/sec` mem_alloc `gc/sec`
 #>   <bch:expr>          <bch:tm> <bch:tm>     <dbl> <bch:byt>    <dbl>
-#> 1 glmGamPoi_in_memory  425.6ms 427.57ms    2.34    249.62MB    0    
-#> 2 glmGamPoi_on_disk      3.53s    3.53s    0.284   756.17MB    0    
-#> 3 DESeq2                15.76s   15.76s    0.0635    1.13GB    0.127
-#> 4 edgeR                  5.25s    5.25s    0.191   983.76MB    0.381
+#> 1 glmGamPoi_in_memory 430.36ms 434.92ms    2.30     259.6MB    0    
+#> 2 glmGamPoi_on_disk      3.41s    3.41s    0.293   612.79MB    0.293
+#> 3 DESeq2                16.97s   16.97s    0.0589    1.14GB    0.118
+#> 4 edgeR                  5.42s    5.42s    0.185    982.9MB    0.185
 ```
 
 Fitting the full `pbmc4k` dataset on a modern MacBook Pro in-memory
