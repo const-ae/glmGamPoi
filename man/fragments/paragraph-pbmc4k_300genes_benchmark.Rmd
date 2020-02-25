@@ -65,17 +65,17 @@ edgeR_fit <- edgeR::glmFit(edgeR_data, design = model_matrix)
 
 ```{r coefficientComparison, fig.height=5, fig.width=10, warning=FALSE, echo = FALSE}
 par(mfrow = c(2, 4), cex.main = 2, cex.lab = 1.5)
-plot(fit$Beta_est[,1], coef(dds)[,1] / log2(exp(1)), pch = 16, 
+plot(fit$Beta[,1], coef(dds)[,1] / log2(exp(1)), pch = 16, 
      main = "Beta Coefficients", xlab = "glmGamPoi", ylab = "DESeq2")
 abline(0,1)
-plot(fit$Beta_est[,1], edgeR_fit$unshrunk.coefficients[,1], pch = 16,
+plot(fit$Beta[,1], edgeR_fit$unshrunk.coefficients[,1], pch = 16,
      main = "Beta Coefficients", xlab = "glmGamPoi", ylab = "edgeR")
 abline(0,1)
 
-plot(fit$Mu_est[,1], rowData(dds)$baseMean, pch = 16, log="xy",
+plot(fit$Mu[,1], rowData(dds)$baseMean, pch = 16, log="xy",
      main = "Gene Mean", xlab = "glmGamPoi", ylab = "DESeq2")
 abline(0,1)
-plot(fit$Mu_est[,1], edgeR_fit$fitted.values[,1], pch = 16, log="xy",
+plot(fit$Mu[,1], edgeR_fit$fitted.values[,1], pch = 16, log="xy",
      main = "Gene Mean", xlab = "glmGamPoi", ylab = "edgeR")
 abline(0,1)
 
