@@ -53,14 +53,14 @@ fit
 
 # Internally fit is just a list:
 c(fit)
-#> $Beta_est
+#> $Beta
 #>      Intercept
 #> [1,] 0.9555114
 #> 
 #> $overdispersions
 #> [1] 0
 #> 
-#> $Mu_est
+#> $Mu
 #>      [,1] [,2] [,3] [,4] [,5] [,6] [,7] [,8] [,9] [,10]
 #> [1,]  2.6  2.6  2.6  2.6  2.6  2.6  2.6  2.6  2.6   2.6
 #> 
@@ -135,7 +135,7 @@ summary(fit)
 #> A model with 1 coefficient was fitted.
 #> The design formula is: Y~1
 #> 
-#> Beta_est:
+#> Beta:
 #>            Min 1st Qu. Median 3rd Qu.  Max
 #> Intercept -Inf    -Inf  -7.68   -3.62 5.37
 #> 
@@ -147,7 +147,7 @@ summary(fit)
 #>    Min 1st Qu. Median 3rd Qu.  Max
 #>  0.743   0.968      1    1.03 2.06
 #> 
-#> Mu_est:
+#> Mu:
 #>  Min 1st Qu.   Median 3rd Qu. Max
 #>    0       0 0.000488  0.0269 442
 
@@ -208,10 +208,10 @@ bench::mark(
 #> # A tibble: 4 x 6
 #>   expression               min   median `itr/sec` mem_alloc `gc/sec`
 #>   <bch:expr>          <bch:tm> <bch:tm>     <dbl> <bch:byt>    <dbl>
-#> 1 glmGamPoi_in_memory 430.36ms 434.92ms    2.30     259.6MB    0    
-#> 2 glmGamPoi_on_disk      3.41s    3.41s    0.293   612.79MB    0.293
-#> 3 DESeq2                16.97s   16.97s    0.0589    1.14GB    0.118
-#> 4 edgeR                  5.42s    5.42s    0.185    982.9MB    0.185
+#> 1 glmGamPoi_in_memory 425.36ms 428.76ms    2.33     259.6MB    0    
+#> 2 glmGamPoi_on_disk      3.37s    3.37s    0.297   612.79MB    0.297
+#> 3 DESeq2                16.75s   16.75s    0.0597    1.14GB    0.119
+#> 4 edgeR                  5.32s    5.32s    0.188    982.9MB    0.188
 ```
 
 Fitting the full `pbmc4k` dataset on a modern MacBook Pro in-memory
