@@ -4,10 +4,14 @@
 \alias{gampoi_overdispersion_mle}
 \title{Estimate the Overdispersion for a Vector of Counts}
 \usage{
-gampoi_overdispersion_mle(y, mean = base::mean(y),
+gampoi_overdispersion_mle(
+  y,
+  mean = base::mean(y),
   model_matrix = matrix(1, nrow = length(y), ncol = 1),
-  do_cox_reid_adjustment = TRUE, n_subsamples = min(1000, length(y)),
-  verbose = FALSE)
+  do_cox_reid_adjustment = TRUE,
+  n_subsamples = min(1000, length(y)),
+  verbose = FALSE
+)
 }
 \arguments{
 \item{y}{a numeric or integer vector with the counts for which

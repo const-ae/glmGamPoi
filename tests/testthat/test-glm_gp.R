@@ -6,8 +6,8 @@ test_that("glm_gp works for simple cases", {
   tmp <- glm_gp(y, design = ~ 1, size_factors = FALSE)
   expect_equal(tmp$size_factors, rep(1, times = 10))
   expect_equal(c(tmp$model_matrix), rep(1, times = 10))
-  expect_equal(c(tmp$Mu_est), rep(mean(y), times = 10))
-  expect_equal(c(tmp$Beta_est), log(mean(y)))
+  expect_equal(c(tmp$Mu), rep(mean(y), times = 10))
+  expect_equal(c(tmp$Beta), log(mean(y)))
 })
 
 
@@ -21,10 +21,10 @@ test_that("glm_gp can handle complicated formulas", {
   colnames(Y) <- paste0("person_", seq_len(50))
 
   fit <- glm_gp(Y, design = ~ fav_food + city + age, col_data = data)
-  expect_equal(colnames(fit$Beta_est), colnames(fit$model_matrix))
-  expect_equal(rownames(fit$Beta_est), rownames(Y))
-  expect_equal(colnames(fit$Mu_est), colnames(Y))
-  expect_equal(rownames(fit$Mu_est), rownames(Y))
+  expect_equal(colnames(fit$Beta), colnames(fit$model_matrix))
+  expect_equal(rownames(fit$Beta), rownames(Y))
+  expect_equal(colnames(fit$Mu), colnames(Y))
+  expect_equal(rownames(fit$Mu), rownames(Y))
   expect_equal(rownames(fit$model_matrix), colnames(Y))
   expect_equal(names(fit$overdispersions), rownames(Y))
   expect_equal(names(fit$size_factors), colnames(Y))
@@ -35,8 +35,8 @@ test_that("glm_gp can handle no-row input", {
 
   Y <- matrix(numeric(0), nrow = 0, ncol = 10)
   tmp <- glm_gp(Y, size_factors = FALSE)
-  expect_equal(dim(tmp$Beta_est), c(0, 1))
-  expect_equal(dim(tmp$Mu_est), c(0, 10))
+  expect_equal(dim(tmp$Beta), c(0, 1))
+  expect_equal(dim(tmp$Mu), c(0, 10))
   expect_equal(tmp$size_factors, rep(1, times = 10))
   expect_equal(c(tmp$model_matrix), rep(1, times = 10))
 
@@ -47,9 +47,9 @@ test_that("glm_gp can handle no-col input", {
 
   Y <- matrix(numeric(0), nrow = 3, ncol = 0)
   tmp <- glm_gp(Y, size_factors = FALSE)
-  expect_equal(dim(tmp$Beta_est), c(3, 1))
-  expect_equal(c(tmp$Beta_est), rep(-Inf, times = 3))
-  expect_equal(dim(tmp$Mu_est), c(3, 0))
+  expect_equal(dim(tmp$Beta), c(3, 1))
+  expect_equal(c(tmp$Beta), rep(-Inf, times = 3))
+  expect_equal(dim(tmp$Mu), c(3, 0))
   expect_equal(tmp$size_factors, rep(1, times = 0))
   expect_equal(dim(tmp$model_matrix), c(0, 1))
   expect_equal(c(tmp$model_matrix), rep(1, times = 0))
@@ -106,13 +106,13 @@ test_that("glm_gp can handle on_disk parameter", {
   fit_in_memory <- glm_gp(Y, design = ~ fav_food + city + age, col_data = data, on_disk = FALSE)
   fit_on_disk <- glm_gp(Y, design = ~ fav_food + city + age, col_data = data, on_disk = TRUE)
 
-  expect_equal(fit_in_memory[names(fit_in_memory) != "Mu_est"], fit_on_disk[names(fit_on_disk) != "Mu_est"])
-  expect_equal(c(fit_in_memory$Mu_est), c(fit_on_disk$Mu_est))
-  expect_s4_class(fit_on_disk$Mu_est, "DelayedArray")
+  expect_equal(fit_in_memory[names(fit_in_memory) != "Mu"], fit_on_disk[names(fit_on_disk) != "Mu"])
+  expect_equal(c(fit_in_memory$Mu), c(fit_on_disk$Mu))
+  expect_s4_class(fit_on_disk$Mu, "DelayedArray")
 
   fit_on_disk2 <- glm_gp(Y_hdf5, design = ~ fav_food + city + age, col_data = data)
-  expect_equal(fit_on_disk[names(fit_on_disk) != "Mu_est"], fit_on_disk2[names(fit_on_disk2) != "Mu_est"])
-  expect_s4_class(fit_on_disk2$Mu_est, "DelayedArray")
+  expect_equal(fit_on_disk[names(fit_on_disk) != "Mu"], fit_on_disk2[names(fit_on_disk2) != "Mu"])
+  expect_s4_class(fit_on_disk2$Mu, "DelayedArray")
 
   fit_in_memory2 <- glm_gp(Y_hdf5, design = ~ fav_food + city + age, col_data = data, on_disk = FALSE)
   expect_equal(fit_in_memory, fit_in_memory2)
@@ -153,8 +153,8 @@ test_that("glm_gp can handle design parameter of type vector", {
   sample_assignment <- rep(1, times = 50)
   fit_vec <- glm_gp(Y, design = sample_assignment)
 
-  expect_equal(c(fit_intercept$Beta_est), c(fit_vec$Beta_est))
-  expect_equal(colnames(fit_vec$Beta_est), "1")
+  expect_equal(c(fit_intercept$Beta), c(fit_vec$Beta))
+  expect_equal(colnames(fit_vec$Beta), "1")
 
   sample_assignment <- sample(c("a", "b", "c"), size = 50, replace = TRUE)
   design_mat <- model.matrix(~ x_ - 1, data = data.frame(x_ = sample_assignment))
@@ -171,9 +171,9 @@ test_that("glm_gp can handle design parameter of type vector", {
   fit_mat <- glm_gp(Y, design = design_mat)
   fit_formula <- glm_gp(Y, design = ~ x_, col_data = data.frame(x_ = sample_assignment),
                         reference_level = "b")
-  expect_equal(unname(fit_vec$Beta_est), unname(fit_mat$Beta_est))
-  expect_equal(colnames(fit_vec$Beta_est), c("Intercept", "a_vs_b", "c_vs_b"))
-  expect_equal(unname(fit_vec$Beta_est), unname(fit_formula$Beta_est))
-  expect_equal(colnames(fit_formula$Beta_est), c("Intercept", "x_a", "x_c"))
+  expect_equal(unname(fit_vec$Beta), unname(fit_mat$Beta))
+  expect_equal(colnames(fit_vec$Beta), c("Intercept", "a_vs_b", "c_vs_b"))
+  expect_equal(unname(fit_vec$Beta), unname(fit_formula$Beta))
+  expect_equal(colnames(fit_formula$Beta), c("Intercept", "x_a", "x_c"))
 })
 

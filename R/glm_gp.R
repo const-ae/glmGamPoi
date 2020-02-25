@@ -98,13 +98,13 @@
 #' @return
 #' The method returns a list with the following elements:
 #' \describe{
-#'   \item{`Beta_est`}{a matrix with dimensions `nrow(data) x n_coefficients` where `n_coefficients` is
+#'   \item{`Beta`}{a matrix with dimensions `nrow(data) x n_coefficients` where `n_coefficients` is
 #'   based on the `design` argument. It contains the estimated coefficients for each gene.}
 #'   \item{`overdispersions`}{a vector with length `nrow(data)`. The overdispersion parameter for each
 #'   gene. It describes how much more the counts vary than one would expect according to the Poisson
 #'   model.}
-#'   \item{`Mu_est`}{a matrix with the same dimensions as `dim(data)`. If the calculation happened on
-#'   disk, than `Mu_est` is a `HDF5Matrix`. It contains the estimated mean value for each gene and
+#'   \item{`Mu`}{a matrix with the same dimensions as `dim(data)`. If the calculation happened on
+#'   disk, than `Mu` is a `HDF5Matrix`. It contains the estimated mean value for each gene and
 #'   sample.}
 #'   \item{`size_factors`}{a vector with length `ncol(data)`. The size factors are the inferred
 #'   correction factors for different sizes of each sample. They are also sometimes called the
@@ -196,10 +196,10 @@ glm_gp <- function(data,
   # Make sure that the output is nice and beautiful
   res$model_matrix <- des$model_matrix
   res$design_formula <- des$design_formula
-  colnames(res$Beta_est) <- colnames(res$model_matrix)
-  rownames(res$Beta_est) <- rownames(data)
-  rownames(res$Mu_est) <- rownames(data)
-  colnames(res$Mu_est) <- colnames(data)
+  colnames(res$Beta) <- colnames(res$model_matrix)
+  rownames(res$Beta) <- rownames(data)
+  rownames(res$Mu) <- rownames(data)
+  colnames(res$Mu) <- colnames(data)
   names(res$overdispersions) <- rownames(data)
   names(res$size_factors) <- colnames(data)
 

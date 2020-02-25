@@ -233,8 +233,8 @@ test_that("glm_gp_impl can handle all zero rows", {
   Y[1, ] <- rpois(n = 10, lambda = 3)
   X <- matrix(1, nrow = 10, ncol = 1)
   res <- glm_gp_impl(Y, X)
-  expect_equal(res$Beta_est[2,1], -Inf)
-  expect_equal(res$Mu_est[2, ], rep(0, 10))
+  expect_equal(res$Beta[2,1], -Inf)
+  expect_equal(res$Mu[2, ], rep(0, 10))
 })
 
 
@@ -252,8 +252,8 @@ test_that("glm_gp_impl can handle all values zero", {
   res <- glm_gp_impl(Y, X)
   expect_equal(res$size_factors, rep(0.001, times = 10))
   expect_equal(res$overdispersions, rep(0, times = 3))
-  expect_equal(res$Beta_est[,1], rep(-Inf, times = 3))
-  expect_true(all(res$Mu_est == 0))
+  expect_equal(res$Beta[,1], rep(-Inf, times = 3))
+  expect_true(all(res$Mu == 0))
 })
 
 
@@ -263,7 +263,7 @@ test_that("glm_gp_impl can handle dispersion of zero", {
   res <- glm_gp_impl(Y, X, overdispersion = 0, size_factors = FALSE)
   res2 <- glm(c(Y) ~ X - 1, family = "poisson")
 
-  expect_equal(c(res$Beta_est), unname(coef(res2)))
+  expect_equal(c(res$Beta), unname(coef(res2)))
 
 })
 
@@ -316,8 +316,8 @@ test_that("glm_gp_impl works as expected", {
                      verbose = TRUE)
   plot(res$size_factors, DESeq2::sizeFactors(dds)); abline(0,1)
 
-  plot(res$Beta_est[,1], coef(dds)[,1]  / log2(exp(1)), pch = 16, cex = 0.2, col ="red"); abline(0,1)
-  plot(res$Beta_est[,1], coef(fit)[,1]); abline(0,1)
+  plot(res$Beta[,1], coef(dds)[,1]  / log2(exp(1)), pch = 16, cex = 0.2, col ="red"); abline(0,1)
+  plot(res$Beta[,1], coef(fit)[,1]); abline(0,1)
   plot(coef(dds)[,1]  / log2(exp(1)), coef(fit)[,1]); abline(0,1)
 
 
@@ -335,9 +335,9 @@ test_that("glm_gp_impl works with Delayed Input", {
   res <- glm_gp_impl(data$Y, model_matrix = data$X, verbose = TRUE)
   res2 <- glm_gp_impl(Y_da, model_matrix = data$X, verbose = TRUE)
 
-  expect_equal(res$Beta_est, res2$Beta_est)
+  expect_equal(res$Beta, res2$Beta)
   expect_equal(res$overdispersions, res2$overdispersions)
-  expect_equal(res$Mu_est, as.matrix(res2$Mu_est))
+  expect_equal(res$Mu, as.matrix(res2$Mu))
   expect_equal(res$size_factors, res2$size_factors)
 })
 

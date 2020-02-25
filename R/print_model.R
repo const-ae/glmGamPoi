@@ -12,9 +12,9 @@ print.glmGamPoi <- tools::.print.via.format
 #' @export
 format.glmGamPoi <- function(x, ...){
   string_builder <- ""
-  nrow <- nrow(x$Mu_est)
-  ncol <- ncol(x$Mu_est)
-  npara <- ncol(x$Beta_est)
+  nrow <- nrow(x$Mu)
+  ncol <- ncol(x$Mu)
+  npara <- ncol(x$Beta)
   string_builder <- paste0(string_builder, "glmGamPoiFit object:\n")
   string_builder <- paste0(string_builder, "The data had ", nrow, " rows and ", ncol,
                            " columns.\n")
@@ -38,9 +38,9 @@ print.summary.glmGamPoi <- tools::.print.via.format
 #' @export
 format.summary.glmGamPoi <- function(x, ...){
   header <- paste0(format.glmGamPoi(x), "\n")
-  nrow <- nrow(x$Mu_est)
-  ncol <- ncol(x$Mu_est)
-  npara <- ncol(x$Beta_est)
+  nrow <- nrow(x$Mu)
+  ncol <- ncol(x$Mu)
+  npara <- ncol(x$Beta)
   ndigits <- 3
 
   # Make string for design formula
@@ -50,15 +50,15 @@ format.summary.glmGamPoi <- function(x, ...){
     design_summary <- paste0("The design formula is: Y", format(x$design_formula), "\n")
   }
 
-  # Make String for Beta_est
+  # Make String for Beta
   if(nrow < 5 && npara <= 3){
-    beta_est_summary <- paste0("Beta_est:\n", format_matrix(t(x$Beta_est), digits = ndigits), "\n")
+    beta_est_summary <- paste0("Beta:\n", format_matrix(t(x$Beta), digits = ndigits), "\n")
   }else if(nrow < 5){
-    beta_est_summary <- paste0("Beta_est:\n", format_matrix(t(x$Beta_est[,1:3]), digits = ndigits), "\n...\n")
+    beta_est_summary <- paste0("Beta:\n", format_matrix(t(x$Beta[,1:3]), digits = ndigits), "\n...\n")
   }else if(npara <= 3){
-    beta_est_summary <- paste0("Beta_est:\n", format_matrix(my_matrix_summary(x$Beta_est), digits = ndigits), "\n")
+    beta_est_summary <- paste0("Beta:\n", format_matrix(my_matrix_summary(x$Beta), digits = ndigits), "\n")
   }else{
-    beta_est_summary <- paste0("Beta_est:\n", format_matrix(my_matrix_summary(x$Beta_est[,1:3]), digits = ndigits), "\n...\n")
+    beta_est_summary <- paste0("Beta:\n", format_matrix(my_matrix_summary(x$Beta[,1:3]), digits = ndigits), "\n...\n")
   }
 
   # Make String for Overdispersion
@@ -73,12 +73,12 @@ format.summary.glmGamPoi <- function(x, ...){
   sf_mat <- matrix(x$size_factors, ncol = 1, dimnames = list(NULL, ""))
   sf_summary <- paste0("\nsize_factors:\n", format_matrix(my_matrix_summary(sf_mat), digits = ndigits), "\n")
 
-  # Make String for Mu_est
-  if(is.matrix(x$Mu_est)){
-    mu_mat <- matrix(c(x$Mu_est), ncol = 1, dimnames = list(NULL, ""))
-    mu_summary <- paste0("\nMu_est:\n", format_matrix(my_matrix_summary(mu_mat), digits = ndigits), "\n")
+  # Make String for Mu
+  if(is.matrix(x$Mu)){
+    mu_mat <- matrix(c(x$Mu), ncol = 1, dimnames = list(NULL, ""))
+    mu_summary <- paste0("\nMu:\n", format_matrix(my_matrix_summary(mu_mat), digits = ndigits), "\n")
   }else{
-    mu_summary <- paste0("\nMu_est is a ", class(x$Mu_est)[1], ", will skip summary to avoid ",
+    mu_summary <- paste0("\nMu is a ", class(x$Mu)[1], ", will skip summary to avoid ",
                          "lengthy computation.")
   }
 

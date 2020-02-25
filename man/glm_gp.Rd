@@ -4,10 +4,19 @@
 \alias{glm_gp}
 \title{Fit a Gamma-Poisson Generalized Linear Model}
 \usage{
-glm_gp(data, design = ~1, col_data = NULL, reference_level = NULL,
-  offset = 0, size_factors = TRUE, overdispersion = TRUE,
-  do_cox_reid_adjustment = TRUE, n_subsamples = min(1000, ncol(data)),
-  on_disk = NULL, verbose = FALSE)
+glm_gp(
+  data,
+  design = ~1,
+  col_data = NULL,
+  reference_level = NULL,
+  offset = 0,
+  size_factors = TRUE,
+  overdispersion = TRUE,
+  do_cox_reid_adjustment = TRUE,
+  n_subsamples = min(1000, ncol(data)),
+  on_disk = NULL,
+  verbose = FALSE
+)
 }
 \arguments{
 \item{data}{any matrix-like object (e.g. \code{matrix()}, \code{DelayedArray()}, \code{HDF5Matrix()}) or
@@ -75,18 +84,18 @@ while fitting the GLM. Default: \code{FALSE}.}
 \value{
 The method returns a list with the following elements:
 \describe{
-\item{\code{Beta_est}}{a matrix with dimensions \code{nrow(data) x n_coefficients} where \code{n_coefficients} is
+\item{\code{Beta}}{a matrix with dimensions \verb{nrow(data) x n_coefficients} where \code{n_coefficients} is
 based on the \code{design} argument. It contains the estimated coefficients for each gene.}
 \item{\code{overdispersions}}{a vector with length \code{nrow(data)}. The overdispersion parameter for each
 gene. It describes how much more the counts vary than one would expect according to the Poisson
 model.}
-\item{\code{Mu_est}}{a matrix with the same dimensions as \code{dim(data)}. If the calculation happened on
-disk, than \code{Mu_est} is a \code{HDF5Matrix}. It contains the estimated mean value for each gene and
+\item{\code{Mu}}{a matrix with the same dimensions as \code{dim(data)}. If the calculation happened on
+disk, than \code{Mu} is a \code{HDF5Matrix}. It contains the estimated mean value for each gene and
 sample.}
 \item{\code{size_factors}}{a vector with length \code{ncol(data)}. The size factors are the inferred
 correction factors for different sizes of each sample. They are also sometimes called the
 exposure factor.}
-\item{\code{model_matrix}}{a matrix with dimensions \code{ncol(data) x n_coefficients}. It is build based
+\item{\code{model_matrix}}{a matrix with dimensions \verb{ncol(data) x n_coefficients}. It is build based
 on the \code{design} argument.}
 }
 }

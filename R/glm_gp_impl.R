@@ -55,25 +55,25 @@ glm_gp_impl <- function(Y, model_matrix,
     if(verbose){ message("Make initial beta estimate") }
     beta_vec_init <- estimate_betas_roughly_one_group(Y, offset_matrix)
     if(verbose){ message("Estimate beta") }
-    Beta_est <- estimate_betas_one_group(Y, offset_matrix = offset_matrix,
+    Beta <- estimate_betas_one_group(Y, offset_matrix = offset_matrix,
                                          dispersions = disp_init, beta_vec_init = beta_vec_init)$Beta
   }else{
     # Init beta with reasonable values
     if(verbose){ message("Make initial beta estimate") }
     beta_init <- estimate_betas_roughly(Y, model_matrix, offset_matrix = offset_matrix)
     if(verbose){ message("Estimate beta") }
-    Beta_est <- estimate_betas_fisher_scoring(Y, model_matrix = model_matrix, offset_matrix = offset_matrix,
+    Beta <- estimate_betas_fisher_scoring(Y, model_matrix = model_matrix, offset_matrix = offset_matrix,
                                               dispersions = disp_init, beta_mat_init = beta_init)$Beta
   }
 
   # Calculate corresponding predictions
-  # Mu_est <- exp(Beta_est %*% t(model_matrix) + offset_matrix)
-  Mu_est <- calculate_mu(Beta_est, model_matrix, offset_matrix)
+  # Mu <- exp(Beta %*% t(model_matrix) + offset_matrix)
+  Mu <- calculate_mu(Beta, model_matrix, offset_matrix)
 
   # Make estimate of over-disperion
   if(isTRUE(overdispersion)){
     if(verbose){ message("Estimate dispersion") }
-    disp_est <- estimate_overdispersions(Y, Mu_est, model_matrix = model_matrix,
+    disp_est <- estimate_overdispersions(Y, Mu, model_matrix = model_matrix,
                                          do_cox_reid_adjustment = TRUE,
                                          n_subsamples = n_subsamples, verbose = verbose)
   }else{
@@ -84,19 +84,19 @@ glm_gp_impl <- function(Y, model_matrix,
   # Estimate the betas again
   if(verbose){ message("Estimate beta again") }
   if(only_intercept_model){
-    Beta_est <- estimate_betas_one_group(Y, offset_matrix = offset_matrix,
-                                         dispersions = disp_est, beta_vec_init = Beta_est[,1])$Beta
+    Beta <- estimate_betas_one_group(Y, offset_matrix = offset_matrix,
+                                         dispersions = disp_est, beta_vec_init = Beta[,1])$Beta
   }else{
-    Beta_est <- estimate_betas_fisher_scoring(Y, model_matrix = model_matrix, offset_matrix = offset_matrix,
-                                              dispersions = disp_est, beta_mat_init = Beta_est)$Beta
+    Beta <- estimate_betas_fisher_scoring(Y, model_matrix = model_matrix, offset_matrix = offset_matrix,
+                                              dispersions = disp_est, beta_mat_init = Beta)$Beta
   }
 
   # Calculate corresponding predictions
-  Mu_est <- calculate_mu(Beta_est, model_matrix, offset_matrix)
+  Mu <- calculate_mu(Beta, model_matrix, offset_matrix)
 
   # Return everything
-  list(Beta_est = Beta_est, overdispersions = disp_est,
-       Mu_est = Mu_est, size_factors = size_factors)
+  list(Beta = Beta, overdispersions = disp_est,
+       Mu = Mu, size_factors = size_factors)
 }
 
 

@@ -4,9 +4,16 @@
 \alias{glm_gp_impl}
 \title{Internal Function to Fit a Gamma-Poisson GLM}
 \usage{
-glm_gp_impl(Y, model_matrix, offset = 0, size_factors = TRUE,
-  overdispersion = TRUE, do_cox_reid_adjustment = TRUE,
-  n_subsamples = min(1000, ncol(Y)), verbose = FALSE)
+glm_gp_impl(
+  Y,
+  model_matrix,
+  offset = 0,
+  size_factors = TRUE,
+  overdispersion = TRUE,
+  do_cox_reid_adjustment = TRUE,
+  n_subsamples = min(1000, ncol(Y)),
+  verbose = FALSE
+)
 }
 \arguments{
 \item{Y}{any matrix-like object (e.g. \code{matrix()}, \code{DelayedArray()}, \code{HDF5Matrix()}) with
