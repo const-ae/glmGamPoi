@@ -76,23 +76,25 @@ glm_gp_impl <- function(Y, model_matrix,
     disp_est <- estimate_overdispersions(Y, Mu, model_matrix = model_matrix,
                                          do_cox_reid_adjustment = TRUE,
                                          n_subsamples = n_subsamples, verbose = verbose)
+
+    # Estimate the betas again (only necessary if disp_est has changed)
+    if(verbose){ message("Estimate beta again") }
+    if(only_intercept_model){
+      Beta <- estimate_betas_one_group(Y, offset_matrix = offset_matrix,
+                                       dispersions = disp_est, beta_vec_init = Beta[,1])$Beta
+    }else{
+      Beta <- estimate_betas_fisher_scoring(Y, model_matrix = model_matrix, offset_matrix = offset_matrix,
+                                            dispersions = disp_est, beta_mat_init = Beta)$Beta
+    }
+
+    # Calculate corresponding predictions
+    Mu <- calculate_mu(Beta, model_matrix, offset_matrix)
+
   }else{
     # Use disp_init, because it is already in vector shape
     disp_est <- disp_init
   }
 
-  # Estimate the betas again
-  if(verbose){ message("Estimate beta again") }
-  if(only_intercept_model){
-    Beta <- estimate_betas_one_group(Y, offset_matrix = offset_matrix,
-                                         dispersions = disp_est, beta_vec_init = Beta[,1])$Beta
-  }else{
-    Beta <- estimate_betas_fisher_scoring(Y, model_matrix = model_matrix, offset_matrix = offset_matrix,
-                                              dispersions = disp_est, beta_mat_init = Beta)$Beta
-  }
-
-  # Calculate corresponding predictions
-  Mu <- calculate_mu(Beta, model_matrix, offset_matrix)
 
   # Return everything
   list(Beta = Beta, overdispersions = disp_est,
