@@ -21,6 +21,7 @@ Suggests:
     edgeR,
     beachmat,
     MASS,
+    statmod,
     ggplot2,
     bench,
     BiocParallel,

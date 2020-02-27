@@ -22,9 +22,9 @@ test_that("residual calculation works", {
                tolerance = 1e-5)
 
   # Randomized Quantiles are by definition not equal
-  # r_qs <- c(statmod::qresiduals(r_fit1),  statmod::qresiduals(r_fit2))
-  # res <- c(t(residuals(fit, Y, "randomized_quantile")))
-  # expect_gt(cor(r_qs, res), 0.99)
+  r_qs <- c(statmod::qresiduals(r_fit1),  statmod::qresiduals(r_fit2))
+  res <- c(t(residuals(fit, Y, "randomized_quantile")))
+  expect_gt(cor(r_qs, res), 0.99)
 })
 
 
@@ -60,9 +60,9 @@ test_that("residual calculation works with Delayed Matrix", {
                tolerance = 1e-5)
 
   # Randomized Quantiles are by definition not equal
-  # r_qs <- c(statmod::qresiduals(r_fit1),  statmod::qresiduals(r_fit2))
-  # res <- c(t(residuals(fit, Y_hdf5, "randomized_quantile")))
-  # expect_gt(cor(r_qs, res), 0.99)
+  r_qs <- c(statmod::qresiduals(r_fit1),  statmod::qresiduals(r_fit2))
+  res <- c(t(residuals(fit, Y_hdf5, "randomized_quantile")))
+  expect_gt(cor(r_qs, res), 0.99)
 
 })
 
