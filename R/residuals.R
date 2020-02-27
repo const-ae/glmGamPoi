@@ -57,10 +57,9 @@ residuals.glmGamPoi <- function(object, Y, type = c("deviance", "pearson", "rand
 
 
 qres.gampoi <- function(Y, Mu, dispersion){
-  p <- 1 / (1 + multiply_vector_to_each_column(Mu, dispersion))
   tmp <- vapply(seq_len(ncol(Y)), function(idx){
-    a <- pbeta(p[, idx], 1/dispersion, Y[, idx])
-    b <- pbeta(p[, idx], 1/dispersion, Y[, idx] + 1)
+    a <- pnbinom(Y[, idx] - 1, mu = Mu[, idx], size = 1/dispersion)
+    b <- pnbinom(Y[, idx], mu = Mu[, idx], size = 1/dispersion)
     rbind(a, b)
   }, FUN.VALUE = matrix(0, ncol = nrow(Y), nrow = 2))
 
