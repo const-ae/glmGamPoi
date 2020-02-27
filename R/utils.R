@@ -1,5 +1,25 @@
 
+delayed_matrix_apply_block <- function(Y, Mu, overdispersion, FUN){
+  stopifnot(nrow(Y) == nrow(Mu), ncol(Y) == ncol(Mu))
+  res_sink <- HDF5Array::HDF5RealizationSink(dim(Y))
+  on.exit({
+    DelayedArray::close(res_sink)
+  }, add = TRUE)
 
+  res_grid <- DelayedArray::blockGrid(res_sink)
+
+  for (coord1 in seq_len(ncol(res_grid))) {
+    for(coord2 in seq_len(nrow(res_grid))){
+      sel <- res_grid[[coord2, coord1]]
+      Y_block <- DelayedArray::read_block(Y, sel)
+      Mu_block <- DelayedArray::read_block(Mu, sel)
+      res_block <- FUN(Y_block, Mu_block, overdispersion[seq(sel@ranges@width[1]) - 1 + sel@ranges@start[1]])
+      DelayedArray::write_block(res_sink, res_grid[[coord2, coord1]], res_block)
+    }
+  }
+
+  as(res_sink, "DelayedArray")
+}
 
 
 

@@ -3,53 +3,9 @@
 #include "beachmat/numeric_matrix.h"
 #include "beachmat/integer_matrix.h"
 
+#include "deviance.h"
 
 using namespace Rcpp;
-
-
-// [[Rcpp::export]]
-double compute_gp_deviance (double y, double mu, double theta) {
-  if(theta < 1e-6){
-    // If theta is so small, calculate Poisson deviance
-    if(y == 0){
-      return 2.0 * mu;
-    }else{
-      return 2.0 * (y * std::log(y/mu) - (y - mu));
-    }
-  }else{
-    // Otherwise calculate Gamma-Poisson deviance
-    if(y == 0){
-      return 2.0/theta * std::log((1 + mu * theta));
-    } else {
-      double s1 = y * std::log((mu + y * mu * theta) / (y +  y * mu * theta));
-      double s2 = 1.0/theta * std::log((1 + mu * theta) / (1 + y * theta));
-      return -2.0 * (s1 - s2);
-    }
-  }
-}
-
-template<class NumericType>
-double compute_gp_deviance_sum(const arma::Mat<NumericType>& Y,
-                               const arma::Mat<double>& Mu,
-                               const NumericVector& thetas){
-  double dev = 0.0;
-  int nrows = Y.n_rows;
-  for (int i = 0; i < Y.n_elem; i++) {
-    dev += compute_gp_deviance(Y.at(i), Mu.at(i), thetas(i % nrows));
-  }
-  return dev;
-}
-
-template<class NumericType>
-double compute_gp_deviance_sum(const arma::Mat<NumericType>& Y,
-                               const arma::Mat<double>& Mu,
-                               double theta){
-  double dev = 0.0;
-  for (int i = 0; i < Y.n_elem; i++) {
-    dev += compute_gp_deviance(Y.at(i), Mu.at(i), theta);
-  }
-  return dev;
-}
 
 
 

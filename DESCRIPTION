@@ -20,6 +20,7 @@ Suggests:
     DESeq2,
     edgeR,
     beachmat,
+    MASS,
     ggplot2,
     bench,
     BiocParallel,
