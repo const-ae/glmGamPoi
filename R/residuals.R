@@ -18,7 +18,7 @@
 #'     \deqn{res = sign(y - µ) sqrt(dev).}
 #'   }
 #'   \item{pearson}{The Pearson residual is \eqn{res = (y - µ) / sqrt(µ + µ^2 θ)}}
-#'   \item{random_quantile}{The random quantile residual was originally developed
+#'   \item{randomized_quantile}{The randomized quantile residual was originally developed
 #'   by Dunn & Smyth, 1995. Please see that publicaton or [statmod::qresiduals()] for more
 #'   information.}
 #'   \item{working}{The working residuals are \eqn{res = (y - µ) / µ}.}
@@ -30,8 +30,8 @@
 #'
 #' @seealso [glm_gp()] and [stats::residuals.glm()]
 #' @export
-residuals.glmGamPoi <- function(object, Y, type = c("deviance", "pearson", "random_quantile", "working", "response"), ...){
-  type <- match.arg(type, c("deviance", "pearson", "random_quantile", "working", "response"))
+residuals.glmGamPoi <- function(object, Y, type = c("deviance", "pearson", "randomized_quantile", "working", "response"), ...){
+  type <- match.arg(type, c("deviance", "pearson", "randomized_quantile", "working", "response"))
   if(type == "deviance"){
     make_resid_hdf5_mat <- is(Y, "DelayedMatrix") && is(DelayedArray::seed(Y), "HDF5ArraySeed")
     if(! make_resid_hdf5_mat){
@@ -41,7 +41,7 @@ residuals.glmGamPoi <- function(object, Y, type = c("deviance", "pearson", "rand
     }
   }else if(type == "pearson"){
     (Y - object$Mu) / sqrt(object$Mu + multiply_vector_to_each_column(object$Mu^2, object$overdispersion))
-  }else if(type == "random_quantile"){
+  }else if(type == "randomized_quantile"){
     make_resid_hdf5_mat <- is(Y, "DelayedMatrix") && is(DelayedArray::seed(Y), "HDF5ArraySeed")
     if(! make_resid_hdf5_mat){
       qres.gampoi(Y, object$Mu, object$overdispersion)

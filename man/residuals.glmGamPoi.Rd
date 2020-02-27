@@ -7,7 +7,7 @@
 \method{residuals}{glmGamPoi}(
   object,
   Y,
-  type = c("deviance", "pearson", "random_quantile", "working", "response"),
+  type = c("deviance", "pearson", "randomized_quantile", "working", "response"),
   ...
 )
 }
@@ -39,7 +39,7 @@ This method can calculate a range of different residuals:
 \deqn{res = sign(y - µ) sqrt(dev).}
   }
 \item{pearson}{The Pearson residual is \eqn{res = (y - µ) / sqrt(µ + µ^2 θ)}}
-  \item{random_quantile}{The random quantile residual was originally developed
+  \item{randomized_quantile}{The randomized quantile residual was originally developed
 by Dunn & Smyth, 1995. Please see that publicaton or \code{\link[statmod:qresiduals]{statmod::qresiduals()}} for more
 information.}
 \item{working}{The working residuals are \eqn{res = (y - µ) / µ}.}
