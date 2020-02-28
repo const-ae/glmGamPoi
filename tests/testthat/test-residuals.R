@@ -67,3 +67,30 @@ test_that("residual calculation works with Delayed Matrix", {
 })
 
 
+
+
+test_that("qres.gampoi can handle extreme value", {
+  Y <- matrix(27)
+  Mu <- matrix(2)
+  overdispersion <- 0
+  res <- qres.gampoi(Y, Mu, overdispersion)
+  expect_false(is.infinite(res))
+
+  Y <- matrix(2700)
+  res <- qres.gampoi(Y, Mu, overdispersion)
+  expect_false(is.infinite(res))
+
+
+  Y <- matrix(2)
+  Mu <- matrix(270)
+  res <- qres.gampoi(Y, Mu, overdispersion)
+  expect_false(is.infinite(res))
+
+
+  Y <- matrix(c(2, 2), ncol = 1)
+  Mu <- matrix(c(270, 270), ncol = 1)
+  overdispersion <- c(0, 500)
+  res <- qres.gampoi(Y, Mu, overdispersion)
+  expect_false(is.infinite(res[1,1]), is.infinite(res[2,1]))
+  expect_false(res[1,1] == res[2,1])
+})
