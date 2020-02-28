@@ -63,10 +63,11 @@ qres.gampoi <- function(Y, Mu, dispersion){
     rbind(a, b)
   }, FUN.VALUE = matrix(0, ncol = nrow(Y), nrow = 2))
 
-  u <- runif(n = length(Y), min = tmp[1,,], max = tmp[2,,])
+  u <- runif(n = length(Y), min = pmin(tmp[1,,], tmp[2,,]), max = pmax(tmp[1,,], tmp[2,,]))
   res <- qnorm(u)
 
   # Get rid of infinite value by sampling on the log scale
+  # This is technically wrong, but shouldn't matter.
   inf_res <- which(is.infinite(res))
   a_alt <- pnbinom(Y[inf_res] - 1, mu = Mu[inf_res], size = 1/dispersion[(inf_res - 1) %% nrow(Y) + 1],
                    log.p = TRUE, lower.tail = Mu[inf_res] > Y[inf_res])

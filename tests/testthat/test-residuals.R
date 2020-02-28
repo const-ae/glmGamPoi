@@ -94,3 +94,22 @@ test_that("qres.gampoi can handle extreme value", {
   expect_false(is.infinite(res[1,1]), is.infinite(res[2,1]))
   expect_false(res[1,1] == res[2,1])
 })
+
+
+
+test_that("qres.gampoi can handle other weird values", {
+  # This specific combination of parameters caused NA's
+  Y <- matrix(27)
+  Mu <- matrix(0.435023)
+  overdispersion <- 0
+
+  a <- ppois(Y - 1, lambda = Mu)
+  b <- ppois(Y, lambda = Mu)
+  # This really shouldn't happen.
+  # Nonetheless, it does for this combination of parameters
+  expect_gt(a, b)
+
+  # However, now qres.gampoi handles this edge case
+  res <- qres.gampoi(Y, Mu, overdispersion)
+  expect_false(is.nan(res))
+})
