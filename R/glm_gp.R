@@ -48,10 +48,11 @@
 #'   adjusted profile likelihood.\cr
 #'   `do_cox_reid_adjustment` can be either be `TRUE` or `FALSE` to indicate if the adjustment is
 #'   added during the optimization of the `overdispersion` parameter. Default: `TRUE`.
-#' @param n_subsamples the estimation of the overdispersion is the most cumbersome step when fitting
+#' @param subsample the estimation of the overdispersion is the most cumbersome step when fitting
 #'   a Gamma-Poisson GLM. For datasets with many samples, the estimation can be considerably sped up
 #'   without loosing much precision by fitting the overdispersion only on a random subset of the samples.
-#'   Default: `min(1000, ncol(data))` which means that by default at most 1000 samples are considered
+#'   Default: `FALSE` which means that the data is not subsampled. If set to `TRUE`, at most 1,000 samples
+#'   are considered. Otherwise the parameter just specifies the number of samples that are considered
 #'   for each gene to estimate the overdispersion.
 #' @param on_disk a boolean that indicates if the dataset is loaded into memory or if it is kept on disk
 #'   to reduce the memory usage. Processing in memory can be significantly faster than on disk.
@@ -171,7 +172,7 @@ glm_gp <- function(data,
                    size_factors = TRUE,
                    overdispersion = TRUE,
                    do_cox_reid_adjustment = TRUE,
-                   n_subsamples = min(1000, ncol(data)),
+                   subsample = FALSE,
                    on_disk = NULL,
                    verbose = FALSE){
 
@@ -191,7 +192,7 @@ glm_gp <- function(data,
               size_factors = size_factors,
               overdispersion = overdispersion,
               do_cox_reid_adjustment = do_cox_reid_adjustment,
-              n_subsamples = n_subsamples,
+              subsample = subsample,
               verbose = verbose)
   # Make sure that the output is nice and beautiful
   res$model_matrix <- des$model_matrix
@@ -290,7 +291,16 @@ handle_design_parameter <- function(design, data, col_data, reference_level, off
 
 
 
-
+handle_subsample_parameter <- function(data, subsample){
+  if(isFALSE(subsample)){
+    n_subsamples <- ncol(data)
+  }else if(isTRUE(subsample)){
+    n_subsamples <- 1000
+  }else{
+    n_subsamples <- subsample
+  }
+  n_subsamples
+}
 
 
 

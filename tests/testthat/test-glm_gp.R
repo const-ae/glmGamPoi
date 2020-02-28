@@ -84,10 +84,10 @@ test_that("glm_gp produces appropriate error message for negative input", {
 
 })
 
-test_that("glm_gp works for n_subsample = Inf", {
+test_that("glm_gp works for subsample = Inf", {
   y <- rpois(n = 10, lambda = 3)
   tmp <- glm_gp(y, design = ~ 1, size_factors = FALSE)
-  tmpInf <- glm_gp(y, design = ~ 1, size_factors = FALSE, n_subsamples = Inf)
+  tmpInf <- glm_gp(y, design = ~ 1, size_factors = FALSE, subsample = Inf)
   expect_equal(tmp, tmpInf)
 })
 

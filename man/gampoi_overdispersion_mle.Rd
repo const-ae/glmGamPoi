@@ -9,7 +9,7 @@ gampoi_overdispersion_mle(
   mean = base::mean(y),
   model_matrix = matrix(1, nrow = length(y), ncol = 1),
   do_cox_reid_adjustment = TRUE,
-  n_subsamples = min(1000, length(y)),
+  subsample = FALSE,
   verbose = FALSE
 )
 }
@@ -31,10 +31,11 @@ adjusted profile likelihood.\cr
 \code{do_cox_reid_adjustment} can be either be \code{TRUE} or \code{FALSE} to indicate if the adjustment is
 added during the optimization of the \code{overdispersion} parameter. Default: \code{TRUE}.}
 
-\item{n_subsamples}{the estimation of the overdispersion is the most cumbersome step when fitting
+\item{subsample}{the estimation of the overdispersion is the most cumbersome step when fitting
 a Gamma-Poisson GLM. For datasets with many samples, the estimation can be considerably sped up
 without loosing much precision by fitting the overdispersion only on a random subset of the samples.
-Default: \code{min(1000, ncol(data))} which means that by default at most 1000 samples are considered
+Default: \code{FALSE} which means that the data is not subsampled. If set to \code{TRUE}, at most 1,000 samples
+are considered. Otherwise the parameter just specifies the number of samples that are considered
 for each gene to estimate the overdispersion.}
 
 \item{verbose}{a boolean that indicates if information about the individual steps are printed

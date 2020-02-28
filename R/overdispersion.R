@@ -59,7 +59,7 @@
 gampoi_overdispersion_mle <- function(y, mean = base::mean(y),
                            model_matrix = matrix(1, nrow = length(y), ncol = 1),
                            do_cox_reid_adjustment = TRUE,
-                           n_subsamples = min(1000, length(y)),
+                           subsample = FALSE,
                            verbose = FALSE){
 
   validate_model_matrix(model_matrix, matrix(y, nrow = 1))
@@ -67,10 +67,16 @@ gampoi_overdispersion_mle <- function(y, mean = base::mean(y),
     mean <- rep(mean, length(y))
   }
   # Validate n_subsampling
-  stopifnot(length(n_subsamples) == 1, n_subsamples >= 0)
-  if(n_subsamples > length(y)){
+  stopifnot(length(subsample) == 1, subsample >= 0)
+  if(isFALSE(subsample)){
     n_subsamples <- length(y)
+  }else if(isTRUE(subsample)){
+    n_subsamples <- 1000
+  }else{
+    n_subsamples <- subsample
   }
+  n_subsamples <- min(n_subsamples, length(y))
+
   # Apply subsampling by randomly selecting elements of y and mean
   if(n_subsamples != length(y)){
     random_sel <- sort(sample(seq_along(y), size = round(n_subsamples), replace = FALSE))
@@ -264,9 +270,10 @@ estimate_dispersions_roughly <- function(Y, model_matrix, offset_matrix){
 #'
 #' Not exported
 #' @keywords internal
-estimate_overdispersions <- function(Y, mean_matrix, model_matrix, do_cox_reid_adjustment, n_subsamples, verbose = FALSE){
-  if(n_subsamples < ncol(Y)){
-    if(verbose){ message("Subsample data to ", n_subsamples, " columns.") }
+estimate_overdispersions <- function(Y, mean_matrix, model_matrix, do_cox_reid_adjustment, subsample, verbose = FALSE){
+  stopifnot(is.numeric(subsample))
+  if(subsample < ncol(Y)){
+    if(verbose){ message("Subsample data to ", subsample, " columns.") }
   }
 
   ## The estimate_overdispersions_fast() method is actually just doing the same
@@ -278,7 +285,7 @@ estimate_overdispersions <- function(Y, mean_matrix, model_matrix, do_cox_reid_a
   #                             model_matrix = model_matrix, do_cox_reid_adjustment = do_cox_reid_adjustment,
   #                             n_subsamples = n_subsamples)$estimate
   # }, FUN.VALUE = 0.0)
-  estimate_overdispersions_fast(Y, mean_matrix, model_matrix, do_cox_reid_adjustment, n_subsamples)
+  estimate_overdispersions_fast(Y, mean_matrix, model_matrix, do_cox_reid_adjustment, subsample)
 
 }
 

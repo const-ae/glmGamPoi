@@ -9,7 +9,7 @@ estimate_overdispersions(
   mean_matrix,
   model_matrix,
   do_cox_reid_adjustment,
-  n_subsamples,
+  subsample,
   verbose = FALSE
 )
 }

@@ -15,7 +15,7 @@ glm_gp_impl <- function(Y, model_matrix,
                         size_factors = TRUE,
                         overdispersion = TRUE,
                         do_cox_reid_adjustment = TRUE,
-                        n_subsamples = min(1000, ncol(Y)),
+                        subsample = FALSE,
                         verbose = FALSE){
   if(is.vector(Y)){
     Y <- matrix(Y, nrow = 1)
@@ -24,7 +24,7 @@ glm_gp_impl <- function(Y, model_matrix,
   stopifnot(is.matrix(Y) || is(Y, "DelayedArray"))
   stopifnot(is.matrix(model_matrix) && nrow(model_matrix) == ncol(Y))
   validate_Y_matrix(Y)
-
+  subsample <- handle_subsample_parameter(Y, subsample)
 
   # Combine offset and size factor
   off_and_sf <- combine_size_factors_and_offset(offset, size_factors, Y, verbose = verbose)
@@ -75,7 +75,7 @@ glm_gp_impl <- function(Y, model_matrix,
     if(verbose){ message("Estimate dispersion") }
     disp_est <- estimate_overdispersions(Y, Mu, model_matrix = model_matrix,
                                          do_cox_reid_adjustment = TRUE,
-                                         n_subsamples = n_subsamples, verbose = verbose)
+                                         subsample = subsample, verbose = verbose)
 
     # Estimate the betas again (only necessary if disp_est has changed)
     if(verbose){ message("Estimate beta again") }

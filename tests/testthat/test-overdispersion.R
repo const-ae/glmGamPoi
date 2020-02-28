@@ -191,8 +191,8 @@ test_that("one value is enough to get an answer", {
 
 test_that("subsampling works and does not affect performance too badly", {
   y <- rnbinom(n = 1e4, mu = 5, size = 1 / 0.7)
-  r1 <- gampoi_overdispersion_mle(y = y, n_subsamples = 1e4)
-  r2 <- gampoi_overdispersion_mle(y = y, n_subsamples = 1000)
+  r1 <- gampoi_overdispersion_mle(y = y, subsample = 1e4)
+  r2 <- gampoi_overdispersion_mle(y = y, subsample = 1000)
   expect_lt(abs(r1$estimate - r2$estimate), 0.1)
 
 })
@@ -200,18 +200,18 @@ test_that("subsampling works and does not affect performance too badly", {
 
 test_that("weird subsampling values are handled correctly", {
   y <- rnbinom(n = 20, mu = 5, size = 1 / 0.7)
-  r1 <- gampoi_overdispersion_mle(y = y, n_subsamples = 1)
-  r0 <- gampoi_overdispersion_mle(y = y, n_subsamples = 0)
+  r1 <- gampoi_overdispersion_mle(y = y, subsample = 1)
+  r0 <- gampoi_overdispersion_mle(y = y, subsample = 0)
   expect_equal(r0$estimate, 0)
   expect_error(
-    gampoi_overdispersion_mle(y = y, n_subsamples = -3)
+    gampoi_overdispersion_mle(y = y, subsample = -3)
   )
   expect_error(
-    gampoi_overdispersion_mle(y = y, n_subsamples = c(3, 10))
+    gampoi_overdispersion_mle(y = y, subsample = c(3, 10))
   )
   rfull <- gampoi_overdispersion_mle(y = y)
-  r3000 <- gampoi_overdispersion_mle(y = y, n_subsamples = 3000)
-  rInf <- gampoi_overdispersion_mle(y = y, n_subsamples = Inf)
+  r3000 <- gampoi_overdispersion_mle(y = y, subsample = 3000)
+  rInf <- gampoi_overdispersion_mle(y = y, subsample = Inf)
   expect_equal(rfull, r3000)
   expect_equal(rfull, rInf)
 })
@@ -235,13 +235,11 @@ test_that("DelayedArrays are handled efficiently", {
 
   disp_est_r_ram <- vapply(seq_len(n_genes), function(gene_idx){
     gampoi_overdispersion_mle(y = mat_hdf5[gene_idx, ], mean = mean_matrix[gene_idx, ],
-                              model_matrix = model_matrix, do_cox_reid_adjustment = TRUE,
-                              n_subsamples = n_samples)$estimate
+                              model_matrix = model_matrix, do_cox_reid_adjustment = TRUE)$estimate
   }, FUN.VALUE = 0.0)
   disp_est_r_hdf5 <- vapply(seq_len(n_genes), function(gene_idx){
     gampoi_overdispersion_mle(y = mat_hdf5[gene_idx, ], mean = mean_matrix[gene_idx, ],
-                              model_matrix = model_matrix, do_cox_reid_adjustment = TRUE,
-                              n_subsamples = n_samples)$estimate
+                              model_matrix = model_matrix, do_cox_reid_adjustment = TRUE)$estimate
   }, FUN.VALUE = 0.0)
 
   beachmat_ram <- estimate_overdispersions_fast(mat, mean_matrix_ram, model_matrix,
