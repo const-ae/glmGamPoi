@@ -105,9 +105,12 @@ test_that("qres.gampoi can handle other weird values", {
 
   a <- ppois(Y - 1, lambda = Mu)
   b <- ppois(Y, lambda = Mu)
-  # This really shouldn't happen.
+  # This really shouldn't happen
   # Nonetheless, it does for this combination of parameters
-  expect_gt(a, b)
+  # at least on Linux and MacOS
+  if(! is_windows()){
+    expect_gt(a, b)
+  }
 
   # However, now qres.gampoi handles this edge case
   res <- qres.gampoi(Y, Mu, overdispersion)
