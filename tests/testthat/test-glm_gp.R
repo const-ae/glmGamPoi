@@ -177,3 +177,13 @@ test_that("glm_gp can handle design parameter of type vector", {
   expect_equal(colnames(fit_formula$Beta), c("Intercept", "x_a", "x_c"))
 })
 
+
+
+test_that("glm_gp can handle design formula correctly", {
+
+  coldata <- data.frame(condition = c(rep("A", 4), rep("B", 3)), stringsAsFactors = FALSE)
+  Y <- matrix(numeric(0), ncol = 7, nrow = 0)
+  fit <- glm_gp(Y, design = ~ condition, col_data = coldata, size_factors = FALSE)
+  expect_equal(c(fit$model_matrix), c(model.matrix(~ condition, coldata)))
+
+})

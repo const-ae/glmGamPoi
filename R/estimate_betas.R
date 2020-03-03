@@ -3,6 +3,7 @@
 #'
 #' @keywords internal
 estimate_betas_roughly <- function(Y, model_matrix, offset_matrix, pseudo_count = 1){
+  if(nrow(Y) == 0) return(matrix(numeric(0), nrow = 0, ncol = ncol(model_matrix)))
   qrx <- qr(model_matrix)
   Q <- qr.Q(qrx)
   R <- qr.R(qrx)
