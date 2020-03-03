@@ -187,3 +187,25 @@ test_that("glm_gp can handle design formula correctly", {
   expect_equal(c(fit$model_matrix), c(model.matrix(~ condition, coldata)))
 
 })
+
+
+test_that("glm_gp gives error for too large col_data ", {
+
+  coldata <- data.frame(condition = c(rep("A", 4), rep("B", 4)), stringsAsFactors = FALSE)
+  rownames(coldata) <- paste0("sample_", sample(1:8))
+  Y <- matrix(numeric(0), ncol = 7, nrow = 0)
+  colnames(Y) <- paste0("sample_", 1:7)
+  expect_error(glm_gp(Y, design = ~ condition, col_data = coldata, size_factors = FALSE))
+
+})
+
+test_that("glm_gp warns about mismatching col_data rownames ", {
+
+  coldata <- data.frame(condition = c(rep("A", 4), rep("B", 3)), stringsAsFactors = FALSE)
+  rownames(coldata) <- paste0("sample_", sample(1:7))
+  Y <- matrix(numeric(0), ncol = 7, nrow = 0)
+  colnames(Y) <- paste0("sample_", 1:7)
+  fit <- glm_gp(Y, design = ~ condition, col_data = coldata, size_factors = FALSE)
+  expect_equal(c(fit$model_matrix), c(model.matrix(~ condition, coldata)[colnames(Y), ]))
+})
+

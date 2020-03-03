@@ -283,6 +283,22 @@ handle_design_parameter <- function(design, data, col_data, reference_level, off
     stop(paste0("design argment of class ", class(design), " is not supported. Please ",
                 "specify a `model_matrix`, a `character vector`, or a `formula`."))
   }
+  if(nrow(model_matrix) != ncol(data)) stop("Number of rows in col_data does not match number of columns of data")
+  if(! is.null(rownames(model_matrix)) &&
+     ! all(rownames(model_matrix) == as.character(seq_len(nrow(model_matrix)))) && # That's the default rownames
+     ! is.null(colnames(data))){
+    if(! all(rownames(model_matrix) == colnames(data))){
+      if(setequal(rownames(model_matrix), colnames(data))){
+        # Rearrange the rows to match the columns of data
+        model_matrix <- model_matrix[colnames(data), ,drop=FALSE]
+      }else{
+        stop("The rownames of the model_matrix / col_data do not match the column names of data.")
+      }
+    }
+
+  }
+
+
   rownames(model_matrix) <- colnames(data)
   validate_model_matrix(model_matrix, data)
   list(model_matrix = model_matrix, design_formula = design_formula,
