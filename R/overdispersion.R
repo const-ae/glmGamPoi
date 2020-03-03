@@ -148,11 +148,12 @@ bandara_overdispersion_mle <- function(y, mean_vector,
   rmme <- my / (bvar - my)
   start_pos <- NA
   gamma_factor <- 0.9
-  if(is.na(rmme) || (rmme < 0 && max(y) > 1)){
+  if(is.na(rmme) || is.infinite(rmme) || (rmme < 0 && max(y) > 1)){
     # Exceptional case
     N1 <- sum(y >= 1)
     start_13 <- (-3 + sqrt(24 * length(y) * my / N1 - 15)) / (2 * N1 / (length(y) * my))
     start_pos <- start_13 / gamma_factor
+    rmme <- start_pos / gamma_factor
   }
 
   if(rmme < 0){
