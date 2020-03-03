@@ -134,7 +134,24 @@ test_that("gampoi_overdispersion_mle can handle weird input 1", {
                                   verbose = FALSE)
 
   expect_equal(est_1$estimate, est_2$estimate)
+})
 
+
+test_that("gampoi_overdispersion_mle can handle weird input 2", {
+  y <- c(5, 10, 3, 4, 5, 4, 5)
+  X <- cbind(1, c(0, 0, 0, 1, 1, 1, 1))
+  mu <- c(6, 6, 6, 4.5, 4.5, 4.5, 4.5)
+  # This used to fail because mean was exactly equal to var
+  est_1 <- bandara_overdispersion_mle(y, mean_vector = mu,
+                                      model_matrix = X,
+                                      do_cox_reid_adjustment = TRUE,
+                                      verbose = FALSE)
+  est_2 <- conventional_overdispersion_mle(y, mean_vector = mu,
+                                           model_matrix = X,
+                                           do_cox_reid_adjustment = TRUE,
+                                           verbose = FALSE)
+
+  expect_equal(est_1$estimate, est_2$estimate)
 })
 
 

@@ -222,7 +222,7 @@ conventional_overdispersion_mle <- function(y, mean_vector,
 
   mu <- mean(y)
   start_value <- (var(y) - mu) / mu^2
-  if(is.na(start_value) || start_value < 0){
+  if(is.na(start_value) || start_value <= 0){
     start_value <- 0.5
   }
 
