@@ -21,6 +21,76 @@ void clamp_inplace(arma::Mat<NumericType>& v, double min, double max){
 }
 
 
+arma::vec calculate_mu(const arma::mat& model_matrix, const arma::vec& beta_hat, const arma::vec& exp_off){
+  arma::vec mu_hat = exp(model_matrix * beta_hat) % exp_off;
+  clamp_inplace(mu_hat, 1e-50, 1e50);
+  return mu_hat;
+}
+
+/**
+ * This method takes in a proposal for a step and checks if it actually
+ * decreases the deviance of the model. If does not add it tries again
+ * with half the step size, then a quarter and so on.
+ *
+ * If even after 100 steps the deviance (0.5^100 = 7.9e-31) has not decreased
+ * it returns NaN.
+ *
+ * Note that the first two parameters are changed: beta_hat and mu_hat
+ *
+ * The function returns the new deviance.
+ *
+ */
+template<class NumericType>
+double decrease_deviance(/*In-Out Parameter*/ arma::vec& beta_hat,
+                         /*In-Out Parameter*/ arma::vec& mu_hat,
+                         const arma::vec& step,
+                         const arma::mat& model_matrix,
+                         const arma::mat& exp_off,
+                         const arma::Col<NumericType>& counts,
+                         const double theta, const double dev_old, const double tolerance){
+  double speeding_factor = 1.0;
+  int line_iter = 0;
+  double dev = 0;
+  beta_hat = beta_hat + step;
+  while(true){
+    mu_hat = calculate_mu(model_matrix, beta_hat, exp_off);
+    dev = compute_gp_deviance_sum(counts, mu_hat, theta);
+    double conv_test = fabs(dev - dev_old)/(fabs(dev) + 0.1);
+    if(dev < dev_old || conv_test < tolerance){
+      break; // while loop
+    }else if(line_iter >= 100){
+      // speeding factor is very small, something is going wrong here
+      dev = std::numeric_limits<double>::quiet_NaN();
+      break; // while loop
+    }else{
+      // Halfing the speed
+      speeding_factor = speeding_factor / 2.0;
+      beta_hat = beta_hat - step * speeding_factor;
+    }
+    line_iter++;
+  }
+  return dev;
+}
+
+
+template<class NumericType>
+arma::vec fisher_scoring_qr_step(const arma::mat& model_matrix, const arma::Col<NumericType>& counts,
+                                 const arma::colvec& mu, const arma::colvec& theta_times_mu){
+  // The QR decomposition of the model_matrix
+  arma::mat q, r;
+  arma::vec w_vec = (mu/(1.0 + theta_times_mu));
+  arma::vec w_sqrt_vec = sqrt(w_vec);
+  // prepare matrices
+  arma::mat weighted_model_matrix = model_matrix.each_col() % w_sqrt_vec;
+  qr_econ(q, r, weighted_model_matrix);
+  // Not actually quite the score vec, but related
+  // See Dunn&Smyth GLM Book eq. 6.16
+  arma::vec score_vec = (q.each_col() % w_sqrt_vec).t() * ((counts - mu) / mu);
+  arma::vec step = solve(arma::trimatu(r), score_vec);
+  return step;
+}
+
+
 
 //--------------------------------------------------------------------------------------------------//
 // The following code was originally copied from https://github.com/mikelove/DESeq2/blob/master/src/DESeq2.cpp
@@ -46,87 +116,44 @@ List fitBeta_fisher_scoring_impl(RObject Y, const arma::mat& model_matrix, RObje
   auto exp_offsets_bm = beachmat::create_numeric_matrix(exp_offset_matrix);
   int n_samples = Y_bm->get_ncol();
   int n_genes = Y_bm->get_nrow();
-
   // The result
   arma::mat beta_mat = as<arma::mat>(beta_matSEXP);
-  // The QR decomposition of the model_matrix
-  arma::mat q, r;
   // deviance, convergence and tolerance
-  double dev, dev_old, speeding_factor, conv_test;
 
 
   NumericVector iterations(n_genes);
   NumericVector deviance(n_genes);
   for (int gene_idx = 0; gene_idx < n_genes; gene_idx++) {
     if (gene_idx % 100 == 0) checkUserInterrupt();
-    arma::Row<NumericType> counts(n_samples);
+    // Fill count and offset vector from beachmat matrix
+    arma::Col<NumericType> counts(n_samples);
     Y_bm->get_row(gene_idx, counts.begin());
-    arma::Row<double> exp_off(n_samples);
+    arma::Col<double> exp_off(n_samples);
     exp_offsets_bm->get_row(gene_idx, exp_off.begin());
-
-
-    arma::Row<double> beta_hat = beta_mat.row(gene_idx);
-    arma::Row<double> mu_hat = exp_off % exp(beta_hat * model_matrix.t());
-    clamp_inplace(mu_hat, 1e-50, 1e50);
-
-    dev = compute_gp_deviance_sum(counts, mu_hat, thetas(gene_idx));
-    dev_old = dev;
-    speeding_factor = 1.0;
-
-    // make an orthonormal design matrix
+    // Init beta and mu
+    arma::vec beta_hat = beta_mat.row(gene_idx).t();
+    arma::vec mu_hat = calculate_mu(model_matrix, beta_hat, exp_off);
+    // Init deviance
+    double dev_old = compute_gp_deviance_sum(counts, mu_hat, thetas(gene_idx));
     for (int t = 0; t < max_iter; t++) {
       iterations(gene_idx)++;
-      arma::vec w_vec = (mu_hat/(1.0 + thetas(gene_idx) * mu_hat)).t();
-      arma::vec w_sqrt_vec = sqrt(w_vec);
-
-      // prepare matrices
-      arma::mat weighted_model_matrix = model_matrix.each_col() % w_sqrt_vec;
-      qr_econ(q, r, weighted_model_matrix);
-      // Not actually quite the score vec, but related
-      // See Dunn&Smyth GLM Book eq. 6.16
-      arma::rowvec score_vec = ((counts - mu_hat) / mu_hat) * (q.each_col() % w_sqrt_vec);
-      arma::rowvec step = solve(arma::trimatu(r), score_vec.t()).t();
-
-      // Find speedfactor that actually decreases the deviance
-      arma::Row<double> beta_prop;
-      int line_iter = 0;
-      while(true){
-        beta_prop = beta_hat + speeding_factor * step;
-        mu_hat = exp_off % exp(beta_prop * model_matrix.t());
-        clamp_inplace(mu_hat, 1e-50, 1e50);
-        dev = compute_gp_deviance_sum(counts, mu_hat, thetas(gene_idx));
-        conv_test = fabs(dev - dev_old)/(fabs(dev) + 0.1);
-        if(dev < dev_old || conv_test < tolerance){
-          break; // while loop
-        }else if(line_iter >= 100){
-          // speeding factor is very small, something is going wrong here
-          conv_test = std::numeric_limits<double>::quiet_NaN();
-          break; // while loop
-        }else{
-          // Halfing the speed
-          speeding_factor = speeding_factor / 2.0;
-        }
-        line_iter++;
-      }
-      if(line_iter == 0 && speeding_factor < 1.0){
-        // If step is directly accepted, increase speeding_factor
-        // slowly up to full speed = 1.0
-        speeding_factor = std::min(speeding_factor * 1.5, 1.0);
-      }
-      beta_hat = beta_prop;
-
+      // Find good direction to optimize beta
+      arma::vec step = fisher_scoring_qr_step(model_matrix, counts, mu_hat, thetas(gene_idx) * mu_hat);
+      // Find step size that actually decreases the deviance
+      double dev = decrease_deviance(beta_hat, mu_hat, step, model_matrix, exp_off, counts,
+                                     thetas(gene_idx), dev_old, tolerance);
+      double conv_test = fabs(dev - dev_old)/(fabs(dev) + 0.1);
       if (std::isnan(conv_test)) {
         beta_hat.fill(NA_REAL);
         iterations(gene_idx) = max_iter;
         break;
       }
-      if ((t > 0) & (conv_test < tolerance)) {
+      if (conv_test < tolerance) {
         break;
       }
       dev_old = dev;
     }
-
-    beta_mat.row(gene_idx) = beta_hat;
+    beta_mat.row(gene_idx) = beta_hat.t();
   }
 
   return List::create(
