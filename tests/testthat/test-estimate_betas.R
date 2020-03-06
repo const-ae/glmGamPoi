@@ -223,7 +223,7 @@ test_that("Fisher scoring and diagonal fisher scoring give consistent results", 
   res2 <- fitBeta_diagonal_fisher_scoring(Y = data$Y, model_matrix = new_model_matrix, exp_offset_matrix = exp(offset_matrix),
                                           thetas = data$overdispersion, beta_matSEXP = beta_mat_init,
                                           tolerance = 1e-8, max_iter =  1000)
-  expect_equal(res1$beta_mat, res2$beta_mat, tolerance = 0.01)
+  expect_equal(res1$beta_mat, res2$beta_mat, tolerance = 0.1)
   expect_gt(res2$iter, res1$iter)
 })
 

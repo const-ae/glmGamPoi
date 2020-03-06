@@ -5,12 +5,12 @@ fitBeta_fisher_scoring <- function(Y, model_matrix, exp_offset_matrix, thetas, b
     .Call(`_glmGamPoi_fitBeta_fisher_scoring`, Y, model_matrix, exp_offset_matrix, thetas, beta_matSEXP, tolerance, max_iter)
 }
 
-fitBeta_one_group <- function(Y, offset_matrix, thetas, beta_start_values, tolerance, maxIter) {
-    .Call(`_glmGamPoi_fitBeta_one_group`, Y, offset_matrix, thetas, beta_start_values, tolerance, maxIter)
-}
-
 fitBeta_diagonal_fisher_scoring <- function(Y, model_matrix, exp_offset_matrix, thetas, beta_matSEXP, tolerance, max_iter) {
     .Call(`_glmGamPoi_fitBeta_diagonal_fisher_scoring`, Y, model_matrix, exp_offset_matrix, thetas, beta_matSEXP, tolerance, max_iter)
+}
+
+fitBeta_one_group <- function(Y, offset_matrix, thetas, beta_start_values, tolerance, maxIter) {
+    .Call(`_glmGamPoi_fitBeta_one_group`, Y, offset_matrix, thetas, beta_start_values, tolerance, maxIter)
 }
 
 compute_gp_deviance <- function(y, mu, theta) {

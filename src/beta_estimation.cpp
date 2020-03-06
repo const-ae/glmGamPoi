@@ -92,6 +92,21 @@ arma::vec fisher_scoring_qr_step(const arma::mat& model_matrix, const arma::Col<
 
 
 
+template<class NumericType>
+arma::vec fisher_scoring_diagonal_step(const arma::mat& model_matrix, const arma::Col<NumericType>& counts,
+                                       const arma::colvec& mu, const arma::colvec& theta_times_mu){
+  arma::vec w_vec = (mu/(1.0 + theta_times_mu));
+  // prepare matrices
+  arma::mat weighted_model_matrix = model_matrix.each_col() % w_vec;
+  arma::vec score_vec = weighted_model_matrix.t() * ((counts - mu) / mu);
+  // This calculates the diag(Xˆt W X) efficiently. arma::sum(mat, 0) = colSums()
+  arma::vec info_vec = arma::sum(arma::mat(arma::pow(model_matrix, 2)).each_col() % w_vec, 0).t();
+  arma::vec step = score_vec / info_vec;
+  return step;
+}
+
+
+
 //--------------------------------------------------------------------------------------------------//
 // The following code was originally copied from https://github.com/mikelove/DESeq2/blob/master/src/DESeq2.cpp
 // I adapted it to the needs of this project by:
@@ -111,7 +126,7 @@ arma::vec fisher_scoring_qr_step(const arma::mat& model_matrix, const arma::Col<
 template<class NumericType, class BMNumericType>
 List fitBeta_fisher_scoring_impl(RObject Y, const arma::mat& model_matrix, RObject exp_offset_matrix,
                                  NumericVector thetas, SEXP beta_matSEXP,
-                                 double tolerance, int max_iter) {
+                                 double tolerance, int max_iter, bool use_diagonal_approx) {
   auto Y_bm = beachmat::create_matrix<BMNumericType>(Y);
   auto exp_offsets_bm = beachmat::create_numeric_matrix(exp_offset_matrix);
   int n_samples = Y_bm->get_ncol();
@@ -138,7 +153,12 @@ List fitBeta_fisher_scoring_impl(RObject Y, const arma::mat& model_matrix, RObje
     for (int t = 0; t < max_iter; t++) {
       iterations(gene_idx)++;
       // Find good direction to optimize beta
-      arma::vec step = fisher_scoring_qr_step(model_matrix, counts, mu_hat, thetas(gene_idx) * mu_hat);
+      arma::vec step;
+      if(use_diagonal_approx){
+        step = fisher_scoring_diagonal_step(model_matrix, counts, mu_hat, thetas(gene_idx) * mu_hat);
+      }else{
+        step = fisher_scoring_qr_step(model_matrix, counts, mu_hat, thetas(gene_idx) * mu_hat);
+      }
       // Find step size that actually decreases the deviance
       double dev = decrease_deviance(beta_hat, mu_hat, step, model_matrix, exp_off, counts,
                                      thetas(gene_idx), dev_old, tolerance);
@@ -168,9 +188,33 @@ List fitBeta_fisher_scoring(RObject Y, const arma::mat& model_matrix, RObject ex
                                   double tolerance, int max_iter) {
   auto mattype=beachmat::find_sexp_type(Y);
   if (mattype==INTSXP) {
-    return fitBeta_fisher_scoring_impl<int, beachmat::integer_matrix>(Y, model_matrix, exp_offset_matrix, thetas,  beta_matSEXP, tolerance, max_iter);
+    return fitBeta_fisher_scoring_impl<int, beachmat::integer_matrix>(Y, model_matrix, exp_offset_matrix,
+                                                                      thetas,  beta_matSEXP, tolerance, max_iter,
+                                                                      /*use_diagonal_approx=*/ false);
   } else if (mattype==REALSXP) {
-    return fitBeta_fisher_scoring_impl<double, beachmat::numeric_matrix>(Y, model_matrix, exp_offset_matrix, thetas,  beta_matSEXP, tolerance, max_iter);
+    return fitBeta_fisher_scoring_impl<double, beachmat::numeric_matrix>(Y, model_matrix, exp_offset_matrix,
+                                                                         thetas,  beta_matSEXP, tolerance, max_iter,
+                                                                         /*use_diagonal_approx=*/ false);
+  } else {
+    throw std::runtime_error("unacceptable matrix type");
+  }
+}
+
+
+
+// [[Rcpp::export]]
+List fitBeta_diagonal_fisher_scoring(RObject Y, const arma::mat& model_matrix, RObject exp_offset_matrix,
+                                     NumericVector thetas, SEXP beta_matSEXP,
+                                     double tolerance, int max_iter) {
+  auto mattype=beachmat::find_sexp_type(Y);
+  if (mattype==INTSXP) {
+    return fitBeta_fisher_scoring_impl<int, beachmat::integer_matrix>(Y, model_matrix, exp_offset_matrix,
+                                                                      thetas,  beta_matSEXP, tolerance, max_iter,
+                                                                      /*use_diagonal_approx=*/ true);
+  } else if (mattype==REALSXP) {
+    return fitBeta_fisher_scoring_impl<double, beachmat::numeric_matrix>(Y, model_matrix, exp_offset_matrix,
+                                                                         thetas,  beta_matSEXP, tolerance, max_iter,
+                                                                         /*use_diagonal_approx=*/ true);
   } else {
     throw std::runtime_error("unacceptable matrix type");
   }
@@ -254,126 +298,6 @@ List fitBeta_one_group(RObject Y, RObject offset_matrix,
 
 
 
-
-
-// fit the Negative Binomial GLM with a diagonal approximation of Fisher scoring
-// This is helpful if the model_matrix has very many coefficients (p). The classical
-// algorithm needs an inversion of a matrix with size p x p.
-// This algorithm is linear in p.
-// This is achieved by ignoring the mixed second derivatives of information matrix.
-// For a more detailed explanation see: Townes, 2019: Generalized Principal Component Analysis
-// note: the code is a direct adapation of the fitBeta_fisher_scoring_impl algorithm
-template<class NumericType, class BMNumericType>
-List fitBeta_diagonal_fisher_scoring_impl(RObject Y, const arma::mat& model_matrix, RObject exp_offset_matrix,
-                                 NumericVector thetas, SEXP beta_matSEXP,
-                                 double tolerance, int max_iter) {
-  auto Y_bm = beachmat::create_matrix<BMNumericType>(Y);
-  auto exp_offsets_bm = beachmat::create_numeric_matrix(exp_offset_matrix);
-  int n_samples = Y_bm->get_ncol();
-  int n_genes = Y_bm->get_nrow();
-
-  // The result
-  arma::mat beta_mat = as<arma::mat>(beta_matSEXP);
-  // deviance, convergence and tolerance
-  double dev, dev_old, speeding_factor, conv_test;
-
-  // Declare beta diverged if abs larger
-  // and use value from previous iteration
-  // In DESeq2 diverged beta values are re-calculated using optim
-  // Currently not in use.
-  // double beta_divergence_threshold = 3000.0;
-
-  NumericVector iterations(n_genes);
-  NumericVector deviance(n_genes);
-  for (int gene_idx = 0; gene_idx < n_genes; gene_idx++) {
-    if (gene_idx % 100 == 0) checkUserInterrupt();
-    arma::Row<NumericType> counts(n_samples);
-    Y_bm->get_row(gene_idx, counts.begin());
-    arma::Row<double> exp_off(n_samples);
-    exp_offsets_bm->get_row(gene_idx, exp_off.begin());
-
-
-    arma::Row<double> beta_hat = beta_mat.row(gene_idx);
-    arma::Row<double> mu_hat = exp_off % exp(beta_hat * model_matrix.t());
-    clamp_inplace(mu_hat, 1e-50, 1e50);
-
-    dev = compute_gp_deviance_sum(counts, mu_hat, thetas(gene_idx));
-    dev_old = dev;
-    speeding_factor = 1.0;
-
-    // make an orthonormal design matrix
-    for (int t = 0; t < max_iter; t++) {
-      iterations(gene_idx)++;
-      arma::vec w_vec = (mu_hat/(1.0 + thetas(gene_idx) * mu_hat)).t();
-
-      // prepare matrices
-      arma::mat weighted_model_matrix = model_matrix.each_col() % w_vec;
-      arma::rowvec score_vec = ((counts - mu_hat) / mu_hat) * weighted_model_matrix;
-      // This calculates the diag(Xˆt W X) efficiently. arma::sum(mat, 0) = colSums()
-      arma::rowvec info_vec = arma::sum(arma::mat(arma::pow(model_matrix, 2)).each_col() % w_vec, 0);
-      arma::rowvec step = score_vec / info_vec;
-
-      // Find speedfactor that actually decreases the deviance
-      arma::Row<double> beta_prop;
-      int line_iter = 0;
-      while(true){
-        beta_prop = beta_hat + speeding_factor * step;
-        mu_hat = exp_off % exp(beta_prop * model_matrix.t());
-        clamp_inplace(mu_hat, 1e-50, 1e50);
-        dev = compute_gp_deviance_sum(counts, mu_hat, thetas(gene_idx));
-        conv_test = fabs(dev - dev_old)/(fabs(dev) + 0.1);
-        if(dev < dev_old || conv_test < tolerance){
-          break; // while loop
-        }else if(line_iter >= 100 || speeding_factor < 1e-6){
-          // speeding factor is very small, something is going wrong here
-          conv_test = std::numeric_limits<double>::quiet_NaN();
-          break; // while loop
-        }else{
-          // Halfing the speed
-          speeding_factor = speeding_factor / 2.0;
-        }
-        line_iter++;
-      }
-      if(line_iter == 0 && speeding_factor < 1.0){
-        // If step is directly accepted, increase speeding_factor
-        // slowly up to full speed = 1.0
-        speeding_factor = std::min(speeding_factor * 1.5, 1.0);
-      }
-      beta_hat = beta_prop;
-
-      if (std::isnan(conv_test)) {
-        beta_hat.fill(NA_REAL);
-        iterations(gene_idx) = max_iter;
-        break;
-      }
-      if ((t > 0) & (conv_test < tolerance)) {
-        break;
-      }
-      dev_old = dev;
-    }
-
-    beta_mat.row(gene_idx) = beta_hat;
-  }
-
-  return List::create(
-    Named("beta_mat", beta_mat),
-    Named("iter", iterations));
-}
-
-
-// [[Rcpp::export]]
-List fitBeta_diagonal_fisher_scoring(RObject Y, const arma::mat& model_matrix, RObject exp_offset_matrix,
-                            NumericVector thetas, SEXP beta_matSEXP,
-                            double tolerance, int max_iter) {
-  auto mattype=beachmat::find_sexp_type(Y);
-  if (mattype==INTSXP) {
-    return fitBeta_diagonal_fisher_scoring_impl<int, beachmat::integer_matrix>(Y, model_matrix, exp_offset_matrix, thetas,  beta_matSEXP, tolerance, max_iter);
-  } else if (mattype==REALSXP) {
-    return fitBeta_diagonal_fisher_scoring_impl<double, beachmat::numeric_matrix>(Y, model_matrix, exp_offset_matrix, thetas,  beta_matSEXP, tolerance, max_iter);
-  } else {
-    throw std::runtime_error("unacceptable matrix type");
-  }
-}
 
 
 
