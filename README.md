@@ -141,7 +141,7 @@ summary(fit)
 #> 
 #> overdispersion:
 #>  Min 1st Qu. Median 3rd Qu.   Max
-#>    0       0      0   0.239 11253
+#>    0       0      0   0.518 26741
 #> 
 #> size_factors:
 #>    Min 1st Qu. Median 3rd Qu.  Max
@@ -208,10 +208,10 @@ bench::mark(
 #> # A tibble: 4 x 6
 #>   expression               min   median `itr/sec` mem_alloc `gc/sec`
 #>   <bch:expr>          <bch:tm> <bch:tm>     <dbl> <bch:byt>    <dbl>
-#> 1 glmGamPoi_in_memory 425.36ms 428.76ms    2.33     259.6MB    0    
-#> 2 glmGamPoi_on_disk      3.37s    3.37s    0.297   612.79MB    0.297
-#> 3 DESeq2                16.75s   16.75s    0.0597    1.14GB    0.119
-#> 4 edgeR                  5.32s    5.32s    0.188    982.9MB    0.188
+#> 1 glmGamPoi_in_memory 741.95ms 741.95ms    1.35    328.44MB   0     
+#> 2 glmGamPoi_on_disk      3.75s    3.75s    0.267   681.08MB   0.267 
+#> 3 DESeq2                25.55s   25.55s    0.0391    1.15GB   0.0391
+#> 4 edgeR                  5.35s    5.35s    0.187    977.7MB   0.374
 ```
 
 Fitting the full `pbmc4k` dataset on a modern MacBook Pro in-memory
