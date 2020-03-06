@@ -200,7 +200,7 @@ test_that("Fisher scoring and diagonal fisher scoring give consistent results", 
   # Fit Standard Model
   beta_mat_init <- estimate_betas_roughly(Y = data$Y, model_matrix = data$X, offset_matrix = offset_matrix)
   res1 <- fitBeta_fisher_scoring(Y = data$Y, model_matrix = data$X, exp_offset_matrix = exp(offset_matrix),
-                                 thetas = data$overdispersion, beta_matSEXP = beta_mat_init,
+                                 thetas = data$overdispersion, beta_matSEXP = beta_mat_init, ridge_penalty = 0,
                                  tolerance = 1e-8, max_iter =  100)
   res2 <- fitBeta_diagonal_fisher_scoring(Y = data$Y, model_matrix = data$X, exp_offset_matrix = exp(offset_matrix),
                                  thetas = data$overdispersion, beta_matSEXP = beta_mat_init,
@@ -218,13 +218,52 @@ test_that("Fisher scoring and diagonal fisher scoring give consistent results", 
   new_model_matrix <- model.matrix(~ . - 1, df)
   beta_mat_init <- estimate_betas_roughly(Y = data$Y, model_matrix = new_model_matrix, offset_matrix = offset_matrix)
   res1 <- fitBeta_fisher_scoring(Y = data$Y, model_matrix = new_model_matrix, exp_offset_matrix = exp(offset_matrix),
-                                 thetas = data$overdispersion, beta_matSEXP = beta_mat_init,
+                                 thetas = data$overdispersion, beta_matSEXP = beta_mat_init, ridge_penalty = 0,
                                  tolerance = 1e-8, max_iter =  100)
   res2 <- fitBeta_diagonal_fisher_scoring(Y = data$Y, model_matrix = new_model_matrix, exp_offset_matrix = exp(offset_matrix),
                                           thetas = data$overdispersion, beta_matSEXP = beta_mat_init,
                                           tolerance = 1e-8, max_iter =  1000)
   expect_equal(res1$beta_mat, res2$beta_mat, tolerance = 0.1)
   expect_gt(res2$iter, res1$iter)
+})
+
+
+test_that("Fisher scoring and ridge penalized fisher scoring give consistent results", {
+
+  data <- make_dataset(n_genes = 1, n_samples = 3000)
+  offset_matrix <- matrix(log(data$size_factor), nrow=nrow(data$Y), ncol = ncol(data$Y), byrow = TRUE)
+
+  # Fit Standard Model
+  beta_mat_init <- estimate_betas_roughly(Y = data$Y, model_matrix = data$X, offset_matrix = offset_matrix)
+  res1 <- fitBeta_fisher_scoring(Y = data$Y, model_matrix = data$X, exp_offset_matrix = exp(offset_matrix),
+                                 thetas = data$overdispersion, beta_matSEXP = beta_mat_init, ridge_penalty = 0,
+                                 tolerance = 1e-8, max_iter =  100)
+  res2 <- fitBeta_fisher_scoring(Y = data$Y, model_matrix = data$X, exp_offset_matrix = exp(offset_matrix),
+                                 thetas = data$overdispersion, beta_matSEXP = beta_mat_init, ridge_penalty = 1e-6,
+                                 tolerance = 1e-8, max_iter =  100)
+  expect_equal(res1, res2)
+
+  set.seed(1)
+  size <- 25
+  df <- data.frame(
+    city = sample(c("Heidelberg", "Berlin", "New York"), size = size, replace = TRUE),
+    fruit = sample(c("Apple", "Cherry", "Banana"), size = size, replace = TRUE),
+    age = rnorm(size, mean = 50, sd = 1e-5),
+    car = sample(c("blue", "big", "truck"), size = size, replace = TRUE)
+  )
+  new_model_matrix <- model.matrix(~ . - 1, df)
+  beta_mat_init <- estimate_betas_roughly(Y = data$Y[,1:size,drop=FALSE], model_matrix = new_model_matrix, offset_matrix = offset_matrix[,1:size,drop=FALSE])
+  res1 <- fitBeta_fisher_scoring(Y = data$Y[,1:size,drop=FALSE], model_matrix = new_model_matrix, exp_offset_matrix = exp(offset_matrix)[,1:size,drop=FALSE],
+                                 thetas = data$overdispersion, beta_matSEXP = beta_mat_init, ridge_penalty = 0,
+                                 tolerance = 1e-8, max_iter =  100)
+  res2 <- fitBeta_fisher_scoring(Y = data$Y[,1:size,drop=FALSE], model_matrix = new_model_matrix, exp_offset_matrix = exp(offset_matrix)[,1:size,drop=FALSE],
+                                 thetas = data$overdispersion, beta_matSEXP = beta_mat_init, ridge_penalty = 1e-30,
+                                 tolerance = 1e-8, max_iter =  100)
+  res3 <- fitBeta_fisher_scoring(Y = data$Y[,1:size,drop=FALSE], model_matrix = new_model_matrix, exp_offset_matrix = exp(offset_matrix)[,1:size,drop=FALSE],
+                                 thetas = data$overdispersion, beta_matSEXP = beta_mat_init, ridge_penalty = 50,
+                                 tolerance = 1e-8, max_iter =  100)
+  expect_equal(res1, res2)
+  expect_lt(res3$beta_mat[6], res1$beta_mat[6])  # The age column is much smaller
 })
 
 

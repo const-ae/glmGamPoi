@@ -91,6 +91,31 @@ arma::vec fisher_scoring_qr_step(const arma::mat& model_matrix, const arma::Col<
 }
 
 
+template<class NumericType>
+arma::vec fisher_scoring_qr_ridge_step(const arma::mat& model_matrix, const arma::Col<NumericType>& counts, const arma::colvec& mu,
+                                       const arma::colvec& theta_times_mu, const double lambda1){
+  // The QR decomposition of the model_matrix
+  arma::mat q, r;
+  int p = model_matrix.n_cols;
+  arma::vec w_vec = (mu/(1.0 + theta_times_mu));
+  arma::vec w_sqrt_vec = sqrt(w_vec);
+  // Add rows for Lasso Regularization (see https://math.stackexchange.com/a/299508/492945)
+  arma::vec extended_w_sqrt_vec = arma::join_cols(w_sqrt_vec, arma::ones(p));
+  arma::mat lasso_helper = arma::eye(p, p) * sqrt(lambda1);
+  arma::mat extended_model_matrix = arma::join_cols(model_matrix, lasso_helper);
+  // prepare matrices
+  arma::mat weighted_extended_model_matrix = extended_model_matrix.each_col() % extended_w_sqrt_vec;
+  qr_econ(q, r, weighted_extended_model_matrix);
+  // The last p rows of q are not needed because y' is zero anyway for them
+  q.shed_rows(q.n_rows - p, q.n_rows - 1);
+  // Not actually quite the score vec, but related
+  // See Dunn&Smyth GLM Book eq. 6.16
+  arma::vec score_vec = (q.each_col() % w_sqrt_vec).t() * ((counts - mu) / mu);
+  arma::vec step = solve(arma::trimatu(r), score_vec);
+  return step;
+}
+
+
 
 template<class NumericType>
 arma::vec fisher_scoring_diagonal_step(const arma::mat& model_matrix, const arma::Col<NumericType>& counts,
@@ -125,7 +150,7 @@ arma::vec fisher_scoring_diagonal_step(const arma::mat& model_matrix, const arma
 //
 template<class NumericType, class BMNumericType>
 List fitBeta_fisher_scoring_impl(RObject Y, const arma::mat& model_matrix, RObject exp_offset_matrix,
-                                 NumericVector thetas, SEXP beta_matSEXP,
+                                 NumericVector thetas, SEXP beta_matSEXP, double ridge_penalty,
                                  double tolerance, int max_iter, bool use_diagonal_approx) {
   auto Y_bm = beachmat::create_matrix<BMNumericType>(Y);
   auto exp_offsets_bm = beachmat::create_numeric_matrix(exp_offset_matrix);
@@ -157,13 +182,18 @@ List fitBeta_fisher_scoring_impl(RObject Y, const arma::mat& model_matrix, RObje
       if(use_diagonal_approx){
         step = fisher_scoring_diagonal_step(model_matrix, counts, mu_hat, thetas(gene_idx) * mu_hat);
       }else{
-        step = fisher_scoring_qr_step(model_matrix, counts, mu_hat, thetas(gene_idx) * mu_hat);
+        if(ridge_penalty == 0){
+          step = fisher_scoring_qr_step(model_matrix, counts, mu_hat, thetas(gene_idx) * mu_hat);
+        }else{
+          step = fisher_scoring_qr_ridge_step(model_matrix, counts, mu_hat, thetas(gene_idx) * mu_hat, ridge_penalty);
+        }
       }
       // Find step size that actually decreases the deviance
       double dev = decrease_deviance(beta_hat, mu_hat, step, model_matrix, exp_off, counts,
                                      thetas(gene_idx), dev_old, tolerance);
       double conv_test = fabs(dev - dev_old)/(fabs(dev) + 0.1);
       if (std::isnan(conv_test)) {
+        // This should not happen
         beta_hat.fill(NA_REAL);
         iterations(gene_idx) = max_iter;
         break;
@@ -184,16 +214,20 @@ List fitBeta_fisher_scoring_impl(RObject Y, const arma::mat& model_matrix, RObje
 
 // [[Rcpp::export]]
 List fitBeta_fisher_scoring(RObject Y, const arma::mat& model_matrix, RObject exp_offset_matrix,
-                                  NumericVector thetas, SEXP beta_matSEXP,
+                                  NumericVector thetas, SEXP beta_matSEXP, double ridge_penalty,
                                   double tolerance, int max_iter) {
   auto mattype=beachmat::find_sexp_type(Y);
   if (mattype==INTSXP) {
     return fitBeta_fisher_scoring_impl<int, beachmat::integer_matrix>(Y, model_matrix, exp_offset_matrix,
-                                                                      thetas,  beta_matSEXP, tolerance, max_iter,
+                                                                      thetas,  beta_matSEXP,
+                                                                      /*ridge_penalty=*/ ridge_penalty,
+                                                                      tolerance, max_iter,
                                                                       /*use_diagonal_approx=*/ false);
   } else if (mattype==REALSXP) {
     return fitBeta_fisher_scoring_impl<double, beachmat::numeric_matrix>(Y, model_matrix, exp_offset_matrix,
-                                                                         thetas,  beta_matSEXP, tolerance, max_iter,
+                                                                         thetas,  beta_matSEXP,
+                                                                         /*ridge_penalty=*/ ridge_penalty,
+                                                                         tolerance, max_iter,
                                                                          /*use_diagonal_approx=*/ false);
   } else {
     throw std::runtime_error("unacceptable matrix type");
@@ -209,11 +243,15 @@ List fitBeta_diagonal_fisher_scoring(RObject Y, const arma::mat& model_matrix, R
   auto mattype=beachmat::find_sexp_type(Y);
   if (mattype==INTSXP) {
     return fitBeta_fisher_scoring_impl<int, beachmat::integer_matrix>(Y, model_matrix, exp_offset_matrix,
-                                                                      thetas,  beta_matSEXP, tolerance, max_iter,
+                                                                      thetas,  beta_matSEXP,
+                                                                      /*ridge_penalty=*/ 0,
+                                                                      tolerance, max_iter,
                                                                       /*use_diagonal_approx=*/ true);
   } else if (mattype==REALSXP) {
     return fitBeta_fisher_scoring_impl<double, beachmat::numeric_matrix>(Y, model_matrix, exp_offset_matrix,
-                                                                         thetas,  beta_matSEXP, tolerance, max_iter,
+                                                                         thetas,  beta_matSEXP,
+                                                                         /*ridge_penalty=*/ 0,
+                                                                         tolerance, max_iter,
                                                                          /*use_diagonal_approx=*/ true);
   } else {
     throw std::runtime_error("unacceptable matrix type");
