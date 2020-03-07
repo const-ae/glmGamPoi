@@ -14,11 +14,11 @@ fitBeta_one_group <- function(Y, offset_matrix, thetas, beta_start_values, toler
 }
 
 compute_gp_deviance <- function(y, mu, theta) {
-    .Call(`_glmGamPoi_compute_gp_deviance`, y, mu, theta)
+    .Call(`_glmGamPoi_compute_gp_deviance_mask`, y, mu, theta)
 }
 
 compute_gp_deviance_residuals_matrix <- function(Y_SEXP, Mu, thetas) {
-    .Call(`_glmGamPoi_compute_gp_deviance_residuals_matrix`, Y_SEXP, Mu, thetas)
+    .Call(`_glmGamPoi_compute_gp_deviance_residuals_matrix_mask`, Y_SEXP, Mu, thetas)
 }
 
 makeCumSumLookupVector <- function(y) {

@@ -1,15 +1,17 @@
+#ifndef DEVIANCE_H
+#define DEVIANCE_H
+
 // #include <Rcpp.h>
 #include <RcppArmadillo.h>
 using namespace Rcpp;
 
 
 template <typename T>
-int sgn(T val) {
+inline int sgn(T val) {
   return (T(0) < val) - (val < T(0));
 }
 
-// [[Rcpp::export]]
-double compute_gp_deviance (double y, double mu, double theta) {
+inline double compute_gp_deviance (double y, double mu, double theta) {
   if(theta < 1e-6){
     // If theta is so small, calculate Poisson deviance
     if(y == 0){
@@ -30,7 +32,7 @@ double compute_gp_deviance (double y, double mu, double theta) {
 }
 
 template<class NumericType>
-double compute_gp_deviance_sum(const arma::Mat<NumericType>& Y,
+inline double compute_gp_deviance_sum(const arma::Mat<NumericType>& Y,
                                const arma::Mat<double>& Mu,
                                const NumericVector& thetas){
   double dev = 0.0;
@@ -42,7 +44,7 @@ double compute_gp_deviance_sum(const arma::Mat<NumericType>& Y,
 }
 
 template<class NumericType>
-double compute_gp_deviance_sum(const arma::Mat<NumericType>& Y,
+inline double compute_gp_deviance_sum(const arma::Mat<NumericType>& Y,
                                const arma::Mat<double>& Mu,
                                double theta){
   double dev = 0.0;
@@ -54,7 +56,7 @@ double compute_gp_deviance_sum(const arma::Mat<NumericType>& Y,
 
 
 template<class NumericType>
-arma::Mat<double> compute_gp_deviance_residuals_matrix_impl(const arma::Mat<NumericType> Y, const arma::Mat<double> Mu, NumericVector thetas) {
+inline arma::Mat<double> compute_gp_deviance_residuals_matrix_impl(const arma::Mat<NumericType> Y, const arma::Mat<double> Mu, NumericVector thetas) {
   arma::Mat<double> result(Y.n_rows, Y.n_cols);
   int nrows = Y.n_rows;
   for(int i = 0; i < Y.n_elem; i++){
@@ -63,8 +65,7 @@ arma::Mat<double> compute_gp_deviance_residuals_matrix_impl(const arma::Mat<Nume
   return result;
 }
 
-// [[Rcpp::export]]
-arma::Mat<double> compute_gp_deviance_residuals_matrix(const SEXP Y_SEXP, const arma::Mat<double>& Mu, NumericVector thetas) {
+inline arma::Mat<double> compute_gp_deviance_residuals_matrix(const SEXP Y_SEXP, const arma::Mat<double>& Mu, NumericVector thetas) {
   SEXP dims = Rf_getAttrib(Y_SEXP, R_DimSymbol);
   int nrow = INTEGER(dims)[0];
   int ncol = INTEGER(dims)[1];
@@ -79,3 +80,5 @@ arma::Mat<double> compute_gp_deviance_residuals_matrix(const SEXP Y_SEXP, const 
   }
 }
 
+
+#endif
