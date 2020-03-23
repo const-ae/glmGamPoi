@@ -18,24 +18,61 @@ knitr::opts_chunk$set(
 ```
 
 
-```{r child = "../man/fragments/paragraph-intro.Rmd"}
-```
+> Fit Gamma-Poisson Generalized Linear Models Reliably.
+
+The core design aims of `gmlGamPoi` are:
+
+* Fit the Gamma-Poisson models on arbitrarily large or small datasets
+* Be faster than alternative methods, such as `DESeq2` or `edgeR`
+* Calculate exact or approximate results based on user preference
+* Support in memory or on-disk data
+* Follow established conventions around tools for RNA-seq analysis
+* Present a simple user-interface
+* Avoid unnecessary dependencies
+* Make integration into other tools easy
 
 
 # Installation
 
-```{r child = "../man/fragments/paragraph-installation.Rmd"}
+You can install the development version of `glmGamPoi` from [Github](https://github.com/const-ae/glmGamPoi):
+
+``` r
+# install.packages("devtools")
+devtools::install_github("const-ae/glmGamPoi")
 ```
+
+Please make sure that you are using at least R `3.6` and
+BioConductor `3.10`.
 
 
 # Example
 
-```{r child = "../man/fragments/paragraph-simple_example.Rmd"}
+To fit a single Gamma-Poisson GLM do:
+
+```{r}
+# overdispersion = 1/size
+counts <- rnbinom(n = 10, mu = 5, size = 1/0.7)
+# size_factors = FALSE, because only a single GLM is fitted
+fit <- glmGamPoi::glm_gp(counts, design = ~ 1, size_factors = FALSE)
+fit
+
+# Internally fit is just a list:
+c(fit)
 ```
+
+The `glm_gp()` function returns a list with the results of the fit. Most importantly, it contains the estimates for the coefficients β and the overdispersion.
 
 Fitting repeated Gamma-Poisson GLMs for each gene of a single cell dataset is just as easy:
 
-```{r child = "../man/fragments/paragraph-small_matrix_example.Rmd"}
+I create an artifical dataset with 300 genes and 50 cells:
+
+```{r}
+# overdispersion = 1/size
+count_matrix <- matrix(rnbinom(n = 300 * 50, mu = 5, size = 1/0.7), nrow = 300, ncol = 50)
+# size_factors = FALSE, because only a single GLM is fitted
+fit <- glmGamPoi::glm_gp(count_matrix, design = ~ 1)
+
+summary(fit)
 ```
 
 
