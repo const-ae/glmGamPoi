@@ -60,6 +60,17 @@ for each gene to estimate the overdispersion.}
 \item{verbose}{a boolean that indicates if information about the individual steps are printed
 while fitting the GLM. Default: \code{FALSE}.}
 }
+\value{
+a list with four elements
+\itemize{
+\item \code{Beta} the coefficient matrix
+\item \code{overdispersion} the vector with the estimated overdispersions
+\item \code{Mu} a matrix with the corresponding means for each gene
+and sample
+\item \code{size_factors} a vector with the size factor for each
+sample
+}
+}
 \description{
 Internal Function to Fit a Gamma-Poisson GLM
 }

@@ -31,12 +31,12 @@ delayed_matrix_multiply <- function(x, y){
 
   res_grid <- DelayedArray::blockGrid(res_sink)
 
-  row_ticks <- cumsum(sapply(seq_len(dim(res_grid)[1]), function(idx){
+  row_ticks <- cumsum(vapply(seq_len(dim(res_grid)[1]), function(idx){
     dim(res_grid[[idx, 1L]])[1]
-  }))
-  col_ticks <- cumsum(sapply(seq_len(dim(res_grid)[2]), function(idx){
+  }, FUN.VALUE = 0L))
+  col_ticks <- cumsum(vapply(seq_len(dim(res_grid)[2]), function(idx){
     dim(res_grid[[1L, idx]])[2]
-  }))
+  }, FUN.VALUE = 0L))
 
 
 

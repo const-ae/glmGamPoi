@@ -9,9 +9,9 @@ make_dataset <- function(n_genes = 1000, n_samples = 30){
 
   Q <- Betas %*% t(X)
 
-  Y <- t(sapply(seq_len(n_genes), function(i){
+  Y <- t(vapply(seq_len(n_genes), function(i){
     rnbinom(n_samples, mu = sf * exp(Q[i, ]), size = 1/dispersions[i])
-  }))
+  }, FUN.VALUE = rep(0.0, n_samples)))
 
   row_all_zero <- which(rowSums(Y) == 0)
   for(idx in row_all_zero){

@@ -6,6 +6,13 @@
 \usage{
 estimate_betas_one_group(Y, offset_matrix, dispersions, beta_vec_init)
 }
+\value{
+a list with two elements
+\itemize{
+\item \code{Beta} a matrix with one column and the intercept for each gene
+\item \code{iterations} the number of iterations from the Newton-Raphson method
+}
+}
 \description{
 Estimate the Betas for Fixed Dispersions
 }

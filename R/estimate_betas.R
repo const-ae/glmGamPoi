@@ -1,6 +1,8 @@
 
 #' Make a quick first guess where reasonable beta would be
 #'
+#' @return a matrix with one column for each coefficient
+#'
 #' @keywords internal
 estimate_betas_roughly <- function(Y, model_matrix, offset_matrix, pseudo_count = 1){
   if(nrow(Y) == 0) return(matrix(numeric(0), nrow = 0, ncol = ncol(model_matrix)))
@@ -15,6 +17,9 @@ estimate_betas_roughly <- function(Y, model_matrix, offset_matrix, pseudo_count 
 
 #' Estimate the Betas for Fixed Dispersions
 #'
+#' @return a list with two elements
+#'   * `Beta` a matrix with one column for each coefficient
+#'   * `iterations` the number of iterations
 #'
 #' @keywords internal
 estimate_betas_fisher_scoring <- function(Y, model_matrix, offset_matrix,
@@ -44,6 +49,8 @@ estimate_betas_fisher_scoring <- function(Y, model_matrix, offset_matrix,
 
 #' Make a quick first guess where reasonable beta would be for an individual group
 #'
+#' @return a vector with the intercepts for each gene
+#'
 #' @keywords internal
 estimate_betas_roughly_one_group <- function(Y, offset_matrix){
   log(DelayedMatrixStats::rowMeans2(Y / exp(offset_matrix)))
@@ -52,6 +59,9 @@ estimate_betas_roughly_one_group <- function(Y, offset_matrix){
 
 #' Estimate the Betas for Fixed Dispersions
 #'
+#' @return a list with two elements
+#'   * `Beta` a matrix with one column and the intercept for each gene
+#'   * `iterations` the number of iterations from the Newton-Raphson method
 #'
 #' @keywords internal
 estimate_betas_one_group <- function(Y, offset_matrix,  dispersions, beta_vec_init){

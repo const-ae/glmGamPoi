@@ -8,6 +8,14 @@
 #' @param Y any matrix-like object (e.g. `matrix()`, `DelayedArray()`, `HDF5Matrix()`) with
 #'   one column per sample and row per gene.
 #'
+#' @return a list with four elements
+#'  * `Beta` the coefficient matrix
+#'  * `overdispersion` the vector with the estimated overdispersions
+#'  * `Mu` a matrix with the corresponding means for each gene
+#'     and sample
+#'  * `size_factors` a vector with the size factor for each
+#'    sample
+#'
 #' @seealso [glm_gp()] and [gampoi_overdispersion_mle()]
 #' @keywords internal
 glm_gp_impl <- function(Y, model_matrix,

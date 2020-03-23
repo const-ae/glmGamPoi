@@ -25,6 +25,11 @@
 
 \item{object}{the glmGamPoi object that is summarized}
 }
+\value{
+The \code{print()} methods return the object \code{x}. The
+\code{format()} method returns a string. The \code{summary()}
+method returns an object of class \code{summary.glmGamPoi}.
+}
 \description{
 Pretty print the result from glm_gp()
 }

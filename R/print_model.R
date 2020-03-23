@@ -5,6 +5,11 @@
 #' @param object the glmGamPoi object that is summarized
 #' @param ... additional parameters, currently ignored
 #'
+#' @return
+#'   The `print()` methods return the object `x`. The
+#'   `format()` method returns a string. The `summary()`
+#'   method returns an object of class `summary.glmGamPoi`.
+#'
 #' @export
 print.glmGamPoi <- tools::.print.via.format
 
@@ -54,11 +59,11 @@ format.summary.glmGamPoi <- function(x, ...){
   if(nrow < 5 && npara <= 3){
     beta_est_summary <- paste0("Beta:\n", format_matrix(t(x$Beta), digits = ndigits), "\n")
   }else if(nrow < 5){
-    beta_est_summary <- paste0("Beta:\n", format_matrix(t(x$Beta[,1:3]), digits = ndigits), "\n...\n")
+    beta_est_summary <- paste0("Beta:\n", format_matrix(t(x$Beta[,seq_len(3)]), digits = ndigits), "\n...\n")
   }else if(npara <= 3){
     beta_est_summary <- paste0("Beta:\n", format_matrix(my_matrix_summary(x$Beta), digits = ndigits), "\n")
   }else{
-    beta_est_summary <- paste0("Beta:\n", format_matrix(my_matrix_summary(x$Beta[,1:3]), digits = ndigits), "\n...\n")
+    beta_est_summary <- paste0("Beta:\n", format_matrix(my_matrix_summary(x$Beta[,seq_len(3)]), digits = ndigits), "\n...\n")
   }
 
   # Make String for Overdispersion
@@ -88,6 +93,7 @@ format.summary.glmGamPoi <- function(x, ...){
 
 #' Helper to format a matrix nicely
 #'
+#' @return a string
 #'
 #' @keywords internal
 format_matrix <- function(matrix, digits = NULL){

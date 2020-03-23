@@ -8,8 +8,8 @@
 #'   \code{Matrix::Matrix()}, etc.)
 #'
 #'
+#' @return a vector with one size factor per column of `Y`
 #'
-#' Not exported
 #' @keywords internal
 estimate_size_factors <- function(Y){
   # Accept any matrix-like object

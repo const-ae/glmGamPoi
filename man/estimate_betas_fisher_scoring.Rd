@@ -12,6 +12,13 @@ estimate_betas_fisher_scoring(
   beta_mat_init
 )
 }
+\value{
+a list with two elements
+\itemize{
+\item \code{Beta} a matrix with one column for each coefficient
+\item \code{iterations} the number of iterations
+}
+}
 \description{
 Estimate the Betas for Fixed Dispersions
 }

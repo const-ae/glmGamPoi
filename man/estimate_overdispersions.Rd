@@ -13,7 +13,10 @@ estimate_overdispersions(
   verbose = FALSE
 )
 }
+\value{
+a vector with the overdispersion estimates per gene
+}
 \description{
-Not exported
+Call gp_overdispersion_mle multiple times
 }
 \keyword{internal}

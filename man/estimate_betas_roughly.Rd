@@ -6,6 +6,9 @@
 \usage{
 estimate_betas_roughly(Y, model_matrix, offset_matrix, pseudo_count = 1)
 }
+\value{
+a matrix with one column for each coefficient
+}
 \description{
 Make a quick first guess where reasonable beta would be
 }

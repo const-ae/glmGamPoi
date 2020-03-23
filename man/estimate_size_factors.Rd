@@ -8,9 +8,10 @@ estimate_size_factors(Y)
 }
 \arguments{
 \item{Y}{any matrix-like object (\code{base::matrix()}, \code{DelayedArray}, \code{HDF5Matrix},
-\code{Matrix::Matrix()}, etc.)
-
-Not exported}
+\code{Matrix::Matrix()}, etc.)}
+}
+\value{
+a vector with one size factor per column of \code{Y}
 }
 \description{
 Estimate the Size Factors

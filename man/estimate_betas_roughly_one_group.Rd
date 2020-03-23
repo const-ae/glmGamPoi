@@ -6,6 +6,9 @@
 \usage{
 estimate_betas_roughly_one_group(Y, offset_matrix)
 }
+\value{
+a vector with the intercepts for each gene
+}
 \description{
 Make a quick first guess where reasonable beta would be for an individual group
 }

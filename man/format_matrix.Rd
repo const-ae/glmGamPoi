@@ -6,6 +6,9 @@
 \usage{
 format_matrix(matrix, digits = NULL)
 }
+\value{
+a string
+}
 \description{
 Helper to format a matrix nicely
 }

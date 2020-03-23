@@ -269,7 +269,8 @@ estimate_dispersions_roughly <- function(Y, model_matrix, offset_matrix){
 
 #' Call gp_overdispersion_mle multiple times
 #'
-#' Not exported
+#' @return a vector with the overdispersion estimates per gene
+#'
 #' @keywords internal
 estimate_overdispersions <- function(Y, mean_matrix, model_matrix, do_cox_reid_adjustment, subsample, verbose = FALSE){
   stopifnot(is.numeric(subsample))
