@@ -1,5 +1,5 @@
 ---
-title: "glmGamPoi Introduction"
+title: "glmGamPoi Quickstart"
 author: Constantin Ahlmann-Eltze
 date: "`r Sys.Date()`"
 output: BiocStyle::html_document
