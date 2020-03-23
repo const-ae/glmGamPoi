@@ -40,7 +40,7 @@ This method can calculate a range of different residuals:
   }
 \item{pearson}{The Pearson residual is \eqn{res = (y - µ) / sqrt(µ + µ^2 θ)}}
   \item{randomized_quantile}{The randomized quantile residual was originally developed
-by Dunn & Smyth, 1995. Please see that publicaton or \code{\link[statmod:qresiduals]{statmod::qresiduals()}} for more
+by Dunn & Smyth, 1995. Please see that publication or \code{\link[statmod:qresiduals]{statmod::qresiduals()}} for more
 information.}
 \item{working}{The working residuals are \eqn{res = (y - µ) / µ}.}
 \item{response}{The response residuals are \eqn{res = y - µ}}

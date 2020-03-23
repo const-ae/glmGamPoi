@@ -26,7 +26,7 @@ model matrix for a 'just-intercept-model'.}
 
 \item{offset}{Constant offset in the model in addition to \code{log(size_factors)}. It can
 either be a single number, a vector of length \code{ncol(data)} or a matrix with the
-same dimensions as \code{dim(data)}. Note that if data is a \code{DelayedArray} or \code{HDF5Matrix},
+same dimensions as \code{dim(data)}. Note that if data is a \link{DelayedArray} or \link{HDF5Matrix},
 \code{offset} must be as well. Default: \code{0}.}
 
 \item{size_factors}{in large scale experiments, each sample is typically of different size
@@ -50,7 +50,7 @@ adjusted profile likelihood.\cr
 \code{do_cox_reid_adjustment} can be either be \code{TRUE} or \code{FALSE} to indicate if the adjustment is
 added during the optimization of the \code{overdispersion} parameter. Default: \code{TRUE}.}
 
-\item{subsample}{the estimation of the overdispersion is the most cumbersome step when fitting
+\item{subsample}{the estimation of the overdispersion is the slowest step when fitting
 a Gamma-Poisson GLM. For datasets with many samples, the estimation can be considerably sped up
 without loosing much precision by fitting the overdispersion only on a random subset of the samples.
 Default: \code{FALSE} which means that the data is not subsampled. If set to \code{TRUE}, at most 1,000 samples

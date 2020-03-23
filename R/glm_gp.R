@@ -8,11 +8,11 @@
 #' automatically determines the appropriate size factors for each sample and efficiently
 #' finds the best overdispersion parameter for each gene.
 #'
-#' @param data any matrix-like object (e.g. `matrix()`, `DelayedArray()`, `HDF5Matrix()`) or
-#'   anything that can be cast to a `SummarizedExperiment()` (eg. `MSnSet`, `eSet` etc.) with
+#' @param data any matrix-like object (e.g. [matrix], [DelayedArray], [HDF5Matrix]) or
+#'   anything that can be cast to a [SummarizedExperiment] (e.g. `MSnSet`, `eSet` etc.) with
 #'   one column per sample and row per gene.
 #' @param design a specification of the experimental design used to fit the Gamma-Poisson GLM.
-#'   It can be a `model.matrix()` with one row for each sample and one column for each
+#'   It can be a [model.matrix()] with one row for each sample and one column for each
 #'   coefficient. \cr
 #'   Alternatively, `design` can be a `formula`. The entries in the
 #'   formula can refer to global objects, columns in the `col_data` parameter, or the `colData(data)`
@@ -28,7 +28,7 @@
 #'   Default: `NULL`.
 #' @param offset Constant offset in the model in addition to `log(size_factors)`. It can
 #'   either be a single number, a vector of length `ncol(data)` or a matrix with the
-#'   same dimensions as `dim(data)`. Note that if data is a `DelayedArray` or `HDF5Matrix`,
+#'   same dimensions as `dim(data)`. Note that if data is a [DelayedArray] or [HDF5Matrix],
 #'   `offset` must be as well. Default: `0`.
 #' @param size_factors in large scale experiments, each sample is typically of different size
 #'   (for example different sequencing depths). A size factor is an internal mechanism of GLMs to
@@ -48,7 +48,7 @@
 #'   adjusted profile likelihood.\cr
 #'   `do_cox_reid_adjustment` can be either be `TRUE` or `FALSE` to indicate if the adjustment is
 #'   added during the optimization of the `overdispersion` parameter. Default: `TRUE`.
-#' @param subsample the estimation of the overdispersion is the most cumbersome step when fitting
+#' @param subsample the estimation of the overdispersion is the slowest step when fitting
 #'   a Gamma-Poisson GLM. For datasets with many samples, the estimation can be considerably sped up
 #'   without loosing much precision by fitting the overdispersion only on a random subset of the samples.
 #'   Default: `FALSE` which means that the data is not subsampled. If set to `TRUE`, at most 1,000 samples
@@ -72,7 +72,7 @@
 #'    default size factor of \eqn{0.001}.
 #' 2. The dispersion estimates are initialized based on the moments of each row of \eqn{Y}.
 #' 3. The coefficients of the model are estimated.\cr
-#'    If all samples belong to the same condition (ie. `design = ~ 1`), the betas are estimated using
+#'    If all samples belong to the same condition (i.e. `design = ~ 1`), the betas are estimated using
 #'    a quick Newton-Raphson algorithm. This is similar to the behavior of `edgeR`. For more complex
 #'    designs, the general Fisher-scoring algorithm is used. Here, the code is based on a fork  of the
 #'    internal function `fitBeta()` from `DESeq2`. It does however contain some modification to make
@@ -83,7 +83,7 @@
 #'    The classical method for estimating the overdispersion for each gene is to maximize the
 #'    Gamma-Poisson log-likelihood by iterating over each count and summing the the corresponding
 #'    log-likelihood. It is however, much more efficient
-#'    for genes with many small counts to work on the contigency table of the counts. Originally, this
+#'    for genes with many small counts to work on the contingency table of the counts. Originally, this
 #'    approach had already been used by Anscombe (1950), but only recently it has been formulated with
 #'    an efficient Newton-Raphson approach by Bandara _et al._ (2019). In this package, I have implemented an
 #'    extension of their method that can handle general offsets.\cr
@@ -157,7 +157,7 @@
 #'   expression analysis of digital gene expression data. Bioinformatics, 26(1), 139–140.
 #'   [https://doi.org/10.1093/bioinformatics/btp616](https://doi.org/10.1093/bioinformatics/btp616).
 #'   * Bandara, U., Gill, R., & Mitra, R. (2019). On computing maximum likelihood estimates for the negative
-#'   binomial distribution. Statistics and Probability Letters, 148(xxxx), 54–58.
+#'   binomial distribution. Statistics and Probability Letters, 148, 54–58.
 #'   [https://doi.org/10.1016/j.spl.2019.01.009](https://doi.org/10.1016/j.spl.2019.01.009)
 #'   * Lun ATL, Pagès H, Smith ML (2018). “beachmat: A Bioconductor C++ API for accessing high-throughput
 #'   biological data from a variety of R matrix types.” PLoS Comput. Biol., 14(5), e1006135. doi:
