@@ -1,6 +1,12 @@
-> Fit Small and Large Scale Gamma-Poisson Generalized Linear Models.
+> Fit Gamma-Poisson Generalized Linear Models Reliably.
 
-_Gamma-Poisson is just another name for the Negative Binomial model. It however better emphasizes the overdispersed count nature of this model._
+The core design aims of `gmlGamPoi` are:
 
-The `glmGamPoi` R package provides an easy to use interface to fit Gamma-Poisson models efficiently. It is designed to handle large scale datasets with thousands of rows and columns as they are typically encountered in modern high-throughput biology. It can automatically determine the appropriate size factors to normalize for different sizes across samples and infer the overdispersion for each row in the input matrix. The package can handle in-memory datasets, but also on-disk matrices with the `DelayedArray` package.
-
+* Fit the Gamma-Poisson models on arbitrarily large or small datasets
+* Be faster than alternative methods, such as `DESeq2` or `edgeR`
+* Calculate exact or approximate results based on user preference
+* Support in memory or on-disk data
+* Follow established conventions around tools for RNA-seq analysis
+* Present a simple user-interface
+* Avoid unnecessary dependencies
+* Make integration into other tools easy
