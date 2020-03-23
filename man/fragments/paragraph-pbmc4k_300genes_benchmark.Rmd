@@ -37,11 +37,9 @@ bench::mark(
 )
 ```
 
-Fitting the full `pbmc4k` dataset on a modern MacBook Pro in-memory takes ~1 minute and on-disk a little over 4 minutes. Fitting the `pbmc68k` (17x the size) takes ~73 minutes (17x the time) on-disk. Fitting that dataset in-memory is not possible because it is just too big: the maximum in-memory matrix size is `2^31-1 ≈ 2.1e9` is elements, the `pbmc68k` dataset however has nearly 100 million elements more.
+On this dataset, `glmGamPoi` is more than 6 times faster than `edgeR` and more than 30 times faster than `DESeq2`. `glmGamPoi` does **not** use approximations to achieve this performance increase. The performance comes from an optimized algorithm for inferring the overdispersion for each gene. It is tuned for datasets typically encountered in single RNA-seq with many samples and many small counts, by avoiding duplicate calculations.
 
-
-
-Comparing the results:
+To demonstrate that the method is not sacrificing accuracy, I compare the parameters that each method estimates. I find that means and β coefficients are identical, but that the estimates of the overdispersion estimates from `glmGamPoi` are more reliable:
 
 ```{r message=FALSE, warning=FALSE}
 # Results with my method
@@ -88,5 +86,10 @@ abline(0,1)
 
 ```
 
-The inferred Beta coefficients and gene means agree well between the methods, however the overdispersion differs quite a bit. `DESeq2` has problems estimating some of the overdispersions and sets them to `1e-8`. `edgeR` only approximates the overdispersions which explains the variation around the overdispersions calculated with `glmGamPoi`.
+I am comparing the gene-wise estimates of the coefficients from all three methods. Points on the diagonal line are identical. The inferred Beta coefficients and gene means agree well between the methods, however the overdispersion differs quite a bit. `DESeq2` has problems estimating most of the overdispersions and sets them to `1e-8`. `edgeR` only approximates the overdispersions which explains the variation around the overdispersions calculated with `glmGamPoi`. 
+
+
+## Scalability
+
+The method scales linearly, with the number of rows and columns in the dataset. For example: fitting the full `pbmc4k` dataset on a modern MacBook Pro in-memory takes ~1 minute and on-disk a little over 4 minutes. Fitting the `pbmc68k` (17x the size) takes ~73 minutes (17x the time) on-disk. Fitting that dataset in-memory is not possible because it is just too big: the maximum in-memory matrix size is `2^31-1 ≈ 2.1e9` is elements, the `pbmc68k` dataset however has nearly 100 million elements more than that.
 

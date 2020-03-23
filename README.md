@@ -10,19 +10,18 @@ status](https://github.com/const-ae/glmGamPoi/workflows/R-CMD-check/badge.svg)](
 [![codecov](https://codecov.io/gh/const-ae/glmGamPoi/branch/master/graph/badge.svg)](https://codecov.io/gh/const-ae/glmGamPoi)
 <!-- badges: end -->
 
-> Fit Small and Large Scale Gamma-Poisson Generalized Linear Models.
+> Fit Gamma-Poisson Generalized Linear Models Reliably.
 
-*Gamma-Poisson is just another name for the Negative Binomial model. It
-however better emphasizes the overdispersed count nature of this model.*
+The core design aims of `gmlGamPoi` are:
 
-The `glmGamPoi` R package provides an easy to use interface to fit
-Gamma-Poisson models efficiently. It is designed to handle large scale
-datasets with thousands of rows and columns as they are typically
-encountered in modern high-throughput biology. It can automatically
-determine the appropriate size factors to normalize for different sizes
-across samples and infer the overdispersion for each row in the input
-matrix. The package can handle in-memory datasets, but also on-disk
-matrices with the `DelayedArray` package.
+  - Fit the Gamma-Poisson models on arbitrarily large or small datasets
+  - Be faster than alternative methods, such as `DESeq2` or `edgeR`
+  - Calculate exact or approximate results based on user preference
+  - Support in memory or on-disk data
+  - Follow established conventions around tools for RNA-seq analysis
+  - Present a simple user-interface
+  - Avoid unnecessary dependencies
+  - Make integration into other tools easy
 
 ## Installation
 
@@ -208,20 +207,24 @@ bench::mark(
 #> # A tibble: 4 x 6
 #>   expression               min   median `itr/sec` mem_alloc `gc/sec`
 #>   <bch:expr>          <bch:tm> <bch:tm>     <dbl> <bch:byt>    <dbl>
-#> 1 glmGamPoi_in_memory 741.95ms 741.95ms    1.35    328.44MB   0     
-#> 2 glmGamPoi_on_disk      3.75s    3.75s    0.267   681.08MB   0.267 
-#> 3 DESeq2                25.55s   25.55s    0.0391    1.15GB   0.0391
-#> 4 edgeR                  5.35s    5.35s    0.187    977.7MB   0.374
+#> 1 glmGamPoi_in_memory 759.36ms 759.36ms    1.32    328.44MB   1.32  
+#> 2 glmGamPoi_on_disk      3.39s    3.39s    0.295   681.08MB   0     
+#> 3 DESeq2                24.84s   24.84s    0.0403    1.15GB   0.0805
+#> 4 edgeR                  4.91s    4.91s    0.204   978.57MB   0.204
 ```
 
-Fitting the full `pbmc4k` dataset on a modern MacBook Pro in-memory
-takes ~1 minute and on-disk a little over 4 minutes. Fitting the
-`pbmc68k` (17x the size) takes ~73 minutes (17x the time) on-disk.
-Fitting that dataset in-memory is not possible because it is just too
-big: the maximum in-memory matrix size is `2^31-1 ≈ 2.1e9` is elements,
-the `pbmc68k` dataset however has nearly 100 million elements more.
+On this dataset, `glmGamPoi` is more than 6 times faster than `edgeR`
+and more than 30 times faster than `DESeq2`. `glmGamPoi` does **not**
+use approximations to achieve this performance increase. The performance
+comes from an optimized algorithm for inferring the overdispersion for
+each gene. It is tuned for datasets typically encountered in single
+RNA-seq with many samples and many small counts, by avoiding duplicate
+calculations.
 
-Comparing the results:
+To demonstrate that the method is not sacrificing accuracy, I compare
+the parameters that each method estimates. I find that means and β
+coefficients are identical, but that the estimates of the overdispersion
+estimates from `glmGamPoi` are more reliable:
 
 ``` r
 # Results with my method
@@ -244,8 +247,21 @@ edgeR_fit <- edgeR::glmFit(edgeR_data, design = model_matrix)
 
 ![](man/figures/README-coefficientComparison-1.png)<!-- -->
 
-The inferred Beta coefficients and gene means agree well between the
-methods, however the overdispersion differs quite a bit. `DESeq2` has
-problems estimating some of the overdispersions and sets them to `1e-8`.
-`edgeR` only approximates the overdispersions which explains the
-variation around the overdispersions calculated with `glmGamPoi`.
+I am comparing the gene-wise estimates of the coefficients from all
+three methods. Points on the diagonal line are identical. The inferred
+Beta coefficients and gene means agree well between the methods, however
+the overdispersion differs quite a bit. `DESeq2` has problems estimating
+most of the overdispersions and sets them to `1e-8`. `edgeR` only
+approximates the overdispersions which explains the variation around the
+overdispersions calculated with `glmGamPoi`.
+
+## Scalability
+
+The method scales linearly, with the number of rows and columns in the
+dataset. For example: fitting the full `pbmc4k` dataset on a modern
+MacBook Pro in-memory takes ~1 minute and on-disk a little over 4
+minutes. Fitting the `pbmc68k` (17x the size) takes ~73 minutes (17x the
+time) on-disk. Fitting that dataset in-memory is not possible because it
+is just too big: the maximum in-memory matrix size is `2^31-1 ≈ 2.1e9`
+is elements, the `pbmc68k` dataset however has nearly 100 million
+elements more than that.
