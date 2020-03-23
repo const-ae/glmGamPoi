@@ -13,7 +13,7 @@
 #' This method can calculate a range of different residuals:
 #' \describe{
 #'   \item{deviance}{The deviance for the Gamma-Poisson model is
-#'     \deqn{dev = 2 * (1/θ log((1 + µ θ) / (1 + y θ)) - y log((µ + y µ θ) / (y + y µ θ)))}
+#'     \deqn{dev = 2 * (1/theta log((1 + µ theta) / (1 + y theta)) - y log((µ + y µ theta) / (y + y µ theta)))}
 #'   and the residual accordingly is
 #'     \deqn{res = sign(y - µ) sqrt(dev).}
 #'   }
@@ -28,7 +28,7 @@
 #' @return a matrix with the same size as `Y`. If `Y` is a `DelayedArray` than the
 #'   result will be as well.
 #'
-#' @seealso [glm_gp()] and [stats::residuals.glm()]
+#' @seealso [glm_gp()] and [`stats::residuals.glm()`][`stats::glm.summmaries`]
 #' @export
 residuals.glmGamPoi <- function(object, Y, type = c("deviance", "pearson", "randomized_quantile", "working", "response"), ...){
   type <- match.arg(type, c("deviance", "pearson", "randomized_quantile", "working", "response"))

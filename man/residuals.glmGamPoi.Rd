@@ -34,7 +34,7 @@ Extract Residuals of Gamma Poisson Model
 This method can calculate a range of different residuals:
 \describe{
 \item{deviance}{The deviance for the Gamma-Poisson model is
-\deqn{dev = 2 * (1/θ log((1 + µ θ) / (1 + y θ)) - y log((µ + y µ θ) / (y + y µ θ)))}
+\deqn{dev = 2 * (1/theta log((1 + µ theta) / (1 + y theta)) - y log((µ + y µ theta) / (y + y µ theta)))}
   and the residual accordingly is
 \deqn{res = sign(y - µ) sqrt(dev).}
   }
@@ -47,5 +47,5 @@ information.}
 }
 }
 \seealso{
-\code{\link[=glm_gp]{glm_gp()}} and \code{\link[stats:residuals.glm]{stats::residuals.glm()}}
+\code{\link[=glm_gp]{glm_gp()}} and \code{\link[stats:glm.summmaries]{stats::residuals.glm()}}
 }
