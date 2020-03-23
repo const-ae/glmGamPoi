@@ -87,7 +87,7 @@ gampoi_overdispersion_mle <- function(y, mean = base::mean(y),
   }
 
 
-  stopifnot(length(y) == length(mean))
+  stopifnot(is.vector(y) && length(y) == length(mean))
   stopifnot(all(! is.na(y)))   # Cannot handle missing values
   stopifnot(all(y >= 0))
   stopifnot(all(! is.na(mean)))

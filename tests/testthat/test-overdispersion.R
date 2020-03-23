@@ -119,9 +119,9 @@ test_that("Estimation methods can handle under-dispersion", {
 
 
 test_that("gampoi_overdispersion_mle can handle weird input 1", {
-  y <- matrix(c(5, 2, 1, 1, 3, 1, 1), nrow = 1)
+  y <- c(5, 2, 1, 1, 3, 1, 1)
   X <- cbind(1, c(0, 0, 0, 1, 1, 1, 1))
-  mu <- matrix(c(2.6, 2.6, 2.6, 1.5, 1.5, 1.5, 1.5), nrow = 1)
+  mu <- c(2.6, 2.6, 2.6, 1.5, 1.5, 1.5, 1.5)
   # This used to fail  because no starting position is found
   # because mean was exactly equal to var
   est_1 <- bandara_overdispersion_mle(y, mean_vector = mu,
