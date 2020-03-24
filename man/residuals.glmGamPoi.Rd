@@ -38,7 +38,7 @@ This method can calculate a range of different residuals:
   and the residual accordingly is
 \deqn{res = sign(y - µ) sqrt(dev).}
   }
-\item{pearson}{The Pearson residual is \eqn{res = (y - µ) / sqrt(µ + µ^2 θ)}}
+\item{pearson}{The Pearson residual is \eqn{res = (y - µ) / sqrt(µ + µ^2 theta)}}
   \item{randomized_quantile}{The randomized quantile residual was originally developed
 by Dunn & Smyth, 1995. Please see that publication or \code{\link[statmod:qresiduals]{statmod::qresiduals()}} for more
 information.}
@@ -47,5 +47,5 @@ information.}
 }
 }
 \seealso{
-\code{\link[=glm_gp]{glm_gp()}} and \code{\link[stats:glm.summmaries]{stats::residuals.glm()}}
+\code{\link[=glm_gp]{glm_gp()}} and `stats::residuals.glm()
 }

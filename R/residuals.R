@@ -17,7 +17,7 @@
 #'   and the residual accordingly is
 #'     \deqn{res = sign(y - µ) sqrt(dev).}
 #'   }
-#'   \item{pearson}{The Pearson residual is \eqn{res = (y - µ) / sqrt(µ + µ^2 θ)}}
+#'   \item{pearson}{The Pearson residual is \eqn{res = (y - µ) / sqrt(µ + µ^2 theta)}}
 #'   \item{randomized_quantile}{The randomized quantile residual was originally developed
 #'   by Dunn & Smyth, 1995. Please see that publication or [statmod::qresiduals()] for more
 #'   information.}
@@ -28,7 +28,7 @@
 #' @return a matrix with the same size as `Y`. If `Y` is a `DelayedArray` than the
 #'   result will be as well.
 #'
-#' @seealso [glm_gp()] and [`stats::residuals.glm()`][`stats::glm.summmaries`]
+#' @seealso [glm_gp()] and `stats::residuals.glm()
 #' @export
 residuals.glmGamPoi <- function(object, Y, type = c("deviance", "pearson", "randomized_quantile", "working", "response"), ...){
   type <- match.arg(type, c("deviance", "pearson", "randomized_quantile", "working", "response"))
