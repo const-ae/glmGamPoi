@@ -25,7 +25,8 @@ Suggests:
     BiocParallel,
     knitr,
     rmarkdown,
-    BiocStyle
+    BiocStyle,
+    TENxPBMCData
 LinkingTo: 
     Rcpp,
     RcppArmadillo,
