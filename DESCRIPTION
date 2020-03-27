@@ -11,7 +11,6 @@ Description: Fit linear models to overdispersed count data.
      typically occur in single cell RNA-seq experiments.
 License: GPL-3
 Encoding: UTF-8
-LazyData: true
 SystemRequirements: C++11
 Suggests: 
     testthat (>= 2.1.0),
