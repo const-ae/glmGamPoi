@@ -82,7 +82,7 @@ glm_gp_impl <- function(Y, model_matrix,
   if(isTRUE(overdispersion)){
     if(verbose){ message("Estimate dispersion") }
     disp_est <- estimate_overdispersions(Y, Mu, model_matrix = model_matrix,
-                                         do_cox_reid_adjustment = TRUE,
+                                         do_cox_reid_adjustment = do_cox_reid_adjustment,
                                          subsample = subsample, verbose = verbose)
 
     # Estimate the betas again (only necessary if disp_est has changed)
