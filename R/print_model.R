@@ -20,10 +20,9 @@ format.glmGamPoi <- function(x, ...){
   nrow <- nrow(x$Mu)
   ncol <- ncol(x$Mu)
   npara <- ncol(x$Beta)
-  string_builder <- paste0(string_builder, "glmGamPoiFit object:\n")
-  string_builder <- paste0(string_builder, "The data had ", nrow, " rows and ", ncol,
-                           " columns.\n")
-  string_builder <- paste0(string_builder, "A model with ", npara, " coefficient was fitted.")
+  string_builder <- paste0(string_builder, "glmGamPoiFit object:\n",
+                           "The data had ", nrow, " rows and ", ncol, " columns.\n",
+                           "A model with ", npara, " coefficient was fitted.")
   string_builder
 }
 
