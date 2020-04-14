@@ -4,7 +4,7 @@ author: Constantin Ahlmann-Eltze
 date: "`r Sys.Date()`"
 output: BiocStyle::html_document
 vignette: >
-  %\VignetteIndexEntry{README-vignette}
+  %\VignetteIndexEntry{glmGamPoi Quickstart}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -58,7 +58,7 @@ fit <- glmGamPoi::glm_gp(counts, design = ~ 1, size_factors = FALSE)
 fit
 
 # Internally fit is just a list:
-c(fit)
+as.list(fit)
 ```
 
 The `glm_gp()` function returns a list with the results of the fit. Most importantly, it contains the estimates for the coefficients β and the overdispersion.
