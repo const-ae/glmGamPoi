@@ -1,4 +1,34 @@
 
+#' Convert glmGamPoi object to a list
+#'
+#' @param x an object with class glmGamPoi
+#'
+#' @return
+#' The method returns a list with the following elements:
+#' \describe{
+#'   \item{`Beta`}{a matrix with dimensions `nrow(data) x n_coefficients` where `n_coefficients` is
+#'   based on the `design` argument. It contains the estimated coefficients for each gene.}
+#'   \item{`overdispersions`}{a vector with length `nrow(data)`. The overdispersion parameter for each
+#'   gene. It describes how much more the counts vary than one would expect according to the Poisson
+#'   model.}
+#'   \item{`Mu`}{a matrix with the same dimensions as `dim(data)`. If the calculation happened on
+#'   disk, than `Mu` is a `HDF5Matrix`. It contains the estimated mean value for each gene and
+#'   sample.}
+#'   \item{`size_factors`}{a vector with length `ncol(data)`. The size factors are the inferred
+#'   correction factors for different sizes of each sample. They are also sometimes called the
+#'   exposure factor.}
+#'   \item{`model_matrix`}{a matrix with dimensions `ncol(data) x n_coefficients`. It is build based
+#'   on the `design` argument.}
+#' }
+#'
+#'
+#' @export
+as.list.glmGamPoi <- function(x, ...){
+  class(x) <- "list"
+  x
+}
+
+
 #' Pretty print the result from glm_gp()
 #'
 #' @param x the glmGamPoi object
