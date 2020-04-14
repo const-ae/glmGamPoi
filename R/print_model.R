@@ -2,6 +2,7 @@
 #' Convert glmGamPoi object to a list
 #'
 #' @param x an object with class glmGamPoi
+#' @param ... not used
 #'
 #' @return
 #' The method returns a list with the following elements:

@@ -8,6 +8,8 @@
 }
 \arguments{
 \item{x}{an object with class glmGamPoi}
+
+\item{...}{not used}
 }
 \value{
 The method returns a list with the following elements:
