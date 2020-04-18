@@ -34,16 +34,16 @@ Extract Residuals of Gamma Poisson Model
 This method can calculate a range of different residuals:
 \describe{
 \item{deviance}{The deviance for the Gamma-Poisson model is
-\deqn{dev = 2 * (1/theta log((1 + µ theta) / (1 + y theta)) - y log((µ + y µ theta) / (y + y µ theta)))}
-  and the residual accordingly is
-\deqn{res = sign(y - µ) sqrt(dev).}
-  }
-\item{pearson}{The Pearson residual is \eqn{res = (y - µ) / sqrt(µ + µ^2 theta)}}
-  \item{randomized_quantile}{The randomized quantile residual was originally developed
+\deqn{dev = 2 * (1/theta * log((1 + m * theta) / (1 + y * theta)) - y log((m + y * theta) / (y + y * m * theta)))}
+and the residual accordingly is
+\deqn{res = sign(y - m) sqrt(dev).}
+}
+\item{pearson}{The Pearson residual is \eqn{res = (y - m) / sqrt(m + m^2 * theta)}}
+\item{randomized_quantile}{The randomized quantile residual was originally developed
 by Dunn & Smyth, 1995. Please see that publication or \code{\link[statmod:qresiduals]{statmod::qresiduals()}} for more
 information.}
-\item{working}{The working residuals are \eqn{res = (y - µ) / µ}.}
-\item{response}{The response residuals are \eqn{res = y - µ}}
+\item{working}{The working residuals are \eqn{res = (y - m) / m}.}
+\item{response}{The response residuals are \eqn{res = y - m}}
 }
 }
 \seealso{
