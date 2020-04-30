@@ -37,7 +37,7 @@ The core design aims of `gmlGamPoi` are:
 
 # Installation
 
-You can install the release version of `r BiocStyle::Biocpkg("glmGamPoi")` from BioConductor:
+You can install the release version of *[glmGamPoi](https://bioconductor.org/packages/glmGamPoi)* from BioConductor:
 
 ``` r
 if (!requireNamespace("BiocManager", quietly = TRUE))

@@ -26,7 +26,7 @@ The core design aims of `gmlGamPoi` are:
 # Installation
 
 You can install the release version of
-*[glmGamPoi](https://bioconductor.org/packages/3.10/glmGamPoi)* from
+*[glmGamPoi](https://bioconductor.org/packages/glmGamPoi)* from
 BioConductor:
 
 ``` r
