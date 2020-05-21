@@ -129,8 +129,7 @@ The classical method for estimating the overdispersion for each gene is to maxim
 Gamma-Poisson log-likelihood by iterating over each count and summing the the corresponding
 log-likelihood. It is however, much more efficient
 for genes with many small counts to work on the contingency table of the counts. Originally, this
-approach had already been used by Anscombe (1950), but only recently it has been formulated with
-an efficient Newton-Raphson approach by Bandara \emph{et al.} (2019). In this package, I have implemented an
+approach had already been used by Anscombe (1950). In this package, I have implemented an
 extension of their method that can handle general offsets.\cr
 See also \code{\link[=gampoi_overdispersion_mle]{gampoi_overdispersion_mle()}}.
 \item The beta coefficients are estimated once more with the updated overdispersion estimates
@@ -183,9 +182,6 @@ for RNA-seq data with DESeq2. Genome Biology, 15(12), 550.
 \item Robinson, M. D., McCarthy, D. J., & Smyth, G. K. (2009). edgeR: A Bioconductor package for differential
 expression analysis of digital gene expression data. Bioinformatics, 26(1), 139–140.
 \url{https://doi.org/10.1093/bioinformatics/btp616}.
-\item Bandara, U., Gill, R., & Mitra, R. (2019). On computing maximum likelihood estimates for the negative
-binomial distribution. Statistics and Probability Letters, 148, 54–58.
-\url{https://doi.org/10.1016/j.spl.2019.01.009}
 \item Lun ATL, Pagès H, Smith ML (2018). “beachmat: A Bioconductor C++ API for accessing high-throughput
 biological data from a variety of R matrix types.” PLoS Comput. Biol., 14(5), e1006135. doi:
 \href{https://doi.org/10.1371/journal.pcbi.1006135}{10.1371/journal.pcbi.1006135.}.

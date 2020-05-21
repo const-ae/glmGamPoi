@@ -14,10 +14,17 @@
 #' @inheritParams glm_gp
 #'
 #' @details
-#' The function employs a rough heuristic to decide if the iterative
-#' or the Bandara approach is used to calculate the overdispersion. If
-#' `max(y) < length(y)` Bandara's approach is used, otherwise the
-#' conventional one is used.
+#' The function is optimized to be fast on many small counts. To
+#' achieve this, the frequency table of the counts is calculated and
+#' some parts are calculated based on this frequency table. If
+#' there are probably many unique counts (heuristic: `max(y) > length(y)`),
+#' the optimization is skipped.
+#'
+#' An earlier version of this package (< 1.1.1) used a separate
+#' set of functions for the case of many small counts based on a paper
+#' by Bandara et al. (2019). However, this
+#' didn't bring a sufficient performance increase and meant an
+#' additional maintenance burden.
 #'
 #' @return
 #' The function returs a list with the following elements:
@@ -25,8 +32,6 @@
 #'   \item{`estimate`}{the numerical estimate of the overdispersion.}
 #'   \item{`iterations`}{the number of iterations it took to calculate
 #'   the result.}
-#'   \item{`method`}{the method that was used to calculate the
-#'   overdispersion: either `"conventional"` or `"bandara"`.}
 #'   \item{`message`}{additional information about the fitting process.}
 #' }
 #'
