@@ -82,52 +82,20 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// makeCumSumLookupVector
-IntegerVector makeCumSumLookupVector(IntegerVector y);
-RcppExport SEXP _glmGamPoi_makeCumSumLookupVector(SEXP ySEXP) {
+// make_table
+List make_table(NumericVector x);
+RcppExport SEXP _glmGamPoi_make_table(SEXP xSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< IntegerVector >::type y(ySEXP);
-    rcpp_result_gen = Rcpp::wrap(makeCumSumLookupVector(y));
-    return rcpp_result_gen;
-END_RCPP
-}
-// score_function_bandara_fast
-double score_function_bandara_fast(IntegerVector y, IntegerVector cumsumLookupTable, NumericVector mu, double r, const arma::mat& model_matrix, bool do_cr_adj);
-RcppExport SEXP _glmGamPoi_score_function_bandara_fast(SEXP ySEXP, SEXP cumsumLookupTableSEXP, SEXP muSEXP, SEXP rSEXP, SEXP model_matrixSEXP, SEXP do_cr_adjSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< IntegerVector >::type y(ySEXP);
-    Rcpp::traits::input_parameter< IntegerVector >::type cumsumLookupTable(cumsumLookupTableSEXP);
-    Rcpp::traits::input_parameter< NumericVector >::type mu(muSEXP);
-    Rcpp::traits::input_parameter< double >::type r(rSEXP);
-    Rcpp::traits::input_parameter< const arma::mat& >::type model_matrix(model_matrixSEXP);
-    Rcpp::traits::input_parameter< bool >::type do_cr_adj(do_cr_adjSEXP);
-    rcpp_result_gen = Rcpp::wrap(score_function_bandara_fast(y, cumsumLookupTable, mu, r, model_matrix, do_cr_adj));
-    return rcpp_result_gen;
-END_RCPP
-}
-// score_deriv_function_bandara_fast
-double score_deriv_function_bandara_fast(IntegerVector y, IntegerVector cumsumLookupTable, NumericVector mu, double r, const arma::mat& model_matrix, bool do_cr_adj);
-RcppExport SEXP _glmGamPoi_score_deriv_function_bandara_fast(SEXP ySEXP, SEXP cumsumLookupTableSEXP, SEXP muSEXP, SEXP rSEXP, SEXP model_matrixSEXP, SEXP do_cr_adjSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< IntegerVector >::type y(ySEXP);
-    Rcpp::traits::input_parameter< IntegerVector >::type cumsumLookupTable(cumsumLookupTableSEXP);
-    Rcpp::traits::input_parameter< NumericVector >::type mu(muSEXP);
-    Rcpp::traits::input_parameter< double >::type r(rSEXP);
-    Rcpp::traits::input_parameter< const arma::mat& >::type model_matrix(model_matrixSEXP);
-    Rcpp::traits::input_parameter< bool >::type do_cr_adj(do_cr_adjSEXP);
-    rcpp_result_gen = Rcpp::wrap(score_deriv_function_bandara_fast(y, cumsumLookupTable, mu, r, model_matrix, do_cr_adj));
+    Rcpp::traits::input_parameter< NumericVector >::type x(xSEXP);
+    rcpp_result_gen = Rcpp::wrap(make_table(x));
     return rcpp_result_gen;
 END_RCPP
 }
 // conventional_loglikelihood_fast
-double conventional_loglikelihood_fast(NumericVector y, NumericVector mu, double log_theta, const arma::mat& model_matrix, bool do_cr_adj);
-RcppExport SEXP _glmGamPoi_conventional_loglikelihood_fast(SEXP ySEXP, SEXP muSEXP, SEXP log_thetaSEXP, SEXP model_matrixSEXP, SEXP do_cr_adjSEXP) {
+double conventional_loglikelihood_fast(NumericVector y, NumericVector mu, double log_theta, const arma::mat& model_matrix, bool do_cr_adj, NumericVector unique_counts, NumericVector count_frequencies);
+RcppExport SEXP _glmGamPoi_conventional_loglikelihood_fast(SEXP ySEXP, SEXP muSEXP, SEXP log_thetaSEXP, SEXP model_matrixSEXP, SEXP do_cr_adjSEXP, SEXP unique_countsSEXP, SEXP count_frequenciesSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -136,13 +104,15 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< double >::type log_theta(log_thetaSEXP);
     Rcpp::traits::input_parameter< const arma::mat& >::type model_matrix(model_matrixSEXP);
     Rcpp::traits::input_parameter< bool >::type do_cr_adj(do_cr_adjSEXP);
-    rcpp_result_gen = Rcpp::wrap(conventional_loglikelihood_fast(y, mu, log_theta, model_matrix, do_cr_adj));
+    Rcpp::traits::input_parameter< NumericVector >::type unique_counts(unique_countsSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type count_frequencies(count_frequenciesSEXP);
+    rcpp_result_gen = Rcpp::wrap(conventional_loglikelihood_fast(y, mu, log_theta, model_matrix, do_cr_adj, unique_counts, count_frequencies));
     return rcpp_result_gen;
 END_RCPP
 }
 // conventional_score_function_fast
-double conventional_score_function_fast(NumericVector y, NumericVector mu, double log_theta, const arma::mat& model_matrix, bool do_cr_adj);
-RcppExport SEXP _glmGamPoi_conventional_score_function_fast(SEXP ySEXP, SEXP muSEXP, SEXP log_thetaSEXP, SEXP model_matrixSEXP, SEXP do_cr_adjSEXP) {
+double conventional_score_function_fast(NumericVector y, NumericVector mu, double log_theta, const arma::mat& model_matrix, bool do_cr_adj, NumericVector unique_counts, NumericVector count_frequencies);
+RcppExport SEXP _glmGamPoi_conventional_score_function_fast(SEXP ySEXP, SEXP muSEXP, SEXP log_thetaSEXP, SEXP model_matrixSEXP, SEXP do_cr_adjSEXP, SEXP unique_countsSEXP, SEXP count_frequenciesSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -151,13 +121,15 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< double >::type log_theta(log_thetaSEXP);
     Rcpp::traits::input_parameter< const arma::mat& >::type model_matrix(model_matrixSEXP);
     Rcpp::traits::input_parameter< bool >::type do_cr_adj(do_cr_adjSEXP);
-    rcpp_result_gen = Rcpp::wrap(conventional_score_function_fast(y, mu, log_theta, model_matrix, do_cr_adj));
+    Rcpp::traits::input_parameter< NumericVector >::type unique_counts(unique_countsSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type count_frequencies(count_frequenciesSEXP);
+    rcpp_result_gen = Rcpp::wrap(conventional_score_function_fast(y, mu, log_theta, model_matrix, do_cr_adj, unique_counts, count_frequencies));
     return rcpp_result_gen;
 END_RCPP
 }
 // conventional_deriv_score_function_fast
-double conventional_deriv_score_function_fast(NumericVector y, NumericVector mu, double log_theta, const arma::mat& model_matrix, bool do_cr_adj);
-RcppExport SEXP _glmGamPoi_conventional_deriv_score_function_fast(SEXP ySEXP, SEXP muSEXP, SEXP log_thetaSEXP, SEXP model_matrixSEXP, SEXP do_cr_adjSEXP) {
+double conventional_deriv_score_function_fast(NumericVector y, NumericVector mu, double log_theta, const arma::mat& model_matrix, bool do_cr_adj, NumericVector unique_counts, NumericVector count_frequencies);
+RcppExport SEXP _glmGamPoi_conventional_deriv_score_function_fast(SEXP ySEXP, SEXP muSEXP, SEXP log_thetaSEXP, SEXP model_matrixSEXP, SEXP do_cr_adjSEXP, SEXP unique_countsSEXP, SEXP count_frequenciesSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -166,7 +138,9 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< double >::type log_theta(log_thetaSEXP);
     Rcpp::traits::input_parameter< const arma::mat& >::type model_matrix(model_matrixSEXP);
     Rcpp::traits::input_parameter< bool >::type do_cr_adj(do_cr_adjSEXP);
-    rcpp_result_gen = Rcpp::wrap(conventional_deriv_score_function_fast(y, mu, log_theta, model_matrix, do_cr_adj));
+    Rcpp::traits::input_parameter< NumericVector >::type unique_counts(unique_countsSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type count_frequencies(count_frequenciesSEXP);
+    rcpp_result_gen = Rcpp::wrap(conventional_deriv_score_function_fast(y, mu, log_theta, model_matrix, do_cr_adj, unique_counts, count_frequencies));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -192,12 +166,10 @@ static const R_CallMethodDef CallEntries[] = {
     {"_glmGamPoi_fitBeta_one_group", (DL_FUNC) &_glmGamPoi_fitBeta_one_group, 6},
     {"_glmGamPoi_compute_gp_deviance_mask", (DL_FUNC) &_glmGamPoi_compute_gp_deviance_mask, 3},
     {"_glmGamPoi_compute_gp_deviance_residuals_matrix_mask", (DL_FUNC) &_glmGamPoi_compute_gp_deviance_residuals_matrix_mask, 3},
-    {"_glmGamPoi_makeCumSumLookupVector", (DL_FUNC) &_glmGamPoi_makeCumSumLookupVector, 1},
-    {"_glmGamPoi_score_function_bandara_fast", (DL_FUNC) &_glmGamPoi_score_function_bandara_fast, 6},
-    {"_glmGamPoi_score_deriv_function_bandara_fast", (DL_FUNC) &_glmGamPoi_score_deriv_function_bandara_fast, 6},
-    {"_glmGamPoi_conventional_loglikelihood_fast", (DL_FUNC) &_glmGamPoi_conventional_loglikelihood_fast, 5},
-    {"_glmGamPoi_conventional_score_function_fast", (DL_FUNC) &_glmGamPoi_conventional_score_function_fast, 5},
-    {"_glmGamPoi_conventional_deriv_score_function_fast", (DL_FUNC) &_glmGamPoi_conventional_deriv_score_function_fast, 5},
+    {"_glmGamPoi_make_table", (DL_FUNC) &_glmGamPoi_make_table, 1},
+    {"_glmGamPoi_conventional_loglikelihood_fast", (DL_FUNC) &_glmGamPoi_conventional_loglikelihood_fast, 7},
+    {"_glmGamPoi_conventional_score_function_fast", (DL_FUNC) &_glmGamPoi_conventional_score_function_fast, 7},
+    {"_glmGamPoi_conventional_deriv_score_function_fast", (DL_FUNC) &_glmGamPoi_conventional_deriv_score_function_fast, 7},
     {"_glmGamPoi_estimate_overdispersions_fast", (DL_FUNC) &_glmGamPoi_estimate_overdispersions_fast, 5},
     {NULL, NULL, 0}
 };

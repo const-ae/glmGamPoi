@@ -21,28 +21,20 @@ compute_gp_deviance_residuals_matrix <- function(Y_SEXP, Mu, thetas) {
     .Call(`_glmGamPoi_compute_gp_deviance_residuals_matrix_mask`, Y_SEXP, Mu, thetas)
 }
 
-makeCumSumLookupVector <- function(y) {
-    .Call(`_glmGamPoi_makeCumSumLookupVector`, y)
+make_table <- function(x) {
+    .Call(`_glmGamPoi_make_table`, x)
 }
 
-score_function_bandara_fast <- function(y, cumsumLookupTable, mu, r, model_matrix, do_cr_adj) {
-    .Call(`_glmGamPoi_score_function_bandara_fast`, y, cumsumLookupTable, mu, r, model_matrix, do_cr_adj)
+conventional_loglikelihood_fast <- function(y, mu, log_theta, model_matrix, do_cr_adj, unique_counts = as.numeric( c()), count_frequencies = as.numeric( c())) {
+    .Call(`_glmGamPoi_conventional_loglikelihood_fast`, y, mu, log_theta, model_matrix, do_cr_adj, unique_counts, count_frequencies)
 }
 
-score_deriv_function_bandara_fast <- function(y, cumsumLookupTable, mu, r, model_matrix, do_cr_adj) {
-    .Call(`_glmGamPoi_score_deriv_function_bandara_fast`, y, cumsumLookupTable, mu, r, model_matrix, do_cr_adj)
+conventional_score_function_fast <- function(y, mu, log_theta, model_matrix, do_cr_adj, unique_counts = as.numeric( c()), count_frequencies = as.numeric( c())) {
+    .Call(`_glmGamPoi_conventional_score_function_fast`, y, mu, log_theta, model_matrix, do_cr_adj, unique_counts, count_frequencies)
 }
 
-conventional_loglikelihood_fast <- function(y, mu, log_theta, model_matrix, do_cr_adj) {
-    .Call(`_glmGamPoi_conventional_loglikelihood_fast`, y, mu, log_theta, model_matrix, do_cr_adj)
-}
-
-conventional_score_function_fast <- function(y, mu, log_theta, model_matrix, do_cr_adj) {
-    .Call(`_glmGamPoi_conventional_score_function_fast`, y, mu, log_theta, model_matrix, do_cr_adj)
-}
-
-conventional_deriv_score_function_fast <- function(y, mu, log_theta, model_matrix, do_cr_adj) {
-    .Call(`_glmGamPoi_conventional_deriv_score_function_fast`, y, mu, log_theta, model_matrix, do_cr_adj)
+conventional_deriv_score_function_fast <- function(y, mu, log_theta, model_matrix, do_cr_adj, unique_counts = as.numeric( c()), count_frequencies = as.numeric( c())) {
+    .Call(`_glmGamPoi_conventional_deriv_score_function_fast`, y, mu, log_theta, model_matrix, do_cr_adj, unique_counts, count_frequencies)
 }
 
 estimate_overdispersions_fast <- function(Y, mean_matrix, model_matrix, do_cox_reid_adjustment, n_subsamples) {
