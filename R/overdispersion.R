@@ -102,94 +102,13 @@ gampoi_overdispersion_mle <- function(y, mean = base::mean(y),
                                   verbose = verbose)
 }
 
-bandara_overdispersion_mle <- function(y, mean_vector,
-                           model_matrix = matrix(1, nrow = length(y), ncol = 1),
-                           do_cox_reid_adjustment = TRUE,
-                           verbose = FALSE){
-  return_value = list(estimate = NA_real_, iterations = NA_real_, method = "bandara", message = "")
-
-
-  if(all(y == 0)){
-    return_value$message <- "All counts y are 0."
-    return_value$estimate <- 0
-    return(return_value)
-  }
-
-  # Mu = 0 makes problems
-  mean_vector[mean_vector == 0] <- 1e-6
-
-  # Common thing between all function calls
-  # For explanation, see Bandara et al. (2019)
-  cslv <- makeCumSumLookupVector(round(y))  # Cannot handle non integer values
-
-  far_right_value <- score_function_bandara_fast(y, cumsumLookupTable = cslv,
-                                                 mean_vector, r = 1000,
-                                                 model_matrix = model_matrix,
-                                                 do_cr_adj = do_cox_reid_adjustment)
-  if(far_right_value > 0){
-    return_value$message <- "Even for very small theta, no maximum identified"
-    return_value$estimate <- 0
-    return(return_value)
-  }
-
-  my <- mean(y)
-  bvar <- sum((y-my)^2) / length(y)
-  rmme <- my / (bvar - my)
-  start_pos <- NA
-  gamma_factor <- 0.9
-  if(is.na(rmme) || is.infinite(rmme) || (rmme < 0 && max(y) > 1)){
-    # Exceptional case
-    N1 <- sum(y >= 1)
-    start_13 <- (-3 + sqrt(24 * length(y) * my / N1 - 15)) / (2 * N1 / (length(y) * my))
-    start_pos <- start_13 / gamma_factor
-    rmme <- start_pos / gamma_factor
-  }
-
-  if(rmme < 0){
-    rmme <- 1e-3
-  }
-  iter <- 1
-  repeat{
-    start_pos <- rmme * gamma_factor
-    if(score_function_bandara_fast(y, cumsumLookupTable = cslv,
-                                   mean_vector, r= start_pos,
-                                   model_matrix = model_matrix,
-                                   do_cr_adj = do_cox_reid_adjustment) > 0){
-      break
-    }else if(iter >= 100){
-      return_value$message <- paste0("Couldn't find starting position. Stopped after ", iter, " iterations.")
-      return(return_value)
-    }else{
-      gamma_factor <- gamma_factor / 2
-      iter <- iter + 1
-    }
-  }
-
-  root_info <- pracma::newtonRaphson(function(r){
-    score_function_bandara_fast(y, cumsumLookupTable = cslv,
-                                mu = mean_vector, r = r,
-                                model_matrix = model_matrix,
-                                do_cr_adj = do_cox_reid_adjustment)
-  }, x0 = start_pos,
-  dfun = function(r){
-    score_deriv_function_bandara_fast(y, cumsumLookupTable = cslv,
-                                      mu = mean_vector, r= r,
-                                      model_matrix = model_matrix,
-                                      do_cr_adj = do_cox_reid_adjustment)
-  }, tol = .Machine$double.eps^0.25)
-
-  return_value$estimate <- 1/root_info$root
-  return_value$iterations <- root_info$niter + iter
-  return_value$message <- "success"
-  return_value
-}
 
 
 conventional_overdispersion_mle <- function(y, mean_vector,
                                        model_matrix = matrix(1, nrow = length(y), ncol = 1),
                                        do_cox_reid_adjustment = TRUE,
                                        verbose = FALSE){
-  return_value = list(estimate = NA_real_, iterations = NA_real_, method = "conventional", message = "")
+  return_value = list(estimate = NA_real_, iterations = NA_real_, message = "")
   # Make a table of y
   if(max(c(y, -Inf)) < length(y) * 10){
      tab <- make_table(y)
