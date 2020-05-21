@@ -61,7 +61,7 @@ gampoi_overdispersion_mle <- function(y, mean = base::mean(y),
                            do_cox_reid_adjustment = TRUE,
                            subsample = FALSE,
                            verbose = FALSE){
-
+  y <- as.numeric(y)
   validate_model_matrix(model_matrix, matrix(y, nrow = 1))
   if(length(mean) == 1){
     mean <- rep(mean, length(y))
@@ -95,22 +95,11 @@ gampoi_overdispersion_mle <- function(y, mean = base::mean(y),
   stopifnot(all(is.finite(y)))
   stopifnot(all(is.finite(mean)))
 
-  # Decide if I use the Bandara approach or classical MLE
-  # Rule is a rough heuristic
-  # The -Inf suppresses a warning for empty y
-  if(max(c(y, -Inf)) < length(y)){
-    # Do Bandara
-    bandara_overdispersion_mle(y, mean_vector = mean,
-                               model_matrix = model_matrix,
-                               do_cox_reid_adjustment = do_cox_reid_adjustment,
-                               verbose = verbose)
-  }else{
-    # Do conventional optimization
-    conventional_overdispersion_mle(y, mean_vector = mean,
-                                    model_matrix = model_matrix,
-                                    do_cox_reid_adjustment = do_cox_reid_adjustment,
-                                    verbose = verbose)
-  }
+  # Do conventional optimization
+  conventional_overdispersion_mle(y, mean_vector = mean,
+                                  model_matrix = model_matrix,
+                                  do_cox_reid_adjustment = do_cox_reid_adjustment,
+                                  verbose = verbose)
 }
 
 bandara_overdispersion_mle <- function(y, mean_vector,
@@ -201,7 +190,12 @@ conventional_overdispersion_mle <- function(y, mean_vector,
                                        do_cox_reid_adjustment = TRUE,
                                        verbose = FALSE){
   return_value = list(estimate = NA_real_, iterations = NA_real_, method = "conventional", message = "")
-
+  # Make a table of y
+  if(max(c(y, -Inf)) < length(y) * 10){
+     tab <- make_table(y)
+  }else{
+     tab <- list(numeric(0), numeric(0))
+  }
 
   if(all(y == 0)){
     return_value$message <- "All counts y are 0."
@@ -229,13 +223,13 @@ conventional_overdispersion_mle <- function(y, mean_vector,
   res <- nlminb(start = log(start_value),
          objective = function(log_theta){
            - conventional_loglikelihood_fast(y, mu = mean_vector, log_theta = log_theta,
-                             model_matrix = model_matrix, do_cr_adj = do_cox_reid_adjustment)
+                             model_matrix = model_matrix, do_cr_adj = do_cox_reid_adjustment, tab[[1]], tab[[2]])
          }, gradient = function(log_theta){
            - conventional_score_function_fast(y, mu = mean_vector, log_theta = log_theta,
-                             model_matrix = model_matrix, do_cr_adj = do_cox_reid_adjustment)
+                             model_matrix = model_matrix, do_cr_adj = do_cox_reid_adjustment, tab[[1]], tab[[2]])
          }, hessian = function(log_theta){
            res <- conventional_deriv_score_function_fast(y, mu = mean_vector, log_theta = log_theta,
-                             model_matrix = model_matrix, do_cr_adj = do_cox_reid_adjustment)
+                             model_matrix = model_matrix, do_cr_adj = do_cox_reid_adjustment, tab[[1]], tab[[2]])
            matrix(- res, nrow = 1, ncol = 1)
          })
 
