@@ -1,12 +1,12 @@
 
 
 
-test_that("makeCumSumLookupVector works", {
+test_that("make_table works", {
   vector <- rpois(n = 100, lambda = 10)
-  cslv <- makeCumSumLookupVector(vector)
-  lv <- table(factor(vector, levels = seq_len(max(vector)+1)-1, ordered = TRUE))
-  cslv2 <- rev(cumsum(rev(lv)))
-  expect_equal(cslv, unname(cslv2[-1]))
+  tab <- make_table(vector)
+  tab2 <- table(vector)
+  expect_equal(as.numeric(tab2), tab[[2]][order(tab[[1]])])
+  expect_equal(as.numeric(names(tab2)), sort(tab[[1]]))
 })
 
 
@@ -18,45 +18,7 @@ mu <- rnorm(n = 30, mean = 4)
 X <- matrix(rnorm(n = 30 * 4), nrow = 30, ncol = 4)
 
 
-test_that("Convential and Bandara approach produce the same estimates", {
-  pbl_w_cr <- gampoi_overdispersion_mle(y = samples, mean = mu,
-                                        model_matrix = X, do_cox_reid_adjustment = TRUE)$estimate
-  ban_w_cr <- bandara_overdispersion_mle(y = samples, mean_vector = mu,
-                                     model_matrix = X, do_cox_reid_adjustment = TRUE)$estimate
-  con_w_cr <- conventional_overdispersion_mle(y = samples, mean_vector = mu,
-                                          model_matrix = X, do_cox_reid_adjustment = TRUE)$estimate
-  expect_equal(ban_w_cr, con_w_cr, tolerance = 1e-4)
-  expect_equal(ban_w_cr, pbl_w_cr, tolerance = 1e-4)
 
-  pbl_wo_cr <- gampoi_overdispersion_mle(y = samples, mean = mu,
-                                        model_matrix = X, do_cox_reid_adjustment = FALSE)$estimate
-  ban_wo_cr <- bandara_overdispersion_mle(y = samples, mean_vector = mu,
-                                     model_matrix = X, do_cox_reid_adjustment = FALSE)$estimate
-  con_wo_cr <- conventional_overdispersion_mle(y = samples, mean_vector = mu,
-                                          model_matrix = X, do_cox_reid_adjustment = FALSE)$estimate
-  expect_equal(ban_wo_cr, con_wo_cr, tolerance = 1e-4)
-  expect_equal(ban_wo_cr, pbl_wo_cr, tolerance = 1e-4)
-})
-
-
-test_that("Derivative of Bandara score function works", {
-  rg <- seq(1, 30, length.out = 1001)
-  score_values <- sapply(rg, function(r){
-    score_function_bandara_fast(samples, makeCumSumLookupVector(samples), mu = mu, r = r,
-                                model_matrix = X, do_cr_adj = TRUE)
-  })
-  emp_deriv<- diff(score_values) / diff(rg)[1]
-
-
-  analyt_deriv <- sapply(rg, function(r){
-    score_deriv_function_bandara_fast(samples, makeCumSumLookupVector(samples), mu = mu, r = r,
-                                      model_matrix = X, do_cr_adj = TRUE)
-  })
-  respace_analyt <- zoo::rollmean(analyt_deriv, 2)
-  fit <- lm(respace_analyt ~ emp_deriv)
-  expect_equal(unname(coef(fit)["(Intercept)"]), 0, tolerance = 1e-4)
-  expect_equal(unname(coef(fit)[2]), 1, tolerance = 1e-3)
-})
 
 
 
@@ -99,22 +61,16 @@ test_that("Estimation methods can handle under-dispersion", {
   samples <- rpois(n = 100, lambda = 5)
   expect_gt(mean(samples), var(samples))  # Proof of underdispersion
   mu <- rep(mean(samples), length(samples))
-  ban_wo_cr <- bandara_overdispersion_mle(y = samples, mean_vector = mu,
-                                         do_cox_reid_adjustment = FALSE)$estimate
   con_wo_cr <- conventional_overdispersion_mle(y = samples, mean_vector = mu,
                                          do_cox_reid_adjustment = FALSE)$estimate
 
-  expect_equal(ban_wo_cr, 0)
   expect_equal(con_wo_cr, 0)
 
   # However, if mu is large then again a theta can be estimated
   mu <- rep(10, length(samples))
-  ban_wo_cr <- bandara_overdispersion_mle(y = samples, mean_vector = mu,
-                                          do_cox_reid_adjustment = FALSE)$estimate
   con_wo_cr <- conventional_overdispersion_mle(y = samples, mean_vector = mu,
                                                do_cox_reid_adjustment = FALSE)$estimate
-  expect_true(ban_wo_cr != 0 && con_wo_cr != 0)
-  expect_equal(ban_wo_cr, con_wo_cr)
+  expect_true(con_wo_cr != 0)
 })
 
 
@@ -124,16 +80,11 @@ test_that("gampoi_overdispersion_mle can handle weird input 1", {
   mu <- c(2.6, 2.6, 2.6, 1.5, 1.5, 1.5, 1.5)
   # This used to fail  because no starting position is found
   # because mean was exactly equal to var
-  est_1 <- bandara_overdispersion_mle(y, mean_vector = mu,
-                             model_matrix = X,
-                             do_cox_reid_adjustment = TRUE,
-                             verbose = FALSE)
   est_2 <- conventional_overdispersion_mle(y, mean_vector = mu,
                                   model_matrix = X,
                                   do_cox_reid_adjustment = TRUE,
                                   verbose = FALSE)
-
-  expect_equal(est_1$estimate, est_2$estimate)
+  expect_true(TRUE)
 })
 
 
@@ -142,16 +93,11 @@ test_that("gampoi_overdispersion_mle can handle weird input 2", {
   X <- cbind(1, c(0, 0, 0, 1, 1, 1, 1))
   mu <- c(6, 6, 6, 4.5, 4.5, 4.5, 4.5)
   # This used to fail because mean was exactly equal to var
-  est_1 <- bandara_overdispersion_mle(y, mean_vector = mu,
-                                      model_matrix = X,
-                                      do_cox_reid_adjustment = TRUE,
-                                      verbose = FALSE)
   est_2 <- conventional_overdispersion_mle(y, mean_vector = mu,
                                            model_matrix = X,
                                            do_cox_reid_adjustment = TRUE,
                                            verbose = FALSE)
-
-  expect_equal(est_1$estimate, est_2$estimate)
+  expect_true(TRUE)
 })
 
 
@@ -174,12 +120,9 @@ test_that("Estimation methods can handle mu = 0", {
 
   mu <- c(head(mu, length(samples)-1), 0)
 
-  b_res <- bandara_overdispersion_mle(y = samples, mean_vector = mu,
-                             do_cox_reid_adjustment = FALSE)
   c_res <- conventional_overdispersion_mle(y = samples, mean_vector = mu,
                                   do_cox_reid_adjustment = FALSE)
-  expect_equal(b_res$estimate, c_res$estimate)
-
+  expect_true(TRUE)
 })
 
 
@@ -187,42 +130,29 @@ test_that("Identical y values work", {
   # Underdispersed data -> theta = 0
   samples <- rep(6, times = 10)
   mu <- rep(mean(samples), length(samples))
-  ban <- bandara_overdispersion_mle(y = samples, mean_vector = mu,
-                             do_cox_reid_adjustment = FALSE)
   con <- conventional_overdispersion_mle(y = samples, mean_vector = mu,
                                   do_cox_reid_adjustment = FALSE)
-  expect_equal(ban$estimate, 0)
   expect_equal(con$estimate, 0)
 
   # If mu is small enough, it works again
   samples <- rep(6, times = 10)
   mu <- rep(1, length(samples))
-  ban <- bandara_overdispersion_mle(y = samples, mean_vector = mu,
-                                    do_cox_reid_adjustment = FALSE)
   con <- conventional_overdispersion_mle(y = samples, mean_vector = mu,
                                          do_cox_reid_adjustment = FALSE)
-  expect_equal(ban$estimate, con$estimate, tolerance = 1e-4)
 
 
   # For all y = 0 -> cannot really make inference, assume theta = 0
   samples <- rep(0, times = 10)
   mu <- rep(1, length(samples))
-  ban <- bandara_overdispersion_mle(y = samples, mean_vector = mu,
-                                    do_cox_reid_adjustment = FALSE)
   con <- conventional_overdispersion_mle(y = samples, mean_vector = mu,
                                          do_cox_reid_adjustment = FALSE)
-  expect_equal(ban$estimate, 0)
   expect_equal(con$estimate, 0)
 
 })
 
 test_that("one value is enough to get an answer", {
   expect_equal(gampoi_overdispersion_mle(y = 3)$estimate, 0)
-  expect_equal(bandara_overdispersion_mle(y = 3, mean_vector = 3)$estimate, 0)
   expect_equal(conventional_overdispersion_mle(y = 3, mean_vector = 3)$estimate, 0)
-  expect_false(bandara_overdispersion_mle(y = 3, mean_vector = 1.3)$estimate == 0)
-  expect_equal(bandara_overdispersion_mle(y = 3, mean_vector = 1.3)$estimate,
-               conventional_overdispersion_mle(y = 3, mean_vector = 1.3)$estimate, tolerance = 1e-6)
 })
 
 
