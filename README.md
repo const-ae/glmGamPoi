@@ -108,7 +108,7 @@ library(DelayedMatrixStats)
 # The full dataset with 33,000 genes and 4340 cells
 # The first time this is run, it will download the data
 pbmcs <- TENxPBMCData::TENxPBMCData("pbmc4k")
-#> snapshotDate(): 2019-10-22
+#> snapshotDate(): 2020-04-27
 #> see ?TENxPBMCData and browseVignettes('TENxPBMCData') for documentation
 #> loading from cache
 # I want genes where at least some counts are non-zero
@@ -125,7 +125,6 @@ pbmcs_subset
 #> colnames: NULL
 #> colData names(11): Sample Barcode ... Individual Date_published
 #> reducedDimNames(0):
-#> spikeNames(0):
 #> altExpNames(0):
 ```
 
@@ -146,7 +145,7 @@ summary(fit)
 #> 
 #> overdispersion:
 #>  Min 1st Qu. Median 3rd Qu.   Max
-#>    0       0  0.407    1.37 16102
+#>    0       0  0.388    1.15 15724
 #> 
 #> size_factors:
 #>    Min 1st Qu. Median 3rd Qu.  Max
@@ -160,8 +159,8 @@ summary(fit)
 # Benchmark
 
 I compare my method (in-memory and on-disk) with
-*[DESeq2](https://bioconductor.org/packages/3.10/DESeq2)* and
-*[edgeR](https://bioconductor.org/packages/3.10/edgeR)*. Both are
+*[DESeq2](https://bioconductor.org/packages/3.11/DESeq2)* and
+*[edgeR](https://bioconductor.org/packages/3.11/edgeR)*. Both are
 classical methods for analyzing RNA-Seq datasets and have been around
 for almost 10 years. Note that both tools can do a lot more than just
 fitting the Gamma-Poisson model, so this benchmark only serves to give a
@@ -195,10 +194,10 @@ bench::mark(
 #> # A tibble: 4 x 6
 #>   expression               min   median `itr/sec` mem_alloc `gc/sec`
 #>   <bch:expr>          <bch:tm> <bch:tm>     <dbl> <bch:byt>    <dbl>
-#> 1 glmGamPoi_in_memory 835.86ms 835.86ms    1.20    329.22MB    2.39 
-#> 2 glmGamPoi_on_disk      4.33s    4.33s    0.231   681.83MB    1.39 
-#> 3 DESeq2                20.87s   20.87s    0.0479    1.15GB    0.431
-#> 4 edgeR                  5.82s    5.82s    0.172  1003.32MB    1.03
+#> 1 glmGamPoi_in_memory 779.93ms 779.93ms    1.28    299.85MB    3.85 
+#> 2 glmGamPoi_on_disk      4.19s    4.19s    0.239   667.43MB    1.67 
+#> 3 DESeq2                20.49s   20.49s    0.0488    1.15GB    0.488
+#> 4 edgeR                  5.93s    5.93s    0.169     1.19GB    1.18
 ```
 
 On this dataset, `glmGamPoi` is more than 6 times faster than `edgeR`
@@ -258,13 +257,13 @@ million elements more than that.
 
 ``` r
 sessionInfo()
-#> R version 3.6.2 (2019-12-12)
-#> Platform: x86_64-apple-darwin15.6.0 (64-bit)
+#> R version 4.0.0 Patched (2020-05-04 r78358)
+#> Platform: x86_64-apple-darwin17.0 (64-bit)
 #> Running under: macOS Mojave 10.14.6
 #> 
 #> Matrix products: default
-#> BLAS:   /Library/Frameworks/R.framework/Versions/3.6/Resources/lib/libRblas.0.dylib
-#> LAPACK: /Library/Frameworks/R.framework/Versions/3.6/Resources/lib/libRlapack.dylib
+#> BLAS:   /Library/Frameworks/R.framework/Versions/4.0/Resources/lib/libRblas.dylib
+#> LAPACK: /Library/Frameworks/R.framework/Versions/4.0/Resources/lib/libRlapack.dylib
 #> 
 #> locale:
 #> [1] en_US.UTF-8/en_US.UTF-8/en_US.UTF-8/C/en_US.UTF-8/en_US.UTF-8
@@ -274,65 +273,56 @@ sessionInfo()
 #> [8] methods   base     
 #> 
 #> other attached packages:
-#>  [1] TENxPBMCData_1.4.0          HDF5Array_1.14.2           
-#>  [3] rhdf5_2.30.1                SingleCellExperiment_1.8.0 
-#>  [5] DelayedMatrixStats_1.8.0    SummarizedExperiment_1.16.1
-#>  [7] DelayedArray_0.12.2         BiocParallel_1.20.1        
-#>  [9] matrixStats_0.55.0          Biobase_2.46.0             
-#> [11] GenomicRanges_1.38.0        GenomeInfoDb_1.22.0        
-#> [13] IRanges_2.20.2              S4Vectors_0.24.3           
-#> [15] BiocGenerics_0.32.0        
+#>  [1] TENxPBMCData_1.6.0          HDF5Array_1.16.0           
+#>  [3] rhdf5_2.32.0                SingleCellExperiment_1.10.1
+#>  [5] DelayedMatrixStats_1.10.0   SummarizedExperiment_1.18.1
+#>  [7] DelayedArray_0.14.0         matrixStats_0.56.0         
+#>  [9] Biobase_2.48.0              GenomicRanges_1.40.0       
+#> [11] GenomeInfoDb_1.24.0         IRanges_2.22.1             
+#> [13] S4Vectors_0.26.0            BiocGenerics_0.34.0        
 #> 
 #> loaded via a namespace (and not attached):
-#>   [1] colorspace_1.4-2              htmlTable_1.13.3             
-#>   [3] XVector_0.26.0                base64enc_0.1-3              
-#>   [5] rstudioapi_0.11               bit64_0.9-7                  
-#>   [7] interactiveDisplayBase_1.24.0 AnnotationDbi_1.48.0         
-#>   [9] fansi_0.4.1                   splines_3.6.2                
-#>  [11] geneplotter_1.64.0            knitr_1.28                   
-#>  [13] Formula_1.2-3                 annotate_1.64.0              
-#>  [15] cluster_2.1.0                 dbplyr_1.4.2                 
-#>  [17] png_0.1-7                     shiny_1.4.0                  
-#>  [19] BiocManager_1.30.10           compiler_3.6.2               
-#>  [21] httr_1.4.1                    backports_1.1.5              
-#>  [23] assertthat_0.2.1              Matrix_1.2-18                
-#>  [25] fastmap_1.0.1                 bench_1.1.1                  
-#>  [27] cli_2.0.1                     limma_3.42.2                 
-#>  [29] later_1.0.0                   acepack_1.4.1                
-#>  [31] htmltools_0.4.0               tools_3.6.2                  
-#>  [33] gtable_0.3.0                  glue_1.3.1                   
-#>  [35] GenomeInfoDbData_1.2.2        dplyr_0.8.4                  
-#>  [37] rappdirs_0.3.1                Rcpp_1.0.3                   
-#>  [39] vctrs_0.2.2                   ExperimentHub_1.12.0         
-#>  [41] xfun_0.12                     stringr_1.4.0                
-#>  [43] beachmat_2.2.1                mime_0.9                     
-#>  [45] lifecycle_0.1.0               XML_3.99-0.3                 
-#>  [47] profmem_0.5.0                 AnnotationHub_2.18.0         
-#>  [49] edgeR_3.27.8                  zlibbioc_1.32.0              
-#>  [51] scales_1.1.0                  BiocStyle_2.14.4             
-#>  [53] promises_1.1.0                RColorBrewer_1.1-2           
-#>  [55] yaml_2.2.1                    curl_4.3                     
-#>  [57] memoise_1.1.0                 gridExtra_2.3                
-#>  [59] ggplot2_3.3.0                 rpart_4.1-15                 
-#>  [61] latticeExtra_0.6-29           stringi_1.4.5                
-#>  [63] RSQLite_2.2.0                 BiocVersion_3.10.1           
-#>  [65] genefilter_1.68.0             checkmate_2.0.0              
-#>  [67] rlang_0.4.4                   pkgconfig_2.0.3              
-#>  [69] bitops_1.0-6                  pracma_2.2.9                 
-#>  [71] evaluate_0.14                 lattice_0.20-38              
-#>  [73] glmGamPoi_0.99.3              purrr_0.3.3                  
-#>  [75] Rhdf5lib_1.8.0                htmlwidgets_1.5.1            
-#>  [77] bit_1.1-15.2                  tidyselect_1.0.0             
-#>  [79] magrittr_1.5                  DESeq2_1.26.0                
-#>  [81] R6_2.4.1                      Hmisc_4.3-1                  
-#>  [83] DBI_1.1.0                     pillar_1.4.3                 
-#>  [85] foreign_0.8-72                survival_3.1-8               
-#>  [87] RCurl_1.98-1.1                nnet_7.3-12                  
-#>  [89] tibble_2.1.3                  crayon_1.3.4                 
-#>  [91] utf8_1.1.4                    BiocFileCache_1.10.2         
-#>  [93] rmarkdown_2.1                 jpeg_0.1-8.1                 
-#>  [95] locfit_1.5-9.1                grid_3.6.2                   
-#>  [97] data.table_1.12.8             blob_1.2.1                   
-#>  [99] digest_0.6.23                 xtable_1.8-4                 
-#> [101] httpuv_1.5.2                  munsell_0.5.0
+#>  [1] bitops_1.0-6                  bit64_0.9-7                  
+#>  [3] RColorBrewer_1.1-2            httr_1.4.1                   
+#>  [5] tools_4.0.0                   utf8_1.1.4                   
+#>  [7] R6_2.4.1                      DBI_1.1.0                    
+#>  [9] colorspace_1.4-1              tidyselect_1.0.0             
+#> [11] DESeq2_1.28.0                 bit_1.1-15.2                 
+#> [13] curl_4.3                      compiler_4.0.0               
+#> [15] cli_2.0.2                     scales_1.1.0                 
+#> [17] bench_1.1.1                   genefilter_1.70.0            
+#> [19] rappdirs_0.3.1                stringr_1.4.0                
+#> [21] digest_0.6.25                 rmarkdown_2.1                
+#> [23] XVector_0.28.0                pkgconfig_2.0.3              
+#> [25] htmltools_0.4.0               dbplyr_1.4.3                 
+#> [27] fastmap_1.0.1                 limma_3.44.1                 
+#> [29] rlang_0.4.6                   RSQLite_2.2.0                
+#> [31] shiny_1.4.0.2                 BiocParallel_1.22.0          
+#> [33] dplyr_0.8.5                   RCurl_1.98-1.2               
+#> [35] magrittr_1.5                  GenomeInfoDbData_1.2.3       
+#> [37] Matrix_1.2-18                 fansi_0.4.1                  
+#> [39] Rcpp_1.0.4.6                  munsell_0.5.0                
+#> [41] Rhdf5lib_1.10.0               lifecycle_0.2.0              
+#> [43] stringi_1.4.6                 yaml_2.2.1                   
+#> [45] edgeR_3.30.0                  zlibbioc_1.34.0              
+#> [47] glmGamPoi_1.1.0               BiocFileCache_1.12.0         
+#> [49] AnnotationHub_2.20.0          grid_4.0.0                   
+#> [51] blob_1.2.1                    promises_1.1.0               
+#> [53] ExperimentHub_1.14.0          crayon_1.3.4                 
+#> [55] lattice_0.20-41               profmem_0.5.0                
+#> [57] beachmat_2.4.0                splines_4.0.0                
+#> [59] annotate_1.66.0               locfit_1.5-9.4               
+#> [61] knitr_1.28                    pillar_1.4.4                 
+#> [63] geneplotter_1.66.0            XML_3.99-0.3                 
+#> [65] glue_1.4.0                    BiocVersion_3.11.1           
+#> [67] evaluate_0.14                 BiocManager_1.30.10          
+#> [69] vctrs_0.2.4                   httpuv_1.5.2                 
+#> [71] gtable_0.3.0                  purrr_0.3.4                  
+#> [73] assertthat_0.2.1              ggplot2_3.3.0                
+#> [75] xfun_0.13                     mime_0.9                     
+#> [77] xtable_1.8-4                  later_1.0.0                  
+#> [79] survival_3.1-12               tibble_3.0.1                 
+#> [81] AnnotationDbi_1.50.0          memoise_1.1.0                
+#> [83] ellipsis_0.3.0                interactiveDisplayBase_1.26.0
+#> [85] BiocStyle_2.16.0
 ```
