@@ -194,10 +194,10 @@ bench::mark(
 #> # A tibble: 4 x 6
 #>   expression               min   median `itr/sec` mem_alloc `gc/sec`
 #>   <bch:expr>          <bch:tm> <bch:tm>     <dbl> <bch:byt>    <dbl>
-#> 1 glmGamPoi_in_memory 779.93ms 779.93ms    1.28    299.85MB    3.85 
-#> 2 glmGamPoi_on_disk      4.19s    4.19s    0.239   667.43MB    1.67 
-#> 3 DESeq2                20.49s   20.49s    0.0488    1.15GB    0.488
-#> 4 edgeR                  5.93s    5.93s    0.169     1.19GB    1.18
+#> 1 glmGamPoi_in_memory 722.56ms 722.56ms    1.38    299.08MB    2.77 
+#> 2 glmGamPoi_on_disk      4.19s    4.19s    0.239   666.65MB    0.955
+#> 3 DESeq2                21.04s   21.04s    0.0475    1.15GB    0.333
+#> 4 edgeR                  5.45s    5.45s    0.183     1.19GB    1.83
 ```
 
 On this dataset, `glmGamPoi` is more than 6 times faster than `edgeR`
@@ -305,7 +305,7 @@ sessionInfo()
 #> [41] Rhdf5lib_1.10.0               lifecycle_0.2.0              
 #> [43] stringi_1.4.6                 yaml_2.2.1                   
 #> [45] edgeR_3.30.0                  zlibbioc_1.34.0              
-#> [47] glmGamPoi_1.1.0               BiocFileCache_1.12.0         
+#> [47] glmGamPoi_1.1.1               BiocFileCache_1.12.0         
 #> [49] AnnotationHub_2.20.0          grid_4.0.0                   
 #> [51] blob_1.2.1                    promises_1.1.0               
 #> [53] ExperimentHub_1.14.0          crayon_1.3.4                 
