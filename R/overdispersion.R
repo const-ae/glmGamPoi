@@ -122,8 +122,9 @@ conventional_overdispersion_mle <- function(y, mean_vector,
   }
 
   if(all(y == 0)){
-    return_value$message <- "All counts y are 0."
     return_value$estimate <- 0
+    return_value$iterations <- 0
+    return_value$message <- "All counts y are 0."
     return(return_value)
   }
 
@@ -133,8 +134,9 @@ conventional_overdispersion_mle <- function(y, mean_vector,
   far_left_value <- conventional_score_function_fast(y, mu = mean_vector, log_theta = log(1e-8),
                                    model_matrix = model_matrix, do_cr_adj = do_cox_reid_adjustment)
   if(far_left_value < 0){
-    return_value$message <-  "Even for very small theta, no maximum identified"
     return_value$estimate <- 0
+    return_value$iterations <- 0
+    return_value$message <-  "Even for very small theta, no maximum identified"
     return(return_value)
   }
 
