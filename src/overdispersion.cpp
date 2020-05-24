@@ -103,7 +103,6 @@ double conventional_score_function_fast(NumericVector y, NumericVector mu, doubl
                                         NumericVector count_frequencies = NumericVector::create()) {
   double theta = exp(log_theta);
   double theta_neg1 = 1.0 / theta;
-  double theta_neg2 = 1.0 / R_pow_di(theta, 2);
 
   double cr_term = 0.0;
   if(do_cr_adj){
@@ -118,22 +117,70 @@ double conventional_score_function_fast(NumericVector y, NumericVector mu, doubl
   double digamma_term = 0;
   // If summarized counts are available use those to calculate sum(digamma(y + theta_neg1))
   if(unique_counts.size() > 0 && unique_counts.size() == count_frequencies.size()){
+    double max_y = 0.0;
+    double sum_y = 0.0;
+    double sum_prod_y = 0.0;
     for(size_t iter = 0; iter < count_frequencies.size(); ++iter){
       digamma_term += count_frequencies[iter] * Rf_digamma(unique_counts[iter] + theta_neg1);
+      sum_y += count_frequencies[iter] * unique_counts[iter];
+      sum_prod_y += count_frequencies[iter] * (unique_counts[iter] - 1) * unique_counts[iter];
+      max_y = std::max(max_y, unique_counts[iter]);
     }
-    digamma_term -= y.size() * Rf_digamma(theta_neg1);
+    double corr = theta_neg1 > 1e5 ? sum_prod_y / (2 * theta_neg1) : 0.0;
+    if(max_y * 1e6 < theta_neg1){
+      // This approximation is based on the fact that for large x
+      // (sum(digamma(y + x))  - length(y) * digamma(x)) * x \approx sum(y)
+      // Due to numerical imprecision the digamma_term reaches sum(y) sometimes
+      // quicker than the ll_term, thus I subtract the first term of the
+      // Laurent series expansion at x -> inf
+      digamma_term = sum_y - corr;
+    }else{
+      digamma_term -= y.size() * Rf_digamma(theta_neg1);
+      digamma_term *= theta_neg1;
+      digamma_term = std::min(digamma_term, sum_y - corr);
+    }
   }else{
-    digamma_term = sum(digamma(y + theta_neg1));
-    digamma_term -= y.size() * Rf_digamma(theta_neg1);
+    double max_y = 0.0;
+    double sum_y = 0.0;
+    double sum_prod_y = 0.0;
+    for(size_t iter = 0; iter < y.size(); ++iter){
+      digamma_term += Rf_digamma(y[iter] + theta_neg1);
+      sum_y += y[iter];
+      sum_prod_y += (y[iter] - 1) * y[iter];
+      max_y = std::max(max_y, y[iter]);
+    }
+    double corr = theta_neg1 > 1e5 ? sum_prod_y / (2 * theta_neg1) : 0.0;
+    if(max_y * 1e6 < theta_neg1){
+      digamma_term = sum_y - corr;
+    }else{
+      digamma_term -= y.size() * Rf_digamma(theta_neg1);
+      digamma_term *= theta_neg1;
+
+      digamma_term = std::min(digamma_term, sum_y - corr);
+    }
   }
-  digamma_term *= theta_neg2;
+
   double ll_part = 0.0;
   for(size_t i = 0; i < y.size(); ++i){
-    ll_part += log(1 + mu[i] * theta) + (y[i] - mu[i]) / (mu[i] + theta_neg1);
+    double mu_theta = (mu[i] * theta);
+    if(mu_theta < 1e-10){
+      ll_part += mu_theta * mu_theta * (1 / (1 + mu_theta) - 0.5);
+    }else if(mu_theta < 1e-4){
+      // The bounds are based on the Taylor expansion of log(1 + x) for x = 0.
+      double inv = 1 / (1 + mu_theta);
+      double upper_bound = mu_theta * mu_theta * inv;
+      double lower_bound = mu_theta * mu_theta * (inv - 0.5);
+      double suggest = (log(1 + mu_theta) - mu[i] / (mu[i] + theta_neg1)) ;
+      ll_part +=  std::max(std::min(suggest, upper_bound), lower_bound);
+    }else{
+      ll_part += log(1 + mu_theta)  - mu[i] / (mu[i] + theta_neg1);
+    }
+    ll_part += y[i] / (mu[i] + theta_neg1);
   }
-  ll_part *= theta_neg2;
-  return (ll_part - digamma_term + cr_term) * theta;
+  ll_part *= theta_neg1;
+  return ll_part - digamma_term + cr_term * theta;
 }
+
 
 
 // this function returns the second derivative of the log posterior with respect to the log of the
@@ -191,10 +238,9 @@ double conventional_deriv_score_function_fast(NumericVector y, NumericVector mu,
     ll_part_1 += log(1 + mu[i] * theta) + (y[i] - mu[i]) / (mu[i] + theta_neg1);
     ll_part_2 += (mu[i] * mu[i] * theta + y[i]) / (1 + mu[i] * theta) / (1 + mu[i] * theta);
   }
-  double ll_part = -2 * R_pow_di(theta, -3) * (ll_part_1 - digamma_term) + theta_neg2 * (ll_part_2 + trigamma_term);
+  double ll_part = -2 * theta_neg1 * (ll_part_1 - digamma_term) + (ll_part_2 + trigamma_term);
 
-  double res = ((ll_part + cr_term) * R_pow_di(theta, 2) +
-                (ll_part_1 - digamma_term) * theta_neg1 + cr_term2 * theta);
+  double res = ll_part + cr_term * R_pow_di(theta, 2) + (ll_part_1 - digamma_term) * theta_neg1 + cr_term2 * theta;
   return res;
 }
 

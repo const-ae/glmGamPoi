@@ -10,6 +10,28 @@ test_that("make_table works", {
 })
 
 
+test_that("digamma approximation works", {
+  # In the derivative of the loglikelihood wrt to log theta
+  # the term (sum(digamma(y + x))  - length(y) * digamma(x)) * x appears
+  # This is always smaller than sum(y) and for large values of x it is
+  # approximately equal to sum(y).
+  x <- 1e6
+  y <- c(3, 1, 6)
+  expect_equal((sum(digamma(y + x))  - length(y) * digamma(x)) * x, sum(y), tolerance = 1e-4)
+  x <- 1e-5
+  expect_lt((sum(digamma(y + x))  - length(y) * digamma(x)) * x, sum(y))
+
+  ## Due to numerical imprecision at very large numbers it can look as if
+  ## the left term would become larger, but that is wrong.
+  # x <- 1e15
+  # expect_lt((sum(digamma(y + x))  - length(y) * digamma(x)) * x, sum(y))
+  ## Check out the plot
+  # xg <- seq(-35, 35, l = 1001)
+  # values <- sapply(exp(xg), function(x) (sum(digamma(y + x))  - length(y) * digamma(x)) * x)
+  # plot(xg, values, col = (values < sum(y)) + 1)
+  # abline(h = sum(y))
+})
+
 
 # Create Data useful for many tests
 set.seed(1)
@@ -19,7 +41,22 @@ X <- matrix(rnorm(n = 30 * 4), nrow = 30, ncol = 4)
 
 
 
+test_that("Score function can handle extreme inputs properly", {
+  samples <- rpois(n = 3, lambda = 3)
+  mu <- rnorm(n = length(samples), mean = 4)
+  X <- matrix(rnorm(n = length(samples) * 4), nrow = length(samples), ncol = 4)
+  tab <- make_table(samples)
+  expect_equal(conventional_score_function_fast(samples, mu, -35, X, do_cr_adj = TRUE),
+               conventional_score_function_fast(samples, mu, -35, X, do_cr_adj = TRUE, tab[[1]], tab[[2]]))
 
+  # xg <- seq(-30, 10, l = 51)
+  # values1 <- sapply(xg, function(lt) conventional_score_function_fast2(samples, mu, lt, X[,1,drop=FALSE], do_cr_adj = FALSE, tab[[1]], tab[[2]]))
+  # values2 <- sapply(xg, function(lt) conventional_score_function_fast(samples, mu, lt, X[,1,drop=FALSE], do_cr_adj = FALSE, tab[[1]], tab[[2]]))
+  # plot(xg, values1)
+  # lines(xg, values2, col = "red")
+  # plot(xg, values2, col = (values2 < 0) + 1)
+
+})
 
 
 test_that("C++ implementation of loglikelihood and score match", {
@@ -151,8 +188,8 @@ test_that("Identical y values work", {
 })
 
 test_that("one value is enough to get an answer", {
-  expect_equal(gampoi_overdispersion_mle(y = 3)$estimate, 0)
-  expect_equal(conventional_overdispersion_mle(y = 3, mean_vector = 3)$estimate, 0)
+  expect_equal(gampoi_overdispersion_mle(y = 3, mean = 3.0001)$estimate, 0)
+  expect_equal(conventional_overdispersion_mle(y = 3, mean_vector = 3.0001)$estimate, 0)
 })
 
 
