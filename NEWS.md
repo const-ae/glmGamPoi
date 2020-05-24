@@ -3,6 +3,9 @@ Changes in devel (version 1.1)
 Instead merge functionality into conventional_***. This should
 cause no user facing changes, however should make it easier to 
 maintain the package
++ Make conventional_score_function_fast() more robust to extreme
+inputs. Avoid numerically imprecise subtractions and employ
+bounds based on series expansions for very small input
 
 
 Changes in version 0.0.99 (2020-03-23)
