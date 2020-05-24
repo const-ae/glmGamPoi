@@ -249,7 +249,7 @@ List fitBeta_one_group_internal(SEXP Y_SEXP, SEXP offsets_SEXP,
       }
       const double step = dl / ddl;
       beta += step;
-      if(abs(step) < tolerance){
+      if(std::abs(step) < tolerance){
         break;
       }
     }
