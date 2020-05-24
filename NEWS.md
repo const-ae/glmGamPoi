@@ -6,6 +6,8 @@ maintain the package
 + Make conventional_score_function_fast() more robust to extreme
 inputs. Avoid numerically imprecise subtractions and employ
 bounds based on series expansions for very small input
++ If dispersion estimate quits because there is no maximum or
+all y are 0, return iterations = 0
 
 
 Changes in version 0.0.99 (2020-03-23)
