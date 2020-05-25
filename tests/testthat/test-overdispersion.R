@@ -137,6 +137,19 @@ test_that("gampoi_overdispersion_mle can handle weird input 2", {
   expect_true(TRUE)
 })
 
+test_that("gampoi_overdispersion_mle can handle weird input 3", {
+  y <- c(rep(0, times = 399), 10)
+  X <- cbind(1, sample(c(0,1), 400, replace = TRUE), rnorm(400))
+  mu <- rep(0.7, 400)
+  # This used to fail because mean was exactly equal to var
+  est <- conventional_overdispersion_mle(y, mean_vector = mu,
+                                           model_matrix = X,
+                                           do_cox_reid_adjustment = TRUE,
+                                           verbose = FALSE)
+
+  expect_equal(est$estimate, 1e16)
+})
+
 
 test_that("Estimation methods can handle Infinite dispersion", {
   # For some reason this model matrix makes the dispersion estimate

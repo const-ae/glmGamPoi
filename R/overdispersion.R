@@ -157,7 +157,7 @@ conventional_overdispersion_mle <- function(y, mean_vector,
            res <- conventional_deriv_score_function_fast(y, mu = mean_vector, log_theta = log_theta,
                              model_matrix = model_matrix, do_cr_adj = do_cox_reid_adjustment, tab[[1]], tab[[2]])
            matrix(- res, nrow = 1, ncol = 1)
-         })
+         }, lower = log(1e-16), upper = log(1e16))
 
   return_value$estimate <- exp(res$par)
   return_value$iterations <- res$iterations
