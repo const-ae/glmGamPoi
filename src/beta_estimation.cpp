@@ -79,7 +79,6 @@ double decrease_deviance(/*In-Out Parameter*/ arma::vec& beta_hat,
 //--------------------------------------------------------------------------------------------------//
 // The following code was originally copied from https://github.com/mikelove/DESeq2/blob/master/src/DESeq2.cpp
 // I adapted it to the needs of this project by:
-//  * remove lambda / ridge penality
 //  * remove weights
 //  * Calculate actual deviance (2 * (log(f_NB(y | mu, theta)) - log(f_NB(y | y, theta))))
 //    instead of just 2 * log(f_NB(y | mu, theta)),
