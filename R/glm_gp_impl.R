@@ -22,6 +22,7 @@ glm_gp_impl <- function(Y, model_matrix,
                         offset = 0,
                         size_factors = TRUE,
                         overdispersion = TRUE,
+                        overdispersion_shrinkage = TRUE,
                         do_cox_reid_adjustment = TRUE,
                         subsample = FALSE,
                         verbose = FALSE){
@@ -85,27 +86,53 @@ glm_gp_impl <- function(Y, model_matrix,
                                          do_cox_reid_adjustment = do_cox_reid_adjustment,
                                          subsample = subsample, verbose = verbose)
 
+    if(isTRUE(overdispersion_shrinkage)){
+      dispersion_shrinkage <- shrink_ql_dispersion(disp_est, gene_means = rowMeans2(Mu),
+                                                   df = subsample - ncol(model_matrix),
+                                                   verbose = verbose)
+      disp_latest <- dispersion_shrinkage$dispersion_trend
+    }else{
+      dispersion_shrinkage <- NULL
+      disp_latest <- disp_est
+    }
+
     # Estimate the betas again (only necessary if disp_est has changed)
     if(verbose){ message("Estimate beta again") }
     if(only_intercept_model){
       Beta <- estimate_betas_one_group(Y, offset_matrix = offset_matrix,
-                                       dispersions = disp_est, beta_vec_init = Beta[,1])$Beta
+                                       dispersions = disp_latest, beta_vec_init = Beta[,1])$Beta
     }else{
       Beta <- estimate_betas_fisher_scoring(Y, model_matrix = model_matrix, offset_matrix = offset_matrix,
-                                            dispersions = disp_est, beta_mat_init = Beta)$Beta
+                                            dispersions = disp_latest, beta_mat_init = Beta)$Beta
     }
 
     # Calculate corresponding predictions
     Mu <- calculate_mu(Beta, model_matrix, offset_matrix)
-
+  }else if(isTRUE(overdispersion_shrinkage) || is.numeric(overdispersion_shrinkage)){
+    # Given predefined disp_est shrink them
+    disp_est <- disp_init
+    dispersion_shrinkage <- shrink_ql_dispersion(disp_est, gene_means = rowMeans2(Mu),
+                                                 df = subsample - ncol(model_matrix),
+                                                 disp_trend = overdispersion_shrinkage, verbose = verbose)
+    disp_latest <- dispersion_shrinkage$dispersion_trend
+    if(only_intercept_model){
+      Beta <- estimate_betas_one_group(Y, offset_matrix = offset_matrix,
+                                       dispersions = disp_latest, beta_vec_init = Beta[,1])$Beta
+    }else{
+      Beta <- estimate_betas_fisher_scoring(Y, model_matrix = model_matrix, offset_matrix = offset_matrix,
+                                            dispersions = disp_latest, beta_mat_init = Beta)$Beta
+    }
   }else{
     # Use disp_init, because it is already in vector shape
     disp_est <- disp_init
+    dispersion_shrinkage <- NULL
   }
 
 
   # Return everything
-  list(Beta = Beta, overdispersions = disp_est,
+  list(Beta = Beta,
+       overdispersions = disp_est,
+       overdispersion_shrinkage_list = dispersion_shrinkage,
        Mu = Mu, size_factors = size_factors)
 }
 

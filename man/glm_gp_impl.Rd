@@ -10,6 +10,7 @@ glm_gp_impl(
   offset = 0,
   size_factors = TRUE,
   overdispersion = TRUE,
+  overdispersion_shrinkage = TRUE,
   do_cox_reid_adjustment = TRUE,
   subsample = FALSE,
   verbose = FALSE
