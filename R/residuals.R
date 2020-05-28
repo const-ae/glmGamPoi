@@ -35,18 +35,18 @@ residuals.glmGamPoi <- function(object, Y, type = c("deviance", "pearson", "rand
   if(type == "deviance"){
     make_resid_hdf5_mat <- is(Y, "DelayedMatrix") && is(DelayedArray::seed(Y), "HDF5ArraySeed")
     if(! make_resid_hdf5_mat){
-      compute_gp_deviance_residuals_matrix(Y, object$Mu, object$overdispersion)
+      compute_gp_deviance_residuals_matrix(Y, object$Mu, object$overdispersions)
     }else{
-      delayed_matrix_apply_block(Y, object$Mu, object$overdispersion, compute_gp_deviance_residuals_matrix)
+      delayed_matrix_apply_block(Y, object$Mu, object$overdispersions, compute_gp_deviance_residuals_matrix)
     }
   }else if(type == "pearson"){
-    (Y - object$Mu) / sqrt(object$Mu + multiply_vector_to_each_column(object$Mu^2, object$overdispersion))
+    (Y - object$Mu) / sqrt(object$Mu + multiply_vector_to_each_column(object$Mu^2, object$overdispersions))
   }else if(type == "randomized_quantile"){
     make_resid_hdf5_mat <- is(Y, "DelayedMatrix") && is(DelayedArray::seed(Y), "HDF5ArraySeed")
     if(! make_resid_hdf5_mat){
-      qres.gampoi(Y, object$Mu, object$overdispersion)
+      qres.gampoi(Y, object$Mu, object$overdispersions)
     }else{
-      delayed_matrix_apply_block(Y, object$Mu, object$overdispersion, qres.gampoi)
+      delayed_matrix_apply_block(Y, object$Mu, object$overdispersions, qres.gampoi)
     }
   }else if(type == "working"){
     (Y - object$Mu) / object$Mu
