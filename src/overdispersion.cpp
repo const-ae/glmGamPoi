@@ -72,7 +72,15 @@ double conventional_loglikelihood_fast(NumericVector y, NumericVector mu, double
   if(do_cr_adj){
     arma::vec w_diag = 1.0 / (1.0 / mu + theta);
     arma::mat b = model_matrix.t() * (model_matrix.each_col() % w_diag);
-    cr_term = -0.5 * log(det(b))  * cr_correction_factor;
+    // cr_term = -0.5 * log(det(b)) * cr_correction_factor;
+    arma::mat L, U, P;
+    arma::lu(L, U, P, b);
+    double ld = sum(log(arma::diagvec(L)));
+    arma::vec u_diag = arma::diagvec(U);
+    for(double e : u_diag){
+      ld += e < 1e-50 ? log(1e-50) : log(e);
+    }
+    cr_term = -0.5 * ld * cr_correction_factor;
   }
   double theta_neg1 = R_pow_di(theta, -1);
   double lgamma_term = 0;
@@ -110,7 +118,9 @@ double conventional_score_function_fast(NumericVector y, NumericVector mu, doubl
     arma::vec dw_diag = -1 * w_diag % w_diag;
     arma::mat b = model_matrix.t() * (model_matrix.each_col() % w_diag);
     arma::mat db = model_matrix.t() * (model_matrix.each_col() % dw_diag);
-    cr_term = -0.5 * trace(b.i() * db) * cr_correction_factor;
+    // The diag(1e-6) protects against singular matrices
+    arma::mat b_inv = inv_sympd(b + arma::eye(b.n_rows, b.n_cols) * 1e-6);
+    cr_term = -0.5 * trace(b_inv * db) * cr_correction_factor;
   }
 
 
@@ -201,10 +211,11 @@ double conventional_deriv_score_function_fast(NumericVector y, NumericVector mu,
     arma::mat b = model_matrix.t() * (model_matrix.each_col() % w_diag);
     arma::mat db = model_matrix.t() * (model_matrix.each_col() % dw_diag);
     arma::mat d2b = model_matrix.t() * (model_matrix.each_col() % d2w_diag);
-    arma::mat b_i = b.i();
-    arma::mat d_i_db = b_i * db;
+    // The diag(1e-6) protects against singular matrices
+    arma::mat b_inv = inv_sympd(b + arma::eye(b.n_rows, b.n_cols) * 1e-6);
+    arma::mat d_i_db = b_inv * db;
     double ddetb = trace(d_i_db);
-    double d2detb = ((R_pow_di(ddetb, 2) - trace(d_i_db * d_i_db) + trace(b_i * d2b)) );
+    double d2detb = ((R_pow_di(ddetb, 2) - trace(d_i_db * d_i_db) + trace(b_inv * d2b)) );
     cr_term = (0.5 * R_pow_di(ddetb, 2) - 0.5 * d2detb)  * cr_correction_factor;
     cr_term2 = -0.5 * ddetb * cr_correction_factor;
   }

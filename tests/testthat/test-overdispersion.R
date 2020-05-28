@@ -150,6 +150,35 @@ test_that("gampoi_overdispersion_mle can handle weird input 3", {
   expect_equal(est$estimate, 1e16)
 })
 
+test_that("gampoi_overdispersion_mle can handle weird input 4", {
+  y <- c(rep(0, times = 5), 2)
+  mu <- c(rep(1e-30, 5), 1.999999999999976)
+  X <- cbind(1, rep(c(0,1), each = 3), rnorm(6))
+  log_theta <- -3
+  res <- conventional_loglikelihood_fast(y, mu = mu, log_theta = log_theta,
+                                  model_matrix = X, do_cr_adj = TRUE)
+
+  expect_true(is.finite(res))
+
+  score <- conventional_score_function_fast(y, mu = mu, log_theta = log_theta,
+                                  model_matrix = X, do_cr_adj = TRUE)
+  expect_true(is.finite(score))
+
+  deriv <- conventional_deriv_score_function_fast(y, mu = mu, log_theta = log_theta,
+                                            model_matrix = X, do_cr_adj = TRUE)
+  expect_true(is.finite(deriv))
+  # w <- 1/(1/mu + exp(log_theta) + 1e-6)
+  # b <- t(X) %*% diag(w) %*% X
+  # det(b)
+  # xg <- seq(-25, 25, l = 1001)
+  # values <- sapply(xg, function(lt){
+  #   conventional_score_function_fast(y, mu = mu, log_theta = lt,
+  #                                   model_matrix = X, do_cr_adj = TRUE)
+  # })
+  # plot(xg, values)
+})
+
+
 
 test_that("Estimation methods can handle Infinite dispersion", {
   # For some reason this model matrix makes the dispersion estimate

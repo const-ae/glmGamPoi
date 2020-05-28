@@ -203,9 +203,9 @@ estimate_overdispersions <- function(Y, mean_matrix, model_matrix, do_cox_reid_a
   ## for HDF5 backed matrices by a factor of 50 and gives almost equivalent speed to in RAM
   ## methods.
   # vapply(seq_len(nrow(Y)), function(gene_idx){
-  #   gampoi_overdispersion_mle(y = Y[gene_idx, ], mean_vector = mean_matrix[gene_idx, ],
+  #   gampoi_overdispersion_mle(y = Y[gene_idx, ], mean = mean_matrix[gene_idx, ],
   #                             model_matrix = model_matrix, do_cox_reid_adjustment = do_cox_reid_adjustment,
-  #                             n_subsamples = n_subsamples)$estimate
+  #                             subsample = subsample)$estimate
   # }, FUN.VALUE = 0.0)
   estimate_overdispersions_fast(Y, mean_matrix, model_matrix, do_cox_reid_adjustment, subsample)
 
