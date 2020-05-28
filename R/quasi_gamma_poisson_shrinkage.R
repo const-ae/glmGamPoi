@@ -39,7 +39,7 @@ gampoi_test_qlr <- function(data, fit,
   lr <- deviance_alt - deviance_full
   df_test <- ncol(fit$model_matrix) - ncol(fit_alt$model_matrix)
   df_fit <- fit$overdispersion_shrinkage_list$ql_df0 + (ncol(Y) - ncol(fit_alt$model_matrix))
-  f_stat <- lr / df_test / fit$overdispersion_shrinkage_list$ql_df0
+  f_stat <- lr / df_test / fit$overdispersion_shrinkage_list$ql_disp_shrunken
   pval <- pf(f_stat, df_test, df_fit, lower.tail = FALSE, log.p = FALSE)
   adj_pval <- p.adjust(pval, method = pval_adjust_method)
 
