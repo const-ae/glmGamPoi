@@ -17,7 +17,9 @@ inline double compute_gp_deviance (double y, double mu, double theta) {
     if(y == 0){
       return 2.0 * mu;
     }else{
-      return 2.0 * (y * std::log(y/mu) - (y - mu));
+      // the max is necessary because some combination of y and mu give negative results:
+      // e.g. y = 1, mu = 0.99999999999994
+      return std::max(2.0 * (y * std::log(y/mu) - (y - mu)), 0.0);
     }
   }else{
     // Otherwise calculate Gamma-Poisson deviance
@@ -26,7 +28,7 @@ inline double compute_gp_deviance (double y, double mu, double theta) {
     } else {
       double s1 = y * std::log((mu + y * mu * theta) / (y +  y * mu * theta));
       double s2 = 1.0/theta * std::log((1 + mu * theta) / (1 + y * theta));
-      return -2.0 * (s1 - s2);
+      return std::max(-2.0 * (s1 - s2), 0.0);
     }
   }
 }

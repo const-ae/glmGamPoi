@@ -116,3 +116,18 @@ test_that("qres.gampoi can handle other weird values", {
   res <- qres.gampoi(Y, Mu, overdispersion)
   expect_false(is.nan(res))
 })
+
+
+
+test_that("compute_gp_deviance can handle weird values", {
+  # This specific combination of parameters caused negative deviance
+  y <- 1
+  mu <- 0.99999999999994
+  theta <- 1e-7
+
+  # However, now qres.gampoi handles this edge case
+  res <- compute_gp_deviance(y, mu, theta)
+  expect_gte(res, 0)
+})
+
+
