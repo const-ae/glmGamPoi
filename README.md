@@ -45,20 +45,23 @@ To fit a single Gamma-Poisson GLM do:
 # overdispersion = 1/size
 counts <- rnbinom(n = 10, mu = 5, size = 1/0.7)
 # size_factors = FALSE, because only a single GLM is fitted
-fit <- glmGamPoi::glm_gp(counts, design = ~ 1, size_factors = FALSE)
+fit <- glmGamPoi::glm_gp(counts, design = ~ 1, size_factors = FALSE, overdispersion_shrinkage = FALSE)
 fit
 #> glmGamPoiFit object:
 #> The data had 1 rows and 10 columns.
 #> A model with 1 coefficient was fitted.
 
 # Internally fit is just a list:
-c(fit)
+as.list(fit)
 #> $Beta
 #>      Intercept
 #> [1,]  1.504077
 #> 
 #> $overdispersions
 #> [1] 0.3792855
+#> 
+#> $overdispersion_shrinkage_list
+#> NULL
 #> 
 #> $Mu
 #>      [,1] [,2] [,3] [,4] [,5] [,6] [,7] [,8] [,9] [,10]
@@ -152,8 +155,8 @@ summary(fit)
 #>  0.402   0.969      1    1.05 1.75
 #> 
 #> Mu:
-#>       Min 1st Qu. Median 3rd Qu.  Max
-#>  9.24e-05 0.00158 0.0229   0.087 4.81
+#>       Min 1st Qu. Median 3rd Qu. Max
+#>  9.24e-05 0.00158 0.0229  0.0871 4.8
 ```
 
 # Benchmark
@@ -167,7 +170,7 @@ fitting the Gamma-Poisson model, so this benchmark only serves to give a
 general impression of the performance.
 
 ``` r
-# Explicitly realize count matrix in memory
+# Explicitly realize count matrix in memory so that it is a fair comparison
 pbmcs_subset <- as.matrix(assay(pbmcs_subset))
 model_matrix <- matrix(1, nrow = ncol(pbmcs_subset))
 
@@ -189,15 +192,15 @@ bench::mark(
     edgeR_data <- edgeR::calcNormFactors(edgeR_data)
     edgeR_data <- edgeR::estimateDisp(edgeR_data, model_matrix)
     edgeR_fit <- edgeR::glmFit(edgeR_data, design = model_matrix)
-  }, check = FALSE
+  }, check = FALSE, min_iterations = 3
 )
 #> # A tibble: 4 x 6
 #>   expression               min   median `itr/sec` mem_alloc `gc/sec`
 #>   <bch:expr>          <bch:tm> <bch:tm>     <dbl> <bch:byt>    <dbl>
-#> 1 glmGamPoi_in_memory 722.56ms 722.56ms    1.38    299.08MB    2.77 
-#> 2 glmGamPoi_on_disk      4.19s    4.19s    0.239   666.65MB    0.955
-#> 3 DESeq2                21.04s   21.04s    0.0475    1.15GB    0.333
-#> 4 edgeR                  5.45s    5.45s    0.183     1.19GB    1.83
+#> 1 glmGamPoi_in_memory 766.61ms 773.09ms    1.01    310.37MB    2.35 
+#> 2 glmGamPoi_on_disk      4.17s    4.24s    0.236   687.88MB    1.10 
+#> 3 DESeq2                20.53s   20.85s    0.0481    1.15GB    0.401
+#> 4 edgeR                  5.52s    5.54s    0.180     1.19GB    1.32
 ```
 
 On this dataset, `glmGamPoi` is more than 6 times faster than `edgeR`
@@ -246,8 +249,8 @@ overdispersions calculated with `glmGamPoi`.
 
 The method scales linearly, with the number of rows and columns in the
 dataset. For example: fitting the full `pbmc4k` dataset with subsampling
-on a modern MacBook Pro in-memory takes ~1 minute and on-disk a little
-over 4 minutes. Fitting the `pbmc68k` (17x the size) takes ~73 minutes
+on a modern MacBook Pro in-memory takes \~1 minute and on-disk a little
+over 4 minutes. Fitting the `pbmc68k` (17x the size) takes \~73 minutes
 (17x the time) on-disk. Fitting that dataset in-memory is not possible
 because it is just too big: the maximum in-memory matrix size is `2^31-1
 ≈ 2.1e9` is elements, the `pbmc68k` dataset however has nearly 100
@@ -276,7 +279,7 @@ sessionInfo()
 #>  [1] TENxPBMCData_1.6.0          HDF5Array_1.16.0           
 #>  [3] rhdf5_2.32.0                SingleCellExperiment_1.10.1
 #>  [5] DelayedMatrixStats_1.10.0   SummarizedExperiment_1.18.1
-#>  [7] DelayedArray_0.14.0         matrixStats_0.56.0         
+#>  [7] DelayedArray_0.14.0         matrixStats_0.56.0-9000    
 #>  [9] Biobase_2.48.0              GenomicRanges_1.40.0       
 #> [11] GenomeInfoDb_1.24.0         IRanges_2.22.1             
 #> [13] S4Vectors_0.26.0            BiocGenerics_0.34.0        
@@ -304,8 +307,8 @@ sessionInfo()
 #> [39] Rcpp_1.0.4.6                  munsell_0.5.0                
 #> [41] Rhdf5lib_1.10.0               lifecycle_0.2.0              
 #> [43] stringi_1.4.6                 yaml_2.2.1                   
-#> [45] edgeR_3.30.0                  zlibbioc_1.34.0              
-#> [47] glmGamPoi_1.1.1               BiocFileCache_1.12.0         
+#> [45] edgeR_3.27.8                  zlibbioc_1.34.0              
+#> [47] glmGamPoi_1.1.4               BiocFileCache_1.12.0         
 #> [49] AnnotationHub_2.20.0          grid_4.0.0                   
 #> [51] blob_1.2.1                    promises_1.1.0               
 #> [53] ExperimentHub_1.14.0          crayon_1.3.4                 

@@ -56,11 +56,11 @@ To fit a single Gamma-Poisson GLM do:
 # overdispersion = 1/size
 counts <- rnbinom(n = 10, mu = 5, size = 1/0.7)
 # size_factors = FALSE, because only a single GLM is fitted
-fit <- glmGamPoi::glm_gp(counts, design = ~ 1, size_factors = FALSE)
+fit <- glmGamPoi::glm_gp(counts, design = ~ 1, size_factors = FALSE, overdispersion_shrinkage = FALSE)
 fit
 
 # Internally fit is just a list:
-c(fit)
+as.list(fit)
 ```
 
 The `glm_gp()` function returns a list with the results of the fit. Most importantly, it contains the estimates for the coefficients β and the overdispersion.
@@ -96,8 +96,10 @@ summary(fit)
 
 I compare my method (in-memory and on-disk) with `r BiocStyle::Biocpkg("DESeq2")` and `r BiocStyle::Biocpkg("edgeR")`. Both are classical methods for analyzing RNA-Seq datasets and have been around for almost 10 years. Note that both tools can do a lot more than just fitting the Gamma-Poisson model, so this benchmark only serves to give a general impression of the performance.
 
+
+
 ```{r, warning=FALSE}
-# Explicitly realize count matrix in memory
+# Explicitly realize count matrix in memory so that it is a fair comparison
 pbmcs_subset <- as.matrix(assay(pbmcs_subset))
 model_matrix <- matrix(1, nrow = ncol(pbmcs_subset))
 
@@ -119,7 +121,7 @@ bench::mark(
     edgeR_data <- edgeR::calcNormFactors(edgeR_data)
     edgeR_data <- edgeR::estimateDisp(edgeR_data, model_matrix)
     edgeR_fit <- edgeR::glmFit(edgeR_data, design = model_matrix)
-  }, check = FALSE
+  }, check = FALSE, min_iterations = 3
 )
 ```
 
