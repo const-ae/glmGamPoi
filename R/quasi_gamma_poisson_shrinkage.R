@@ -31,6 +31,11 @@ gampoi_test_qlr <- function(data, fit,
                     overdispersion = disp_trend,
                     overdispersion_shrinkage = FALSE)
 
+  if(ncol(fit_alt$model_matrix) >= ncol(fit$model_matrix)){
+    stop("The reduced model is as complex (or even more complex) than ",
+         "the 'fit' model. The 'reduced_design' should contain fewer terms ",
+         "the original 'design'.")
+  }
 
   # Likelihood ratio
   if(verbose){message("Calculate quasi likelihood ratio")}
@@ -38,6 +43,7 @@ gampoi_test_qlr <- function(data, fit,
   deviance_alt <- DelayedMatrixStats::rowSums2(compute_gp_deviance_residuals_matrix(Y, fit_alt$Mu, disp_trend)^2)
   lr <- deviance_alt - deviance_full
   df_test <- ncol(fit$model_matrix) - ncol(fit_alt$model_matrix)
+  df_test <- ifelse(df_test == 0, NA, df_test)
   df_fit <- fit$overdispersion_shrinkage_list$ql_df0 + (ncol(Y) - ncol(fit_alt$model_matrix))
   f_stat <- lr / df_test / fit$overdispersion_shrinkage_list$ql_disp_shrunken
   pval <- pf(f_stat, df_test, df_fit, lower.tail = FALSE, log.p = FALSE)
@@ -76,7 +82,7 @@ shrink_ql_dispersion <- function(disp_est, gene_means,
   variances <- gene_means + disp_est * gene_means^2
   ql_disp <- variances / (gene_means + disp_trend * gene_means^2)
   # Lund et al. 2012. Equation 4. Not ideal for very small counts
-  # ql_disp <- rowSums2(compute_gp_deviance_residuals_matrix(Y, Mu, disp_trend)^2) / (subsample - ncol(model_matrix))
+  # ql_disp <- rowSums2(compute_gp_deviance_residuals_matrix(Y, Mu, disp_trend)^2) / df
 
   var_pr <- variance_prior(ql_disp, df, covariate = gene_means)
   list(dispersion_trend = disp_trend, ql_disp_estimate = ql_disp,
