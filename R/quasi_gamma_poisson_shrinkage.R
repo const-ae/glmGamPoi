@@ -34,8 +34,8 @@ gampoi_test_qlr <- function(data, fit,
 
   # Likelihood ratio
   if(verbose){message("Calculate quasi likelihood ratio")}
-  deviance_full <- rowSums(compute_gp_deviance_residuals_matrix(Y, fit$Mu, disp_trend)^2)
-  deviance_alt <- rowSums(compute_gp_deviance_residuals_matrix(Y, fit_alt$Mu, disp_trend)^2)
+  deviance_full <- DelayedMatrixStats::rowSums2(compute_gp_deviance_residuals_matrix(Y, fit$Mu, disp_trend)^2)
+  deviance_alt <- DelayedMatrixStats::rowSums2(compute_gp_deviance_residuals_matrix(Y, fit_alt$Mu, disp_trend)^2)
   lr <- deviance_alt - deviance_full
   df_test <- ncol(fit$model_matrix) - ncol(fit_alt$model_matrix)
   df_fit <- fit$overdispersion_shrinkage_list$ql_df0 + (ncol(Y) - ncol(fit_alt$model_matrix))
