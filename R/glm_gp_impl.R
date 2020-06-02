@@ -64,16 +64,17 @@ glm_gp_impl <- function(Y, model_matrix,
     if(verbose){ message("Make initial beta estimate") }
     beta_vec_init <- estimate_betas_roughly_one_group(Y, offset_matrix)
     if(verbose){ message("Estimate beta") }
-    Beta <- estimate_betas_one_group(Y, offset_matrix = offset_matrix,
-                                         dispersions = disp_init, beta_vec_init = beta_vec_init)$Beta
+    beta_res <- estimate_betas_one_group(Y, offset_matrix = offset_matrix,
+                                         dispersions = disp_init, beta_vec_init = beta_vec_init)
   }else{
     # Init beta with reasonable values
     if(verbose){ message("Make initial beta estimate") }
     beta_init <- estimate_betas_roughly(Y, model_matrix, offset_matrix = offset_matrix)
     if(verbose){ message("Estimate beta") }
-    Beta <- estimate_betas_fisher_scoring(Y, model_matrix = model_matrix, offset_matrix = offset_matrix,
-                                              dispersions = disp_init, beta_mat_init = beta_init)$Beta
+    beta_res <- estimate_betas_fisher_scoring(Y, model_matrix = model_matrix, offset_matrix = offset_matrix,
+                                              dispersions = disp_init, beta_mat_init = beta_init)
   }
+  Beta <- beta_res$Beta
 
   # Calculate corresponding predictions
   # Mu <- exp(Beta %*% t(model_matrix) + offset_matrix)
@@ -99,12 +100,13 @@ glm_gp_impl <- function(Y, model_matrix,
     # Estimate the betas again (only necessary if disp_est has changed)
     if(verbose){ message("Estimate beta again") }
     if(only_intercept_model){
-      Beta <- estimate_betas_one_group(Y, offset_matrix = offset_matrix,
-                                       dispersions = disp_latest, beta_vec_init = Beta[,1])$Beta
+      beta_res <- estimate_betas_one_group(Y, offset_matrix = offset_matrix,
+                                       dispersions = disp_latest, beta_vec_init = Beta[,1])
     }else{
-      Beta <- estimate_betas_fisher_scoring(Y, model_matrix = model_matrix, offset_matrix = offset_matrix,
-                                            dispersions = disp_latest, beta_mat_init = Beta)$Beta
+      beta_res <- estimate_betas_fisher_scoring(Y, model_matrix = model_matrix, offset_matrix = offset_matrix,
+                                            dispersions = disp_latest, beta_mat_init = Beta)
     }
+    Beta <- beta_res$Beta
 
     # Calculate corresponding predictions
     Mu <- calculate_mu(Beta, model_matrix, offset_matrix)
@@ -116,12 +118,15 @@ glm_gp_impl <- function(Y, model_matrix,
                                                  disp_trend = overdispersion_shrinkage, verbose = verbose)
     disp_latest <- dispersion_shrinkage$dispersion_trend
     if(only_intercept_model){
-      Beta <- estimate_betas_one_group(Y, offset_matrix = offset_matrix,
-                                       dispersions = disp_latest, beta_vec_init = Beta[,1])$Beta
+      beta_res <- estimate_betas_one_group(Y, offset_matrix = offset_matrix,
+                                       dispersions = disp_latest, beta_vec_init = Beta[,1])
     }else{
-      Beta <- estimate_betas_fisher_scoring(Y, model_matrix = model_matrix, offset_matrix = offset_matrix,
-                                            dispersions = disp_latest, beta_mat_init = Beta)$Beta
+      beta_res <- estimate_betas_fisher_scoring(Y, model_matrix = model_matrix, offset_matrix = offset_matrix,
+                                            dispersions = disp_latest, beta_mat_init = Beta)
     }
+    Beta <- beta_res$Beta
+    # Calculate corresponding predictions
+    Mu <- calculate_mu(Beta, model_matrix, offset_matrix)
   }else{
     # Use disp_init, because it is already in vector shape
     disp_est <- disp_init
@@ -133,6 +138,7 @@ glm_gp_impl <- function(Y, model_matrix,
   list(Beta = Beta,
        overdispersions = disp_est,
        overdispersion_shrinkage_list = dispersion_shrinkage,
+       deviances = beta_res$deviance,
        Mu = Mu, size_factors = size_factors)
 }
 

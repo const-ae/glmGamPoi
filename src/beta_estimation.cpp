@@ -135,6 +135,7 @@ List fitBeta_fisher_scoring_impl(RObject Y, const arma::mat& model_matrix, RObje
       double dev = decrease_deviance(beta_hat, mu_hat, step, model_matrix, exp_off, counts,
                                      thetas(gene_idx), dev_old, tolerance);
       double conv_test = fabs(dev - dev_old)/(fabs(dev) + 0.1);
+      dev_old = dev;
       if (std::isnan(conv_test)) {
         // This should not happen
         beta_hat.fill(NA_REAL);
@@ -144,14 +145,15 @@ List fitBeta_fisher_scoring_impl(RObject Y, const arma::mat& model_matrix, RObje
       if (conv_test < tolerance) {
         break;
       }
-      dev_old = dev;
     }
     beta_mat.row(gene_idx) = beta_hat.t();
+    deviance(gene_idx) = dev_old;
   }
 
   return List::create(
     Named("beta_mat", beta_mat),
-    Named("iter", iterations));
+    Named("iter", iterations),
+    Named("deviance", deviance));
 }
 
 
@@ -216,6 +218,7 @@ List fitBeta_one_group_internal(SEXP Y_SEXP, SEXP offsets_SEXP,
   int n_genes = Y_bm->get_nrow();
   NumericVector result(n_genes);
   IntegerVector iterations(n_genes);
+  NumericVector deviance(n_genes);
 
   for(int gene_idx = 0; gene_idx < n_genes; gene_idx++){
     if (gene_idx % 100 == 0) checkUserInterrupt();
@@ -254,10 +257,16 @@ List fitBeta_one_group_internal(SEXP Y_SEXP, SEXP offsets_SEXP,
     }
     result(gene_idx) = beta;
     iterations(gene_idx) = iter;
+    double dev = 0.0;
+    for(int sample_iter = 0; sample_iter < n_samples; sample_iter++){
+      dev += compute_gp_deviance(counts[sample_iter], exp(beta + off[sample_iter]), theta);
+    }
+    deviance(gene_idx) = dev;
   }
   return List::create(
     Named("beta", result),
-    Named("iter", iterations)
+    Named("iter", iterations),
+    Named("deviance", deviance)
   );
 }
 

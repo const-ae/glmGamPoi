@@ -210,6 +210,7 @@ glm_gp <- function(data,
   rownames(res$Mu) <- rownames(data)
   colnames(res$Mu) <- colnames(data)
   names(res$overdispersions) <- rownames(data)
+  names(res$deviances) <- rownames(data)
   names(res$size_factors) <- colnames(data)
 
   class(res) <- "glmGamPoi"

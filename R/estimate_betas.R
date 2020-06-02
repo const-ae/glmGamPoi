@@ -42,8 +42,7 @@ estimate_betas_fisher_scoring <- function(Y, model_matrix, offset_matrix,
     betaRes <- fitBeta_diagonal_fisher_scoring(Y, model_matrix, exp(offset_matrix), dispersions, beta_mat_init,
                                                tolerance = 1e-8, max_iter =  5000)
   }
-
-  list(Beta = betaRes$beta_mat, iterations = betaRes$iter)
+  list(Beta = betaRes$beta_mat, iterations = betaRes$iter, deviances = betaRes$deviance)
 }
 
 
@@ -74,7 +73,7 @@ estimate_betas_one_group <- function(Y, offset_matrix,  dispersions, beta_vec_in
                                beta_start_values = beta_vec_init,
                                tolerance = 1e-8, maxIter = 100)
 
-
   list(Beta = matrix(betaRes$beta, nrow = nrow(Y), ncol = 1),
-       iterations = betaRes$iter)
+       iterations = betaRes$iter,
+       deviances = betaRes$deviance)
 }
