@@ -1,5 +1,23 @@
 
 
+test_that("loc_median_fit works", {
+  x <- sample(1:10)
+  y <- rnorm(n = 10)
+  r1 <- loc_median_fit(x, y)
+
+  r2 <- loc_median_fit(x, y, fraction = 1, weighted = FALSE)
+  expect_equal(r2, rep(median(y), 10))
+  r25 <- loc_median_fit(x[-1], y[-1], fraction = 1, weighted = FALSE)
+  expect_equal(r25, rep(median(y[-1]), 9))
+
+  r4 <- loc_median_fit(x[1], y[1])
+  expect_equal(r4, y[1])
+
+  r5 <- loc_median_fit(numeric(0), numeric(0))
+  expect_equal(r5, numeric(0))
+})
+
+
 test_that("variance prior estimation works", {
   n <- 1000
   true_df0 <- 5
@@ -73,14 +91,6 @@ test_that("shrinkage makes sense", {
 
 
 
-
-library(DESeq2)
-dds <- DESeqDataSet(se, design = ~ condition)
-# dds <- estimateSizeFactors(dds)
-sizeFactors(dds) <- sf
-dds <- estimateDispersionsGeneEst(dds)
-dds <- estimateDispersionsFit(dds)
-dds <- estimateDispersionsMAP(dds)
 
 
 

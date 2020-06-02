@@ -9,19 +9,32 @@
 #'
 #'
 #' @keywords internal
-loc_median_fit <- function(x, y, fraction = 0.1, npoints = round(length(x) * fraction), weighted = TRUE, ignore_zeros = FALSE){
+loc_median_fit <- function(x, y, fraction = 0.1, npoints = max(1, round(length(x) * fraction)),
+                           weighted = TRUE, ignore_zeros = FALSE){
   stopifnot(length(x) == length(y))
+  if(length(x) == 0){
+    return(numeric(0L))
+  }
   stopifnot(npoints > 0 && npoints <= length(x))
   ordered_y <- y[order(x)]
   half_points <- floor(npoints/2)
   start <- half_points + 1
   end <- length(x) - half_points
+  weights <- dnorm(seq(-3, 3, length.out = half_points * 2 + 1))
+
+  if(end < start){
+    if(weighted){
+      wm <- matrixStats::weightedMedian(y, w =  dnorm(seq(-3, 3, length.out = length(x))))
+      return(rep(wm, length(x)))
+    }else{
+      return(rep(median(y), length(x)))
+    }
+  }
 
   res <- rep(NA, length(x))
   idx <- start
-  weights <- dnorm(seq(-3, 3, length.out = half_points * 2 + 1))
 
-  while(idx < end){
+  while(idx <= end){
     selection <- ordered_y[seq(idx - half_points, idx + half_points)]
     if(ignore_zeros){
       if(weighted){
@@ -43,7 +56,7 @@ loc_median_fit <- function(x, y, fraction = 0.1, npoints = round(length(x) * fra
 
   # Fill up NA's at the beginning and the end
   res[seq(1, start - 1)] <- res[start]
-  res[seq(length(x), end)] <- res[end - 1]
+  res[seq(length(x), end+1)] <- res[end]
 
   res[order(order(x))]
 }
