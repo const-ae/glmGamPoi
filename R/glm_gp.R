@@ -43,6 +43,12 @@
 #'   for each gene. Or it can be a numeric vector of length `nrow(data)`. Note that `overdispersion = 0` and
 #'   `overdispersion = FALSE` are equivalent and both reduce the Gamma-Poisson to the classical Poisson
 #'   model. Default: `TRUE`.
+#' @param overdispersion_shrinkage the overdispersion can be difficult to estimate with few replicates. To
+#'   improve the overdispersion estimates, we can share information across genes and shrink each individual
+#'   overdispersion estimate towards a global overdispersion estimate. Empirical studies show however that
+#'   the overdispersion varies based on the mean expression level (lower expression level => higher
+#'   dispersion). If `overdispersion_shrinkage = TRUE`, a median trend of dispersion and expression level is
+#'   fit and used to estimate the variances of a quasi Gamma Poisson model (Lund et al. 2012). Default: `TRUE`.
 #' @param do_cox_reid_adjustment the classical maximum likelihood estimator of the `overdisperion` is biased
 #'   towards small values. McCarthy _et al._ (2012) showed that it is preferable to optimize the Cox-Reid
 #'   adjusted profile likelihood.\cr
@@ -158,6 +164,10 @@
 #'   * Lun ATL, Pagès H, Smith ML (2018). “beachmat: A Bioconductor C++ API for accessing high-throughput
 #'   biological data from a variety of R matrix types.” PLoS Comput. Biol., 14(5), e1006135. doi:
 #'   [10.1371/journal.pcbi.1006135.](https://doi.org/10.1371/journal.pcbi.1006135).
+#'   * Lund, S. P., Nettleton, D., McCarthy, D. J., & Smyth, G. K. (2012). Detecting differential expression
+#'   in RNA-sequence data using quasi-likelihood with shrunken dispersion estimates. Statistical
+#'   Applications in Genetics and Molecular Biology, 11(5).
+#'   [https://doi.org/10.1515/1544-6115.1826](https://doi.org/10.1515/1544-6115.1826).
 #'
 #' @export
 glm_gp <- function(data,

@@ -45,6 +45,13 @@ for each gene. Or it can be a numeric vector of length \code{nrow(data)}. Note t
 \code{overdispersion = FALSE} are equivalent and both reduce the Gamma-Poisson to the classical Poisson
 model. Default: \code{TRUE}.}
 
+\item{overdispersion_shrinkage}{the overdispersion can be difficult to estimate with few replicates. To
+improve the overdispersion estimates, we can share information across genes and shrink each individual
+overdispersion estimate towards a global overdispersion estimate. Empirical studies show however that
+the overdispersion varies based on the mean expression level (lower expression level => higher
+dispersion). If \code{overdispersion_shrinkage = TRUE}, a median trend of dispersion and expression level is
+fit and used to estimate the variances of a quasi Gamma Poisson model (Lund et al. 2012). Default: \code{TRUE}.}
+
 \item{do_cox_reid_adjustment}{the classical maximum likelihood estimator of the \code{overdisperion} is biased
 towards small values. McCarthy \emph{et al.} (2012) showed that it is preferable to optimize the Cox-Reid
 adjusted profile likelihood.\cr

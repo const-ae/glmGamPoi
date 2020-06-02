@@ -7,13 +7,14 @@
 gampoi_test_qlr(
   data,
   fit,
-  alternative_design = NULL,
-  contrast = NULL,
+  reduced_design = NULL,
+  coef = NULL,
   col_data = NULL,
   pval_adjust_method = "BH",
   sort_by = NULL,
   decreasing = FALSE,
-  n_max = Inf
+  n_max = Inf,
+  verbose = FALSE
 )
 }
 \description{

@@ -12,6 +12,7 @@ glm_gp(
   offset = 0,
   size_factors = TRUE,
   overdispersion = TRUE,
+  overdispersion_shrinkage = TRUE,
   do_cox_reid_adjustment = TRUE,
   subsample = FALSE,
   on_disk = NULL,
@@ -60,6 +61,13 @@ allows a more flexible mean-variance relation (\eqn{variance = mean + mean^2 * o
 for each gene. Or it can be a numeric vector of length \code{nrow(data)}. Note that \code{overdispersion = 0} and
 \code{overdispersion = FALSE} are equivalent and both reduce the Gamma-Poisson to the classical Poisson
 model. Default: \code{TRUE}.}
+
+\item{overdispersion_shrinkage}{the overdispersion can be difficult to estimate with few replicates. To
+improve the overdispersion estimates, we can share information across genes and shrink each individual
+overdispersion estimate towards a global overdispersion estimate. Empirical studies show however that
+the overdispersion varies based on the mean expression level (lower expression level => higher
+dispersion). If \code{overdispersion_shrinkage = TRUE}, a median trend of dispersion and expression level is
+fit and used to estimate the variances of a quasi Gamma Poisson model (Lund et al. 2012). Default: \code{TRUE}.}
 
 \item{do_cox_reid_adjustment}{the classical maximum likelihood estimator of the \code{overdisperion} is biased
 towards small values. McCarthy \emph{et al.} (2012) showed that it is preferable to optimize the Cox-Reid
@@ -185,6 +193,10 @@ expression analysis of digital gene expression data. Bioinformatics, 26(1), 139�
 \item Lun ATL, Pagès H, Smith ML (2018). “beachmat: A Bioconductor C++ API for accessing high-throughput
 biological data from a variety of R matrix types.” PLoS Comput. Biol., 14(5), e1006135. doi:
 \href{https://doi.org/10.1371/journal.pcbi.1006135}{10.1371/journal.pcbi.1006135.}.
+\item Lund, S. P., Nettleton, D., McCarthy, D. J., & Smyth, G. K. (2012). Detecting differential expression
+in RNA-sequence data using quasi-likelihood with shrunken dispersion estimates. Statistical
+Applications in Genetics and Molecular Biology, 11(5).
+\url{https://doi.org/10.1515/1544-6115.1826}.
 }
 }
 \seealso{
