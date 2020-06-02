@@ -18,6 +18,40 @@ test_that("loc_median_fit works", {
 })
 
 
+
+test_that("shrink_ql_dispersion is robust", {
+
+  expect_silent({
+    mu <- rnorm(n = 100, mean = 5, sd = 0.1)
+    disp_est <- rnorm(n = 100,  mean = 2, sd = 0.2)
+    my_res <- shrink_ql_dispersion(disp_est, mu, df = 2)
+
+
+    mu <- rnorm(n = 100, mean = 5, sd = 0.1)
+    disp_est <- rep(2.1, 100)
+    shrink_ql_dispersion(disp_est, mu, df = 2)
+
+
+    mu <- c(3, 2)
+    disp_est <- c(1,1)
+    shrink_ql_dispersion(disp_est, mu, df = 2)
+
+    mu <- c(3, 0)
+    disp_est <- c(1,1)
+    shrink_ql_dispersion(disp_est, mu, df = 2)
+
+
+    mu <- 2
+    disp_est <- 2
+    shrink_ql_dispersion(disp_est, mu, df = 2)
+
+    mu <- 0
+    disp_est <- 1
+    shrink_ql_dispersion(disp_est, mu, df = 2)
+  })
+})
+
+
 test_that("variance prior estimation works", {
   n <- 1000
   true_df0 <- 5
@@ -62,33 +96,6 @@ test_that("variance prior estimation works with covariates", {
   expect_gt(loglikelihood_gp, loglikelihood_limma)
 
 })
-
-
-
-test_that("shrinkage makes sense", {
-
-  se <- HighlyReplicatedRNASeq::Schurch16()
-  colData(se)$cont <- rnorm(n = ncol(se))
-  fit <- glm_gp(se, design = ~ condition + cont, verbose = TRUE)
-
-  res <- gampoi_test_qlr(se, fit, reduced_design = ~ cont, verbose = TRUE)
-
-  hist(res$pval)
-
-  gene_means <- rowMeans(fit$Mu)
-
-  plot(gene_means, fit$overdispersions, log = "xy", cex = 0.7)
-  # points(gene_means, fit$overdispersion_shrunken, col = "blue", pch = 16, cex = 0.4)
-  # lines(sort(gene_means), fit$overdispersion_trend[order(gene_means)], col = "red")
-
-  # s2 <- rowSums(residuals.glmGamPoi(fit, assay(se))^2) / (ncol(se) - ncol(fit$model_matrix))
-
-  plot(gene_means, fit$ql_disp_estimate^(1/4), log = "x")
-  lines(sort(gene_means), fit$ql_disp_trend[order(gene_means)]^(1/4), col ="red")
-  points(gene_means, fit$ql_disp_shrunk^(1/4), col ="blue", pch  =16 , cex = 0.3)
-
-})
-
 
 
 

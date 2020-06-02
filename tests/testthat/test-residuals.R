@@ -10,7 +10,7 @@ test_that("residual calculation works", {
 
   expect_equal(c(t(residuals(fit, Y, "response"))),
               unname(c(residuals.glm(r_fit1, "response"), residuals.glm(r_fit2, "response"))),
-              tolerance = 1e-5)
+              tolerance = 1e-4)
   expect_equal(c(t(residuals(fit, Y, "working"))),
                unname(c(residuals.glm(r_fit1, "working"), residuals.glm(r_fit2, "working"))),
                tolerance = 1e-5)
@@ -48,7 +48,7 @@ test_that("residual calculation works with Delayed Matrix", {
 
   expect_equal(c(t(residuals(fit, Y_hdf5, "response"))),
                unname(c(residuals.glm(r_fit1, "response"), residuals.glm(r_fit2, "response"))),
-               tolerance = 1e-5)
+               tolerance = 1e-4)
   expect_equal(c(t(residuals(fit, Y_hdf5, "working"))),
                unname(c(residuals.glm(r_fit1, "working"), residuals.glm(r_fit2, "working"))),
                tolerance = 1e-5)

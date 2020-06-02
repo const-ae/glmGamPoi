@@ -324,7 +324,7 @@ handle_subsample_parameter <- function(data, subsample){
   }else{
     n_subsamples <- subsample
   }
-  n_subsamples
+  min(n_subsamples, ncol(data))
 }
 
 

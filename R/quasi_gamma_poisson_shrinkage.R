@@ -77,8 +77,10 @@ shrink_ql_dispersion <- function(disp_est, gene_means,
   # The following equations are used to go between quasi-likelihood and normal representation
   # variance = (gene_means + disp_est * gene_means^2)
   # variance = ql_disp * (gene_means + disp_trend * gene_means^2)
-  variances <- gene_means + disp_est * gene_means^2
-  ql_disp <- variances / (gene_means + disp_trend * gene_means^2)
+  # variances <- gene_means + disp_est * gene_means^2
+  # ql_disp <- variances / (gene_means + disp_trend * gene_means^2)
+  ql_disp <- (1 + gene_means * disp_est) / (1 + gene_means * disp_trend)
+
   # Lund et al. 2012. Equation 4. Not ideal for very small counts
   # ql_disp <- rowSums2(compute_gp_deviance_residuals_matrix(Y, Mu, disp_trend)^2) / df
 
@@ -120,13 +122,18 @@ shrink_ql_dispersion <- function(disp_est, gene_means,
 variance_prior <- function(s2, df, covariate = NULL){
   stopifnot(length(s2) == length(df) || length(df) == 1)
   stopifnot(is.null(covariate) || length(covariate) == length(s2))
+
+  if(all(is.na(s2))){
+    # This happens if input has zero columns
+    return(list(variance0 = NA, df0 = NA, var_post = s2))
+  }
   if(any(df <= 0, na.rm=TRUE)){
-    stop(paste0("All df must be positive. ", paste0(which(df < 0), collapse=", "), " are not."))
+    stop(paste0("All df must be positive. df ", paste0(which(df <= 0), collapse=", "), " are not."))
   }
   if(any(s2 <= 0, na.rm=TRUE)){
-    stop(paste0("All s2 must be positive. ", paste0(which(s2 < 0), collapse=", "), " are not."))
+    stop(paste0("All s2 must be positive. s2 ", paste0(which(s2 <= 0), collapse=", "), " are not."))
   }
-  if(is.null(covariate)){
+  if(is.null(covariate) || length(s2) <= 100){
     opt_res <- optim(par=c(log_variance0=0, log_df0_inv=0), function(par){
       -sum(df(s2/exp(par[1]), df1=df, df2=exp(par[2]), log=TRUE) - par[1], na.rm=TRUE)
     })

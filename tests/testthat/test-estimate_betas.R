@@ -332,38 +332,38 @@ test_that("glm_gp_impl can handle weird input 2", {
 
 
 
-test_that("glm_gp_impl works as expected", {
-  skip("No workable tests here")
-  # My method
-  data <- make_dataset(n_genes = 2000, n_samples = 30)
-  res <- glm_gp_impl(data$Y, model_matrix = data$X, verbose = TRUE)
-
-  # edgeR
-  edgeR_data <- edgeR::DGEList(data$Y)
-  edgeR_data <- edgeR::calcNormFactors(edgeR_data)
-  edgeR_data <- edgeR::estimateDisp(edgeR_data, data$X)
-  fit <- edgeR::glmFit(edgeR_data, design = data$X)
-
-  # DESeq2
-  dds <- DESeq2::DESeqDataSetFromMatrix(data$Y, colData = data.frame(name = seq_len(ncol(data$Y))),
-                                        design = ~ 1)
-  dds <- DESeq2::estimateSizeFactors(dds)
-  dds <- DESeq2::estimateDispersions(dds)
-  dds <- DESeq2::nbinomWaldTest(dds, minmu = 1e-6)
-
-  res <- glm_gp_impl(data$Y, model_matrix = data$X, size_factors = DESeq2::sizeFactors(dds),
-                     verbose = TRUE)
-  plot(res$size_factors, DESeq2::sizeFactors(dds)); abline(0,1)
-
-  plot(res$Beta[,1], coef(dds)[,1]  / log2(exp(1)), pch = 16, cex = 0.2, col ="red"); abline(0,1)
-  plot(res$Beta[,1], coef(fit)[,1]); abline(0,1)
-  plot(coef(dds)[,1]  / log2(exp(1)), coef(fit)[,1]); abline(0,1)
-
-
-  plot(res$overdispersions, SummarizedExperiment::rowData(dds)$dispGeneEst, log = "xy"); abline(0,1)
-  plot(res$overdispersions, edgeR_data$tagwise.dispersion, log = "xy"); abline(0,1)
-  plot(SummarizedExperiment::rowData(dds)$dispGeneEst, edgeR_data$tagwise.dispersion, log = "xy"); abline(0,1)
-})
+# test_that("glm_gp_impl works as expected", {
+#   skip("No workable tests here")
+#   # My method
+#   data <- make_dataset(n_genes = 2000, n_samples = 30)
+#   res <- glm_gp_impl(data$Y, model_matrix = data$X, verbose = TRUE)
+#
+#   # edgeR
+#   edgeR_data <- edgeR::DGEList(data$Y)
+#   edgeR_data <- edgeR::calcNormFactors(edgeR_data)
+#   edgeR_data <- edgeR::estimateDisp(edgeR_data, data$X)
+#   fit <- edgeR::glmFit(edgeR_data, design = data$X)
+#
+#   # DESeq2
+#   dds <- DESeq2::DESeqDataSetFromMatrix(data$Y, colData = data.frame(name = seq_len(ncol(data$Y))),
+#                                         design = ~ 1)
+#   dds <- DESeq2::estimateSizeFactors(dds)
+#   dds <- DESeq2::estimateDispersions(dds)
+#   dds <- DESeq2::nbinomWaldTest(dds, minmu = 1e-6)
+#
+#   res <- glm_gp_impl(data$Y, model_matrix = data$X, size_factors = DESeq2::sizeFactors(dds),
+#                      verbose = TRUE)
+#   plot(res$size_factors, DESeq2::sizeFactors(dds)); abline(0,1)
+#
+#   plot(res$Beta[,1], coef(dds)[,1]  / log2(exp(1)), pch = 16, cex = 0.2, col ="red"); abline(0,1)
+#   plot(res$Beta[,1], coef(fit)[,1]); abline(0,1)
+#   plot(coef(dds)[,1]  / log2(exp(1)), coef(fit)[,1]); abline(0,1)
+#
+#
+#   plot(res$overdispersions, SummarizedExperiment::rowData(dds)$dispGeneEst, log = "xy"); abline(0,1)
+#   plot(res$overdispersions, edgeR_data$tagwise.dispersion, log = "xy"); abline(0,1)
+#   plot(SummarizedExperiment::rowData(dds)$dispGeneEst, edgeR_data$tagwise.dispersion, log = "xy"); abline(0,1)
+# })
 
 
 
