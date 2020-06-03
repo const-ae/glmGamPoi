@@ -1,6 +1,6 @@
 test_that("glm_gp works for simple cases", {
   y <- rpois(n = 10, lambda = 3)
-  expect_warning({
+  expect_silent({
     tmp <- glm_gp(y, design = ~ 1)
   })
   tmp <- glm_gp(y, design = ~ 1, size_factors = FALSE)

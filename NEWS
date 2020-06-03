@@ -11,6 +11,9 @@ all y are 0, return iterations = 0
 + Add limits (1e-16 / 1e16) for nlminb estimates of the
 dispersion. This protects against errors due to NA's in
 the conventional_likelihood_fast
++ Automatically set 'size_factors = FALSE' for input with
+0 or 1 row. This will change the estimated beta, but not the
+mu's
 
 Changes in version 0.0.99 (2020-03-23)
 + Submitted to Bioconductor

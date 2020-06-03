@@ -11,7 +11,14 @@
 #' @return a vector with one size factor per column of `Y`
 #'
 #' @keywords internal
-estimate_size_factors <- function(Y){
+estimate_size_factors <- function(Y, verbose = FALSE){
+  if(nrow(Y) <= 1){
+    if(verbose) {
+      message("Skipping size factor estimation, because there is only a single gene.",
+            call. = FALSE)
+    }
+    return(rep(1, ncol(Y)))
+  }
   # Accept any matrix-like object
   log_geometric_means <- DelayedMatrixStats::rowMeans2(log(Y + 0.5))
   Y2 <- Y
@@ -49,14 +56,8 @@ combine_size_factors_and_offset <- function(offset, size_factors, Y, verbose = F
     }
   }
   if(isTRUE(size_factors)){
-    if(n_genes <= 1){
-      warning("Calculating the size factor does not make sense for a single gene.\n",
-              "Consider setting `size_factors = FALSE`.\n",
-              "Calculation will however proceed, be careful when interpreting the coefficients.",
-              call. = FALSE)
-    }
     if(verbose){ message("Calculate Size Factors") }
-    lsf <- log(estimate_size_factors(Y))
+    lsf <- log(estimate_size_factors(Y, verbose))
   }else if(isFALSE(size_factors)){
     lsf <- rep(0, n_samples)
   }else{
