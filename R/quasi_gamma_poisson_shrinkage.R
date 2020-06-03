@@ -52,7 +52,8 @@ gampoi_test_qlr <- function(data, fit,
     names <- sprintf(paste0("row_%0", floor(log10(nrow(data))), "i"), seq_len(nrow(data)))
   }
   if(verbose){message("Preprare results")}
-  res <- data.frame(name = names, pval = pval, adj_pval = adj_pval, f_statistic = f_stat, df1 = df_test, df2 = df_fit)
+  res <- data.frame(name = names, pval = pval, adj_pval = adj_pval, f_statistic = f_stat, df1 = df_test, df2 = df_fit,
+                    stringsAsFactors = FALSE, row.names = NULL)
   res <- if(is.null(sort_by)) {
     res
   }else{
