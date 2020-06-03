@@ -97,29 +97,41 @@ format.summary.glmGamPoi <- function(x, ...){
   }
 
   # Make String for Deviance
-  deviance_mat <- matrix(x$deviances, ncol = 1, dimnames = list(NULL, ""))
-  dev_summary <- paste0("\ndeviance:\n", format_matrix(my_matrix_summary(deviance_mat), digits = ndigits), "\n")
+  if(length(x$deviances) <= 1){
+    dev_summary <- paste0("\ndeviance: ", format(x$deviances, digits = ndigits), "\n")
+  }else{
+    deviance_mat <- matrix(x$deviances, ncol = 1, dimnames = list(NULL, ""))
+    dev_summary <- paste0("\ndeviance:\n", format_matrix(my_matrix_summary(deviance_mat), digits = ndigits), "\n")
+  }
 
   # Make String for Overdispersion
-  overdisp_mat <- matrix(x$overdispersions, ncol = 1, dimnames = list(NULL, ""))
-  overdisp_summary <- paste0("\noverdispersion:\n", format_matrix(my_matrix_summary(overdisp_mat), digits = ndigits), "\n")
+  if(length(x$overdispersions) == 1){
+    overdisp_summary <- paste0("\noverdispersion: ", format(x$overdispersions, digits = ndigits), "\n")
+  }else{
+    overdisp_mat <- matrix(x$overdispersions, ncol = 1, dimnames = list(NULL, ""))
+    overdisp_summary <- paste0("\noverdispersion:\n", format_matrix(my_matrix_summary(overdisp_mat), digits = ndigits), "\n")
+  }
 
   # Make String for Shrunken overdispersion
   if(is.null(x$overdispersion_shrinkage_list)){
     disp_shrunk_summary <- "\nNo quasi-likelihood overdispersion available\n"
   }else{
-    disp_shrunk_mat <- matrix(x$overdispersion_shrinkage_list$ql_disp_shrunken, ncol = 1, dimnames = list(NULL, ""))
-    disp_shrunk_summary <- paste0("\nShrunken quasi-likelihood overdispersion:\n", format_matrix(my_matrix_summary(disp_shrunk_mat), digits = ndigits), "\n")
+    if(length(x$overdispersion_shrinkage_list$ql_disp_shrunken) <= 1){
+      disp_shrunk_summary <- paste0("\nShrunken quasi-likelihood overdispersion: ", format(x$overdispersion_shrinkage_list$ql_disp_shrunken, digits = ndigits), "\n")
+    }else{
+      disp_shrunk_mat <- matrix(x$overdispersion_shrinkage_list$ql_disp_shrunken, ncol = 1, dimnames = list(NULL, ""))
+      disp_shrunk_summary <- paste0("\nShrunken quasi-likelihood overdispersion:\n", format_matrix(my_matrix_summary(disp_shrunk_mat), digits = ndigits), "\n")
+    }
   }
 
-
   # Make String for size factor
-  sf_mat <- matrix(x$size_factors, ncol = 1, dimnames = list(NULL, ""))
-  sf_summary <- paste0("\nsize_factors:\n", format_matrix(my_matrix_summary(sf_mat), digits = ndigits), "\n")
+  if(all(x$size_factors == 1)){
+    sf_summary <- paste0("\nsize_factors: ", FALSE, "\n")
+  }else{
+    sf_mat <- matrix(x$size_factors, ncol = 1, dimnames = list(NULL, ""))
+    sf_summary <- paste0("\nsize_factors:\n", format_matrix(my_matrix_summary(sf_mat), digits = ndigits), "\n")
+  }
 
-  # Make String for size factor
-  sf_mat <- matrix(x$size_factors, ncol = 1, dimnames = list(NULL, ""))
-  sf_summary <- paste0("\nsize_factors:\n", format_matrix(my_matrix_summary(sf_mat), digits = ndigits), "\n")
 
   # Make String for Mu
   if(is.matrix(x$Mu)){
@@ -141,7 +153,7 @@ format.summary.glmGamPoi <- function(x, ...){
 #'
 #' @keywords internal
 format_matrix <- function(matrix, digits = NULL){
-
+  stopifnot(is.matrix(matrix))
   rownames <- if(is.null(rownames(matrix))){
     if(nrow(matrix) > 0){
       paste0("[",seq_len(nrow(matrix)), ",]")
