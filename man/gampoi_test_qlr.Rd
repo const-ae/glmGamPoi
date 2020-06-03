@@ -17,6 +17,58 @@ gampoi_test_qlr(
   verbose = FALSE
 )
 }
+\arguments{
+\item{data}{any matrix-like object (e.g. \link{matrix}, \link{DelayedArray}, \link{HDF5Matrix}) or
+anything that can be cast to a \link{SummarizedExperiment} (e.g. \code{MSnSet}, \code{eSet} etc.) with
+one column per sample and row per gene.}
+
+\item{fit}{object of class \code{glmGamPoi}. Usually the result of calling \code{glm_gp(data, ...)}}
+
+\item{reduced_design}{a specification of the reduced design used as a comparison to see what
+how much better \code{fit} describes the data. \cr
+Analogous to the \code{design} parameter in \code{glm_gp()}, it can be either a \code{formula},
+a \code{model.matrix()}, or a \code{vector}.}
+
+\item{coef}{alternative way to specify the \code{reduced_design}. The \code{coef} column is removed
+from the full model matrix of \code{fit}. Only one of \code{coef} and \code{reduced_design} must be
+specified.}
+
+\item{col_data}{a dataframe with one row for each sample in \code{data}. Default: \code{NULL}.}
+
+\item{pval_adjust_method}{one of the p-value adjustment method from
+\link{p.adjust.methods}. Default: \code{"BH"}.}
+
+\item{sort_by}{the name of the column used to sort the result or \code{NULL} to return an
+unsorted table. Default: \code{NULL}}
+
+\item{decreasing}{boolean to decide if the result is sorted increasing or decreasing
+order. Default: \code{FALSE}.}
+
+\item{n_max}{the maximum number of rows to return. Default: \code{Inf} which means that all
+rows are returned}
+
+\item{verbose}{a boolean that indicates if information about the individual steps are printed
+while fitting the GLM. Default: \code{FALSE}.}
+}
+\value{
+a \code{data.frame} with the following columns
+\describe{
+\item{name}{the rownames of the input data}
+\item{pval}{the p-values of the quasi-likelihood ratio test}
+\item{adj_pval}{the adjusted p-values returned from \code{\link[=p.adjust]{p.adjust()}}}
+\item{f_statistic}{the F-statistic: \eqn{F = (Dev_full - Dev_red) / (df_1 * disp_ql-shrunken)}}
+\item{df1}{the degrees of freedom of the test: \code{ncol(design) - ncol(reduced_design)}}
+\item{df2}{the degrees of freedom of the fit: \code{ncol(data) - ncol(design) + df_0}}
+}
+}
 \description{
 Quasi-Likelihood Ratio test for the Gamma-Poisson
+}
+\references{
+\itemize{
+\item Lund, S. P., Nettleton, D., McCarthy, D. J., & Smyth, G. K. (2012). Detecting differential expression
+in RNA-sequence data using quasi-likelihood with shrunken dispersion estimates. Statistical
+Applications in Genetics and Molecular Biology, 11(5).
+\url{https://doi.org/10.1515/1544-6115.1826}.
+}
 }

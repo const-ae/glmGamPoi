@@ -2,6 +2,39 @@
 
 #' Quasi-Likelihood Ratio test for the Gamma-Poisson
 #'
+#' @inheritParams glm_gp
+#' @param fit object of class `glmGamPoi`. Usually the result of calling `glm_gp(data, ...)`
+#' @param reduced_design a specification of the reduced design used as a comparison to see what
+#'   how much better `fit` describes the data. \cr
+#'   Analogous to the `design` parameter in `glm_gp()`, it can be either a `formula`,
+#'   a `model.matrix()`, or a `vector`.
+#' @param coef alternative way to specify the `reduced_design`. The `coef` column is removed
+#'   from the full model matrix of `fit`. Only one of `coef` and `reduced_design` must be
+#'   specified.
+#' @param pval_adjust_method one of the p-value adjustment method from
+#'   [p.adjust.methods]. Default: `"BH"`.
+#' @param sort_by the name of the column used to sort the result or `NULL` to return an
+#'   unsorted table. Default: `NULL`
+#' @param decreasing boolean to decide if the result is sorted increasing or decreasing
+#'   order. Default: `FALSE`.
+#' @param n_max the maximum number of rows to return. Default: `Inf` which means that all
+#'   rows are returned
+#'
+#' @return a `data.frame` with the following columns
+#' \describe{
+#'   \item{name}{the rownames of the input data}
+#'   \item{pval}{the p-values of the quasi-likelihood ratio test}
+#'   \item{adj_pval}{the adjusted p-values returned from [p.adjust()]}
+#'   \item{f_statistic}{the F-statistic: \eqn{F = (Dev_full - Dev_red) / (df_1 * disp_ql-shrunken)}}
+#'   \item{df1}{the degrees of freedom of the test: `ncol(design) - ncol(reduced_design)`}
+#'   \item{df2}{the degrees of freedom of the fit: `ncol(data) - ncol(design) + df_0`}
+#' }
+#'
+#' @references
+#' * Lund, S. P., Nettleton, D., McCarthy, D. J., & Smyth, G. K. (2012). Detecting differential expression
+#'   in RNA-sequence data using quasi-likelihood with shrunken dispersion estimates. Statistical
+#'   Applications in Genetics and Molecular Biology, 11(5).
+#'   [https://doi.org/10.1515/1544-6115.1826](https://doi.org/10.1515/1544-6115.1826).
 #'
 #' @export
 gampoi_test_qlr <- function(data, fit,

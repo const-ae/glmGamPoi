@@ -4,7 +4,7 @@
 \alias{estimate_size_factors}
 \title{Estimate the Size Factors}
 \usage{
-estimate_size_factors(Y)
+estimate_size_factors(Y, verbose = FALSE)
 }
 \arguments{
 \item{Y}{any matrix-like object (\code{base::matrix()}, \code{DelayedArray}, \code{HDF5Matrix},

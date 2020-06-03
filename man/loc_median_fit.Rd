@@ -8,7 +8,7 @@ loc_median_fit(
   x,
   y,
   fraction = 0.1,
-  npoints = round(length(x) * fraction),
+  npoints = max(1, round(length(x) * fraction)),
   weighted = TRUE,
   ignore_zeros = FALSE
 )
