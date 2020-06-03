@@ -45,48 +45,20 @@ To fit a single Gamma-Poisson GLM do:
 # overdispersion = 1/size
 counts <- rnbinom(n = 10, mu = 5, size = 1/0.7)
 # size_factors = FALSE, because only a single GLM is fitted
-fit <- glmGamPoi::glm_gp(counts, design = ~ 1, size_factors = FALSE, overdispersion_shrinkage = FALSE)
+fit <- glmGamPoi::glm_gp(counts, design = ~ 1)
 fit
 #> glmGamPoiFit object:
 #> The data had 1 rows and 10 columns.
 #> A model with 1 coefficient was fitted.
 
 # Internally fit is just a list:
-as.list(fit)
+as.list(fit)[1:2]
 #> $Beta
 #>      Intercept
 #> [1,]  1.504077
 #> 
 #> $overdispersions
 #> [1] 0.3792855
-#> 
-#> $overdispersion_shrinkage_list
-#> NULL
-#> 
-#> $Mu
-#>      [,1] [,2] [,3] [,4] [,5] [,6] [,7] [,8] [,9] [,10]
-#> [1,]  4.5  4.5  4.5  4.5  4.5  4.5  4.5  4.5  4.5   4.5
-#> 
-#> $size_factors
-#>  [1] 1 1 1 1 1 1 1 1 1 1
-#> 
-#> $model_matrix
-#>       Intercept
-#>  [1,]         1
-#>  [2,]         1
-#>  [3,]         1
-#>  [4,]         1
-#>  [5,]         1
-#>  [6,]         1
-#>  [7,]         1
-#>  [8,]         1
-#>  [9,]         1
-#> [10,]         1
-#> attr(,"assign")
-#> [1] 0
-#> 
-#> $design_formula
-#> ~1
 ```
 
 The `glm_gp()` function returns a list with the results of the fit. Most
@@ -146,9 +118,17 @@ summary(fit)
 #>             Min 1st Qu. Median 3rd Qu.  Max
 #> Intercept -8.38   -6.43  -3.77   -2.46 1.01
 #> 
+#> deviance:
+#>   Min 1st Qu. Median 3rd Qu.  Max
+#>  16.5    89.3    681    1695 5750
+#> 
 #> overdispersion:
 #>  Min 1st Qu. Median 3rd Qu.   Max
 #>    0       0  0.388    1.15 15724
+#> 
+#> Shrunken quasi-likelihood overdispersion:
+#>   Min 1st Qu. Median 3rd Qu.  Max
+#>  0.74   0.994      1    1.04 7.89
 #> 
 #> size_factors:
 #>    Min 1st Qu. Median 3rd Qu.  Max
@@ -197,10 +177,10 @@ bench::mark(
 #> # A tibble: 4 x 6
 #>   expression               min   median `itr/sec` mem_alloc `gc/sec`
 #>   <bch:expr>          <bch:tm> <bch:tm>     <dbl> <bch:byt>    <dbl>
-#> 1 glmGamPoi_in_memory 766.61ms 773.09ms    1.01    310.37MB    2.35 
-#> 2 glmGamPoi_on_disk      4.17s    4.24s    0.236   687.88MB    1.10 
-#> 3 DESeq2                20.53s   20.85s    0.0481    1.15GB    0.401
-#> 4 edgeR                  5.52s    5.54s    0.180     1.19GB    1.32
+#> 1 glmGamPoi_in_memory 810.32ms 883.13ms    0.935   310.38MB    2.49 
+#> 2 glmGamPoi_on_disk      3.84s    4.31s    0.240   687.89MB    0.881
+#> 3 DESeq2                20.67s   21.07s    0.0468    1.16GB    0.421
+#> 4 edgeR                  6.04s    6.54s    0.157     1.19GB    1.41
 ```
 
 On this dataset, `glmGamPoi` is more than 6 times faster than `edgeR`
@@ -211,10 +191,10 @@ each gene. It is tuned for datasets typically encountered in single
 RNA-seq with many samples and many small counts, by avoiding duplicate
 calculations.
 
-To demonstrate that the method is not sacrificing accuracy, I compare
-the parameters that each method estimates. I find that means and β
-coefficients are identical, but that the estimates of the overdispersion
-estimates from `glmGamPoi` are more reliable:
+To demonstrate that the method does not sacrifice accuracy, I compare
+the parameters that each method estimates. The means and β coefficients
+are identical, but that the overdispersion estimates from `glmGamPoi`
+are more reliable:
 
 ``` r
 # Results with my method
@@ -255,6 +235,47 @@ over 4 minutes. Fitting the `pbmc68k` (17x the size) takes \~73 minutes
 because it is just too big: the maximum in-memory matrix size is `2^31-1
 ≈ 2.1e9` is elements, the `pbmc68k` dataset however has nearly 100
 million elements more than that.
+
+## Differential expression analysis
+
+`glmGamPoi` provides an interface to do quasi-likelihood ratio testing
+to identify differentially expressed genes:
+
+``` r
+# Create random categorical assignment to demonstrate DE
+group <- sample(c("Group1", "Group2"), size = ncol(pbmcs_subset), replace = TRUE)
+
+# Fit model with group vector as design
+fit <- glmGamPoi::glm_gp(pbmcs_subset, design = group)
+# Compare against model without group 
+res <- glmGamPoi::gampoi_test_qlr(pbmcs_subset, fit, reduced_design = ~ 1)
+# Look at first 6 genes
+head(res)
+#>              name      pval  adj_pval f_statistic df1      df2
+#> 1 ENSG00000126457 0.4540555 0.8928787   0.5606071   1 4431.288
+#> 2 ENSG00000109832 0.5836666 0.9151578   0.3003885   1 4431.288
+#> 3 ENSG00000237339 0.2572241 0.8122865   1.2839669   1 4431.288
+#> 4 ENSG00000075234 0.3812121 0.8776873   0.7669423   1 4431.288
+#> 5 ENSG00000161057 0.8507711 0.9924359   0.0353988   1 4431.288
+#> 6 ENSG00000151366 0.4037362 0.8776873   0.6973038   1 4431.288
+```
+
+The p-values agree well with the ones that `edgeR` is calculating. This
+is because `glmGamPoi` uses the same framework of quasi-likelihood ratio
+tests that was invented by `edgeR` and is described in [Lund et
+al. (2012)](https://doi.org/10.1515/1544-6115.1826).
+
+``` r
+model_matrix <- model.matrix(~ group, data = data.frame(group = group))
+edgeR_data <- edgeR::DGEList(pbmcs_subset)
+edgeR_data <- edgeR::calcNormFactors(edgeR_data)
+edgeR_data <- edgeR::estimateDisp(edgeR_data, design = model_matrix)
+edgeR_fit <- edgeR::glmQLFit(edgeR_data, design = model_matrix)
+edgeR_test <- edgeR::glmQLFTest(edgeR_fit, coef = 2)
+edgeR_res <- edgeR::topTags(edgeR_test, sort.by = "none", n = nrow(pbmcs_subset))
+```
+
+![](man/figures/README-unnamed-chunk-10-1.png)<!-- -->
 
 # Session Info
 

@@ -56,11 +56,11 @@ To fit a single Gamma-Poisson GLM do:
 # overdispersion = 1/size
 counts <- rnbinom(n = 10, mu = 5, size = 1/0.7)
 # size_factors = FALSE, because only a single GLM is fitted
-fit <- glmGamPoi::glm_gp(counts, design = ~ 1, size_factors = FALSE, overdispersion_shrinkage = FALSE)
+fit <- glmGamPoi::glm_gp(counts, design = ~ 1)
 fit
 
 # Internally fit is just a list:
-as.list(fit)
+as.list(fit)[1:2]
 ```
 
 The `glm_gp()` function returns a list with the results of the fit. Most importantly, it contains the estimates for the coefficients β and the overdispersion.
@@ -127,7 +127,7 @@ bench::mark(
 
 On this dataset, `glmGamPoi` is more than 6 times faster than `edgeR` and more than 20 times faster than `DESeq2`. `glmGamPoi` does **not** use approximations to achieve this performance increase. The performance comes from an optimized algorithm for inferring the overdispersion for each gene. It is tuned for datasets typically encountered in single RNA-seq with many samples and many small counts, by avoiding duplicate calculations.
 
-To demonstrate that the method is not sacrificing accuracy, I compare the parameters that each method estimates. I find that means and β coefficients are identical, but that the estimates of the overdispersion estimates from `glmGamPoi` are more reliable:
+To demonstrate that the method does not sacrifice accuracy, I compare the parameters that each method estimates. The means and β coefficients are identical, but that the overdispersion estimates from `glmGamPoi` are more reliable:
 
 ```{r message=FALSE, warning=FALSE}
 # Results with my method
@@ -180,6 +180,43 @@ I am comparing the gene-wise estimates of the coefficients from all three method
 ## Scalability
 
 The method scales linearly, with the number of rows and columns in the dataset. For example: fitting the full `pbmc4k` dataset with subsampling on a modern MacBook Pro in-memory takes ~1 minute and on-disk a little over 4 minutes. Fitting the `pbmc68k` (17x the size) takes ~73 minutes (17x the time) on-disk. Fitting that dataset in-memory is not possible because it is just too big: the maximum in-memory matrix size is `2^31-1 ≈ 2.1e9` is elements, the `pbmc68k` dataset however has nearly 100 million elements more than that.
+
+
+## Differential expression analysis
+
+`glmGamPoi` provides an interface to do quasi-likelihood ratio testing to identify differentially expressed genes:
+
+```{r}
+# Create random categorical assignment to demonstrate DE
+group <- sample(c("Group1", "Group2"), size = ncol(pbmcs_subset), replace = TRUE)
+
+# Fit model with group vector as design
+fit <- glmGamPoi::glm_gp(pbmcs_subset, design = group)
+# Compare against model without group 
+res <- glmGamPoi::gampoi_test_qlr(pbmcs_subset, fit, reduced_design = ~ 1)
+# Look at first 6 genes
+head(res)
+```
+
+The p-values agree well with the ones that `edgeR` is calculating. This is because `glmGamPoi` uses the same framework of quasi-likelihood ratio tests that was invented by `edgeR` and is described in [Lund et al. (2012)](https://doi.org/10.1515/1544-6115.1826).
+
+```{r fig.height=3, fig.width=3, warning=FALSE, message=FALSE}
+model_matrix <- model.matrix(~ group, data = data.frame(group = group))
+edgeR_data <- edgeR::DGEList(pbmcs_subset)
+edgeR_data <- edgeR::calcNormFactors(edgeR_data)
+edgeR_data <- edgeR::estimateDisp(edgeR_data, design = model_matrix)
+edgeR_fit <- edgeR::glmQLFit(edgeR_data, design = model_matrix)
+edgeR_test <- edgeR::glmQLFTest(edgeR_fit, coef = 2)
+edgeR_res <- edgeR::topTags(edgeR_test, sort.by = "none", n = nrow(pbmcs_subset))
+```
+
+
+```{r fig.height=4, fig.width=3, warning=FALSE, message=FALSE, echo = FALSE}
+par(cex.main = 2, cex.lab = 1.5)
+plot(res$pval, edgeR_res$table$PValue, pch = 16, log = "xy",
+     main = "p-values", xlab = "glmGamPoi", ylab = "edgeR")
+abline(0,1)
+```
 
 
 # Session Info
