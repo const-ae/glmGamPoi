@@ -96,9 +96,22 @@ format.summary.glmGamPoi <- function(x, ...){
     beta_est_summary <- paste0("Beta:\n", format_matrix(my_matrix_summary(x$Beta[,seq_len(3)]), digits = ndigits), "\n...\n")
   }
 
+  # Make String for Deviance
+  deviance_mat <- matrix(x$deviances, ncol = 1, dimnames = list(NULL, ""))
+  dev_summary <- paste0("\ndeviance:\n", format_matrix(my_matrix_summary(deviance_mat), digits = ndigits), "\n")
+
   # Make String for Overdispersion
   overdisp_mat <- matrix(x$overdispersions, ncol = 1, dimnames = list(NULL, ""))
   overdisp_summary <- paste0("\noverdispersion:\n", format_matrix(my_matrix_summary(overdisp_mat), digits = ndigits), "\n")
+
+  # Make String for Shrunken overdispersion
+  if(is.null(x$overdispersion_shrinkage_list)){
+    disp_shrunk_summary <- "\nNo quasi-likelihood overdispersion available\n"
+  }else{
+    disp_shrunk_mat <- matrix(x$overdispersion_shrinkage_list$ql_disp_shrunken, ncol = 1, dimnames = list(NULL, ""))
+    disp_shrunk_summary <- paste0("\nShrunken quasi-likelihood overdispersion:\n", format_matrix(my_matrix_summary(disp_shrunk_mat), digits = ndigits), "\n")
+  }
+
 
   # Make String for size factor
   sf_mat <- matrix(x$size_factors, ncol = 1, dimnames = list(NULL, ""))
@@ -117,7 +130,8 @@ format.summary.glmGamPoi <- function(x, ...){
                          "lengthy computation.")
   }
 
-  paste0(header, design_summary, "\n", beta_est_summary, overdisp_summary, sf_summary, mu_summary)
+  paste0(header, design_summary, "\n", beta_est_summary, dev_summary, overdisp_summary,
+         disp_shrunk_summary, sf_summary, mu_summary)
 }
 
 
