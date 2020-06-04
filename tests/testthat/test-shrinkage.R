@@ -139,5 +139,23 @@ test_that("gampoi_test_qlr works with contrast vector input", {
 
 
 
+test_that("gampoi_test_qlr handles on_disk correctly", {
+  Y <- matrix(rnbinom(n = 30 * 10, mu = 4, size = 0.3), nrow = 30, ncol = 10)
+  Y_hdf5 <- HDF5Array::writeHDF5Array(Y)
+  annot <- data.frame(group = sample(c("A", "B"), size = 10, replace = TRUE),
+                      cont1 = rnorm(10), cont2 = rnorm(10, mean = 30))
+  se <- SummarizedExperiment::SummarizedExperiment(Y_hdf5, colData = annot)
+  # The actual check is difficult, because internally the res2 should be calculated on_disk
+  fit1 <- glm_gp(se, design = ~ group + cont1 + cont2, on_disk = TRUE)
+  res1 <- gampoi_test_qlr(se, fit1, reduced_design = ~ 1)
+  fit2 <- glm_gp(se, design = ~ group + cont1 + cont2, on_disk = FALSE)
+  res2 <- gampoi_test_qlr(se, fit2, reduced_design = ~ 1)
+  expect_equal(res1, res2)
+
+})
+
+
+
+
 
 

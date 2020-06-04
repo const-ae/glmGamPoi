@@ -88,12 +88,13 @@ gampoi_test_qlr <- function(data, fit,
   }else{
     lfc <- NA
   }
-  Y <- handle_data_parameter(data, on_disk = NULL)
   if(verbose){message("Fit reduced model")}
+  do_on_disk <- is(fit$Mu, "DelayedMatrix") && is(DelayedArray::seed(fit$Mu), "HDF5ArraySeed")
   fit_alt <- glm_gp(data, design = reduced_design, col_data = col_data,
                     size_factors = fit$size_factors,
                     overdispersion = disp_trend,
-                    overdispersion_shrinkage = FALSE)
+                    overdispersion_shrinkage = FALSE,
+                    on_disk = do_on_disk)
 
   if(ncol(fit_alt$model_matrix) >= ncol(fit$model_matrix)){
     stop("The reduced model is as complex (or even more complex) than ",
@@ -106,7 +107,7 @@ gampoi_test_qlr <- function(data, fit,
   lr <- fit_alt$deviances - fit$deviances
   df_test <- ncol(fit$model_matrix) - ncol(fit_alt$model_matrix)
   df_test <- ifelse(df_test == 0, NA, df_test)
-  df_fit <- fit$overdispersion_shrinkage_list$ql_df0 + (ncol(Y) - ncol(fit_alt$model_matrix))
+  df_fit <- fit$overdispersion_shrinkage_list$ql_df0 + (ncol(data) - ncol(fit_alt$model_matrix))
   f_stat <- lr / df_test / fit$overdispersion_shrinkage_list$ql_disp_shrunken
   pval <- pf(f_stat, df_test, df_fit, lower.tail = FALSE, log.p = FALSE)
   adj_pval <- p.adjust(pval, method = pval_adjust_method)
