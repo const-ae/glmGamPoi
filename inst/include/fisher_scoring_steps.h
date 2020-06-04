@@ -31,10 +31,10 @@ arma::vec fisher_scoring_qr_ridge_step(const arma::mat& model_matrix, const arma
   int p = model_matrix.n_cols;
   arma::vec w_vec = (mu/(1.0 + theta_times_mu));
   arma::vec w_sqrt_vec = sqrt(w_vec);
-  // Add rows for Lasso Regularization (see https://math.stackexchange.com/a/299508/492945)
+  // Add rows for Ridge Regularization (see https://math.stackexchange.com/a/299508/492945)
   arma::vec extended_w_sqrt_vec = arma::join_cols(w_sqrt_vec, arma::ones(p));
-  arma::mat lasso_helper = arma::eye(p, p) * sqrt(lambda1);
-  arma::mat extended_model_matrix = arma::join_cols(model_matrix, lasso_helper);
+  arma::mat ridge_helper = arma::eye(p, p) * sqrt(lambda1);
+  arma::mat extended_model_matrix = arma::join_cols(model_matrix, ridge_helper);
   // prepare matrices
   arma::mat weighted_extended_model_matrix = extended_model_matrix.each_col() % extended_w_sqrt_vec;
   qr_econ(q, r, weighted_extended_model_matrix);
