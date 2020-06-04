@@ -30,7 +30,21 @@
 #'   \item{f_statistic}{the F-statistic: \eqn{F = (Dev_full - Dev_red) / (df_1 * disp_ql-shrunken)}}
 #'   \item{df1}{the degrees of freedom of the test: `ncol(design) - ncol(reduced_design)`}
 #'   \item{df2}{the degrees of freedom of the fit: `ncol(data) - ncol(design) + df_0`}
+#'   \item{lfc}{the log2-fold change. If the alternative model is specified by `reduced_design` will
+#'    be `NA`.}
 #' }
+#'
+#' @examples
+#'   Y <- matrix(rnbinom(n = 30 * 10, mu = 4, size = 0.3), nrow = 30, ncol  =10)
+#'   annot <- data.frame(group = sample(c("A", "B"), size = 10, replace = TRUE),
+#'                       cont1 = rnorm(10), cont2 = rnorm(10, mean = 30))
+#'   design <- model.matrix(~ group + cont1 + cont2, data = annot)
+#'   fit <- glm_gp(Y, design = design)
+#'   res <- gampoi_test_qlr(Y, fit, reduced_design = ~ group + cont1, col_data = annot)
+#'   head(res)
+#'
+#'   res2 <- gampoi_test_qlr(Y, fit, contrast = cont2)
+#'   head(res2)
 #'
 #' @references
 #' * Lund, S. P., Nettleton, D., McCarthy, D. J., & Smyth, G. K. (2012). Detecting differential expression
