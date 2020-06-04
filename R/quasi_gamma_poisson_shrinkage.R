@@ -4,13 +4,15 @@
 #'
 #' @inheritParams glm_gp
 #' @param fit object of class `glmGamPoi`. Usually the result of calling `glm_gp(data, ...)`
+#' @param contrast The contrast to test. Can be a single column name (quoted or as a string)
+#'   that is removed from the  full model matrix of `fit`. Or a complex contrast comparing two
+#'   or more columns: e.g. `A - B`, `"A - 3 * B"`, `(A + B) / 2 - C` etc. \cr
+#'   Only one of `contrast` or `reduced_design` must be specified.
 #' @param reduced_design a specification of the reduced design used as a comparison to see what
-#'   how much better `fit` describes the data. \cr
+#'   how much better `fit` describes the data.
 #'   Analogous to the `design` parameter in `glm_gp()`, it can be either a `formula`,
-#'   a `model.matrix()`, or a `vector`.
-#' @param coef alternative way to specify the `reduced_design`. The `coef` column is removed
-#'   from the full model matrix of `fit`. Only one of `coef` and `reduced_design` must be
-#'   specified.
+#'   a `model.matrix()`, or a `vector`. \cr
+#'    Only one of `contrast` or `reduced_design` must be specified.
 #' @param pval_adjust_method one of the p-value adjustment method from
 #'   [p.adjust.methods]. Default: `"BH"`.
 #' @param sort_by the name of the column used to sort the result or `NULL` to return an
@@ -38,24 +40,39 @@
 #'
 #' @export
 gampoi_test_qlr <- function(data, fit,
+                            contrast,
                             reduced_design = NULL,
-                            coef = NULL,
                             col_data = NULL,
                             pval_adjust_method = "BH", sort_by = NULL, decreasing = FALSE,
                             n_max = Inf,
                             verbose = FALSE){
 
-  if(is.null(reduced_design) == is.null(coef)){
-    stop("Please provide either an alternative design (formula or matrix) or a coef ",
-         "(name of a column in fit$model_matrix).")
+  if(is.null(reduced_design) == missing(contrast)){
+    stop("Please provide either an alternative design (formula or matrix) or a contrast ",
+         "(name of a column in fit$model_matrix or a combination of them).")
   }
   if(is.null(fit$overdispersion_shrinkage_list)){
     stop("fit$overdispersion_shrinkage_list is NULL. Run 'glm_gp' with ",
          "'overdispersion_shrinkage = TRUE'.")
   }
   disp_trend <- fit$overdispersion_shrinkage_list$dispersion_trend
-  if(! is.null(coef)){
-    reduced_design <- fit$model_matrix[,-coef,drop=FALSE]
+  if(! missing(contrast)){
+    # e.g. a vector with c(1, 0, -1, 0) for contrast = A - C
+    cntrst <- parse_contrast(contrast, levels = colnames(fit$model_matrix),
+                             direct_call = FALSE)
+    # The modifying matrix of reduced_design has ncol(model_matrix) - 1 columns and rank.
+    # The columns are all orthogonal to cntrst.
+    # see: https://scicomp.stackexchange.com/a/27835/36204
+    # Think about this as a rotation of of the design matrix. The QR decomposition approach
+    # has the added benefit that the new columns are all orthogonal to each other, which
+    # isn't necessary, but makes fitting more robust
+    # The following is a simplified version of edgeR's glmLRT (line 159 in glmfit.R)
+    qrc <- qr(cntrst)
+    rot <- qr.Q(qrc, complete = TRUE)[,-1,drop=FALSE]
+    reduced_design <- fit$model_matrix %*% rot
+    lfc <- fit$Beta %*% cntrst / log(2)
+  }else{
+    lfc <- NA
   }
   Y <- handle_data_parameter(data, on_disk = NULL)
   if(verbose){message("Fit reduced model")}
@@ -85,7 +102,9 @@ gampoi_test_qlr <- function(data, fit,
     names <- sprintf(paste0("row_%0", floor(log10(nrow(data))), "i"), seq_len(nrow(data)))
   }
   if(verbose){message("Preprare results")}
-  res <- data.frame(name = names, pval = pval, adj_pval = adj_pval, f_statistic = f_stat, df1 = df_test, df2 = df_fit,
+  res <- data.frame(name = names, pval = pval, adj_pval = adj_pval,
+                    f_statistic = f_stat, df1 = df_test, df2 = df_fit,
+                    lfc = lfc,
                     stringsAsFactors = FALSE, row.names = NULL)
   res <- if(is.null(sort_by)) {
     res

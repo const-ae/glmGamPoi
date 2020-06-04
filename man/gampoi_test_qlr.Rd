@@ -7,8 +7,8 @@
 gampoi_test_qlr(
   data,
   fit,
+  contrast,
   reduced_design = NULL,
-  coef = NULL,
   col_data = NULL,
   pval_adjust_method = "BH",
   sort_by = NULL,
@@ -24,14 +24,16 @@ one column per sample and row per gene.}
 
 \item{fit}{object of class \code{glmGamPoi}. Usually the result of calling \code{glm_gp(data, ...)}}
 
-\item{reduced_design}{a specification of the reduced design used as a comparison to see what
-how much better \code{fit} describes the data. \cr
-Analogous to the \code{design} parameter in \code{glm_gp()}, it can be either a \code{formula},
-a \code{model.matrix()}, or a \code{vector}.}
+\item{contrast}{The contrast to test. Can be a single column name (quoted or as a string)
+that is removed from the  full model matrix of \code{fit}. Or a complex contrast comparing two
+or more columns: e.g. \code{A - B}, \code{"A - 3 * B"}, \code{(A + B) / 2 - C} etc. \cr
+Only one of \code{contrast} or \code{reduced_design} must be specified.}
 
-\item{coef}{alternative way to specify the \code{reduced_design}. The \code{coef} column is removed
-from the full model matrix of \code{fit}. Only one of \code{coef} and \code{reduced_design} must be
-specified.}
+\item{reduced_design}{a specification of the reduced design used as a comparison to see what
+how much better \code{fit} describes the data.
+Analogous to the \code{design} parameter in \code{glm_gp()}, it can be either a \code{formula},
+a \code{model.matrix()}, or a \code{vector}. \cr
+Only one of \code{contrast} or \code{reduced_design} must be specified.}
 
 \item{col_data}{a dataframe with one row for each sample in \code{data}. Default: \code{NULL}.}
 

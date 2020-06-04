@@ -99,10 +99,43 @@ test_that("variance prior estimation works with covariates", {
 
 
 
+test_that("gampoi_test_qlr works", {
+  set.seed(1)
+  Y <- matrix(rnbinom(n = 30 * 10, mu = 4, size = 0.3), nrow = 30, ncol  =10)
+  annot <- data.frame(group = sample(c("A", "B"), size = 10, replace = TRUE),
+                      cont1 = rnorm(10), cont2 = rnorm(10, mean = 30))
+  design <- model.matrix(~ group + cont1 + cont2, data = annot)
+  fit <- glm_gp(Y, design = design)
+  res <- gampoi_test_qlr(Y, fit, reduced_design = ~ group + cont1, col_data = annot)
+  res2 <- gampoi_test_qlr(Y, fit, contrast = cont2)
+  # Should be equal except for log-fold change column
+  expect_equal(res[,-7], res2[,-7], tolerance = 1e-6)
+  expect_equal(res$lfc, rep(NA, 30), tolerance = 1e-6)
+  expect_equal(res2$lfc, fit$Beta[,"cont2"] / log(2), tolerance = 1e-6)
+
+  design_wo_intercept <- model.matrix(~ group + cont1 + cont2 - 1, data = annot)
+  fit_wo_intercept <- glm_gp(Y, design = design_wo_intercept)
+  res3 <- gampoi_test_qlr(Y, fit_wo_intercept, reduced_design = ~ cont1 + cont2 + 1, col_data = annot)
+  res4 <- gampoi_test_qlr(Y, fit_wo_intercept, contrast = groupA - groupB)
+  expect_equal(res3[,-7], res4[,-7], tolerance = 1e-6)
+
+  res5 <- gampoi_test_qlr(Y, fit, contrast = "-groupB", col_data = annot)
+  expect_equal(res4, res5, tolerance = 0.1)
+
+})
 
 
+test_that("gampoi_test_qlr works with contrast vector input", {
+  Y <- matrix(rnbinom(n = 30 * 10, mu = 4, size = 0.3), nrow = 30, ncol  =10)
+  annot <- data.frame(group = sample(c("A", "B"), size = 10, replace = TRUE),
+                      cont1 = rnorm(10), cont2 = rnorm(10, mean = 30))
+  design <- model.matrix(~ group + cont1 + cont2, data = annot)
+  fit <- glm_gp(Y, design = design)
+  res1 <- gampoi_test_qlr(Y, fit, contrast = cont2 - groupB)
+  res2 <- gampoi_test_qlr(Y, fit, contrast = c(0, -1, 0, 1))
+  expect_equal(res1, res2)
 
-
+})
 
 
 
