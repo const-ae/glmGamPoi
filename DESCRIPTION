@@ -17,6 +17,7 @@ Suggests:
     zoo,
     DESeq2,
     edgeR,
+    limma,
     beachmat,
     MASS,
     statmod,

@@ -62,7 +62,7 @@ test_that("variance prior estimation works", {
     rnorm(n = 5, mean = 0, sd = sqrt(true_variance[idx]))
   }, FUN.VALUE = rep(0.0, 5)))
 
-  obs_var <- matrixStats::rowVars(observations)
+  obs_var <- DelayedMatrixStats::rowVars(observations)
   df <- ncol(observations) - 1
   res_limma <- limma:::squeezeVar(obs_var, df = df)
   res_gp <- variance_prior(obs_var, df)
@@ -84,9 +84,9 @@ test_that("variance prior estimation works with covariates", {
     rnorm(n = 5, mean = 0, sd = sqrt(true_variance[idx]))
   }, FUN.VALUE = rep(0.0, 5)))
 
-  obs_var <- matrixStats::rowVars(observations)
+  obs_var <- DelayedMatrixStats::rowVars(observations)
   df <- ncol(observations) - 1
-  res_limma <- limma:::squeezeVar(obs_var, df = df, covariate = covariate)
+  res_limma <- limma::squeezeVar(obs_var, df = df, covariate = covariate)
   res_gp <- variance_prior(obs_var, df, covariate = covariate)
   res_gp2 <- variance_prior(obs_var, df, covariate = NULL)
 
