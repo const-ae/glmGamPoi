@@ -92,7 +92,7 @@
 #'    for genes with many small counts to work on the contingency table of the counts. Originally, this
 #'    approach had already been used by Anscombe (1950). In this package, I have implemented an
 #'    extension of their method that can handle general offsets.\cr
-#'    See also [gampoi_overdispersion_mle()].
+#'    See also [overdispersion_mle()].
 #'  6. The beta coefficients are estimated once more with the updated overdispersion estimates
 #'  7. The mean for each gene and sample is calculated again.
 #'
@@ -146,7 +146,7 @@
 #'
 #'
 #'
-#' @seealso [glm_gp_impl()] and [gampoi_overdispersion_mle()] for the internal functions that do the
+#' @seealso [glm_gp_impl()] and [overdispersion_mle()] for the internal functions that do the
 #'   work.
 #'
 #' @references

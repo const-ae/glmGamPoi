@@ -139,7 +139,7 @@ log-likelihood. It is however, much more efficient
 for genes with many small counts to work on the contingency table of the counts. Originally, this
 approach had already been used by Anscombe (1950). In this package, I have implemented an
 extension of their method that can handle general offsets.\cr
-See also \code{\link[=gampoi_overdispersion_mle]{gampoi_overdispersion_mle()}}.
+See also \code{\link[=overdispersion_mle]{overdispersion_mle()}}.
 \item The beta coefficients are estimated once more with the updated overdispersion estimates
 \item The mean for each gene and sample is calculated again.
 }
@@ -200,6 +200,6 @@ Applications in Genetics and Molecular Biology, 11(5).
 }
 }
 \seealso{
-\code{\link[=glm_gp_impl]{glm_gp_impl()}} and \code{\link[=gampoi_overdispersion_mle]{gampoi_overdispersion_mle()}} for the internal functions that do the
+\code{\link[=glm_gp_impl]{glm_gp_impl()}} and \code{\link[=overdispersion_mle]{overdispersion_mle()}} for the internal functions that do the
 work.
 }

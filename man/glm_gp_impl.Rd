@@ -22,8 +22,7 @@ one column per sample and row per gene.}
 
 \item{model_matrix}{a numeric matrix that specifies the experimental
 design. It can be produced using \code{stats::model.matrix()}.
-Default: \code{matrix(1, nrow = length(y), ncol = 1)}, which is the
-model matrix for a 'just-intercept-model'.}
+Default: \code{NULL}}
 
 \item{offset}{Constant offset in the model in addition to \code{log(size_factors)}. It can
 either be a single number, a vector of length \code{ncol(data)} or a matrix with the
