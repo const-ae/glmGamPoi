@@ -40,28 +40,28 @@
 #'  # true overdispersion = 2.4
 #'  y <- rnbinom(n = 10, mu = 3, size = 1/2.4)
 #'  # estimate = 1.7
-#'  gampoi_overdispersion_mle(y)
+#'  overdispersion_mle(y)
 #'
 #'
 #'  # true overdispersion = 0
 #'  y <- rpois(n = 10, lambda = 3)
 #'  # estimate = 0
-#'  gampoi_overdispersion_mle(y)
+#'  overdispersion_mle(y)
 #'  # with different mu, overdispersion estimate changes
-#'  gampoi_overdispersion_mle(y, mean = 15)
+#'  overdispersion_mle(y, mean = 15)
 #'  # Cox-Reid adjustment changes the result
-#'  gampoi_overdispersion_mle(y, mean = 15, do_cox_reid_adjustment = FALSE)
+#'  overdispersion_mle(y, mean = 15, do_cox_reid_adjustment = FALSE)
 #'
 #'
 #'  # Many very small counts, true overdispersion = 50
 #'  y <- rnbinom(n = 1000, mu = 0.01, size = 1/50)
 #'  summary(y)
 #'  # estimate = 31
-#'  gampoi_overdispersion_mle(y)
+#'  overdispersion_mle(y)
 #'
 #' @seealso [glm_gp()]
 #' @export
-gampoi_overdispersion_mle <- function(y, mean = base::mean(y),
+overdispersion_mle <- function(y, mean = base::mean(y),
                            model_matrix = matrix(1, nrow = length(y), ncol = 1),
                            do_cox_reid_adjustment = TRUE,
                            subsample = FALSE,
@@ -203,7 +203,7 @@ estimate_overdispersions <- function(Y, mean_matrix, model_matrix, do_cox_reid_a
   ## for HDF5 backed matrices by a factor of 50 and gives almost equivalent speed to in RAM
   ## methods.
   # vapply(seq_len(nrow(Y)), function(gene_idx){
-  #   gampoi_overdispersion_mle(y = Y[gene_idx, ], mean = mean_matrix[gene_idx, ],
+  #   overdispersion_mle(y = Y[gene_idx, ], mean = mean_matrix[gene_idx, ],
   #                             model_matrix = model_matrix, do_cox_reid_adjustment = do_cox_reid_adjustment,
   #                             subsample = subsample)$estimate
   # }, FUN.VALUE = 0.0)

@@ -1,7 +1,7 @@
 Changes in devel (version 1.1)
 + Remove dual likelihood functions for overdispersion estimation.
 Instead merge functionality into conventional_***. This should
-cause no user facing changes, however should make it easier to 
+cause no user facing changes, however should make it easier to
 maintain the package
 + Make conventional_score_function_fast() more robust to extreme
 inputs. Avoid numerically imprecise subtractions and employ
@@ -14,6 +14,8 @@ the conventional_likelihood_fast
 + Automatically set 'size_factors = FALSE' for input with
 0 or 1 row. This will change the estimated beta, but not the
 mu's
++ Rename gampoi_overdispersion_mle() -> overdispersion_mle()
+
 
 Changes in version 0.0.99 (2020-03-23)
 + Submitted to Bioconductor

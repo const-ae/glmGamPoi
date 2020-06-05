@@ -111,7 +111,7 @@ test_that("Estimation methods can handle under-dispersion", {
 })
 
 
-test_that("gampoi_overdispersion_mle can handle weird input 1", {
+test_that("overdispersion_mle can handle weird input 1", {
   y <- c(5, 2, 1, 1, 3, 1, 1)
   X <- cbind(1, c(0, 0, 0, 1, 1, 1, 1))
   mu <- c(2.6, 2.6, 2.6, 1.5, 1.5, 1.5, 1.5)
@@ -125,7 +125,7 @@ test_that("gampoi_overdispersion_mle can handle weird input 1", {
 })
 
 
-test_that("gampoi_overdispersion_mle can handle weird input 2", {
+test_that("overdispersion_mle can handle weird input 2", {
   y <- c(5, 10, 3, 4, 5, 4, 5)
   X <- cbind(1, c(0, 0, 0, 1, 1, 1, 1))
   mu <- c(6, 6, 6, 4.5, 4.5, 4.5, 4.5)
@@ -137,7 +137,7 @@ test_that("gampoi_overdispersion_mle can handle weird input 2", {
   expect_true(TRUE)
 })
 
-test_that("gampoi_overdispersion_mle can handle weird input 3", {
+test_that("overdispersion_mle can handle weird input 3", {
   y <- c(rep(0, times = 399), 10)
   X <- cbind(1, sample(c(0,1), 400, replace = TRUE), rnorm(400))
   mu <- rep(0.7, 400)
@@ -149,7 +149,7 @@ test_that("gampoi_overdispersion_mle can handle weird input 3", {
   expect_gt(est$estimate, 1e8)
 })
 
-test_that("gampoi_overdispersion_mle can handle weird input 4", {
+test_that("overdispersion_mle can handle weird input 4", {
   y <- c(rep(0, times = 5), 2)
   mu <- c(rep(1e-30, 5), 1.999999999999976)
   X <- cbind(1, rep(c(0,1), each = 3), rnorm(6))
@@ -189,7 +189,7 @@ test_that("Estimation methods can handle Infinite dispersion", {
   mean_vector <- c(0.2, 0.6, 0.8, 0.2, 0.1)
   y <- c(0, 0, 3, 0, 0)
 
-  fit <- gampoi_overdispersion_mle(y, mean_vector, model_matrix = model_matrix)
+  fit <- overdispersion_mle(y, mean_vector, model_matrix = model_matrix)
   expect_lt(fit$estimate, 1e5)
 })
 
@@ -229,15 +229,15 @@ test_that("Identical y values work", {
 })
 
 test_that("one value is enough to get an answer", {
-  expect_equal(gampoi_overdispersion_mle(y = 3, mean = 3.0001)$estimate, 0)
+  expect_equal(overdispersion_mle(y = 3, mean = 3.0001)$estimate, 0)
   expect_equal(conventional_overdispersion_mle(y = 3, mean_vector = 3.0001)$estimate, 0)
 })
 
 
 test_that("subsampling works and does not affect performance too badly", {
   y <- rnbinom(n = 1e4, mu = 5, size = 1 / 0.7)
-  r1 <- gampoi_overdispersion_mle(y = y, subsample = 1e4)
-  r2 <- gampoi_overdispersion_mle(y = y, subsample = 1000)
+  r1 <- overdispersion_mle(y = y, subsample = 1e4)
+  r2 <- overdispersion_mle(y = y, subsample = 1000)
   expect_lt(abs(r1$estimate - r2$estimate), 0.1)
 
 })
@@ -245,18 +245,18 @@ test_that("subsampling works and does not affect performance too badly", {
 
 test_that("weird subsampling values are handled correctly", {
   y <- rnbinom(n = 20, mu = 5, size = 1 / 0.7)
-  r1 <- gampoi_overdispersion_mle(y = y, subsample = 1)
-  r0 <- gampoi_overdispersion_mle(y = y, subsample = 0)
+  r1 <- overdispersion_mle(y = y, subsample = 1)
+  r0 <- overdispersion_mle(y = y, subsample = 0)
   expect_equal(r0$estimate, 0)
   expect_error(
-    gampoi_overdispersion_mle(y = y, subsample = -3)
+    overdispersion_mle(y = y, subsample = -3)
   )
   expect_error(
-    gampoi_overdispersion_mle(y = y, subsample = c(3, 10))
+    overdispersion_mle(y = y, subsample = c(3, 10))
   )
-  rfull <- gampoi_overdispersion_mle(y = y)
-  r3000 <- gampoi_overdispersion_mle(y = y, subsample = 3000)
-  rInf <- gampoi_overdispersion_mle(y = y, subsample = Inf)
+  rfull <- overdispersion_mle(y = y)
+  r3000 <- overdispersion_mle(y = y, subsample = 3000)
+  rInf <- overdispersion_mle(y = y, subsample = Inf)
   expect_equal(rfull, r3000)
   expect_equal(rfull, rInf)
 })
@@ -279,11 +279,11 @@ test_that("DelayedArrays are handled efficiently", {
 
 
   disp_est_r_ram <- vapply(seq_len(n_genes), function(gene_idx){
-    gampoi_overdispersion_mle(y = mat_hdf5[gene_idx, ], mean = mean_matrix[gene_idx, ],
+    overdispersion_mle(y = mat_hdf5[gene_idx, ], mean = mean_matrix[gene_idx, ],
                               model_matrix = model_matrix, do_cox_reid_adjustment = TRUE)$estimate
   }, FUN.VALUE = 0.0)
   disp_est_r_hdf5 <- vapply(seq_len(n_genes), function(gene_idx){
-    gampoi_overdispersion_mle(y = mat_hdf5[gene_idx, ], mean = mean_matrix[gene_idx, ],
+    overdispersion_mle(y = mat_hdf5[gene_idx, ], mean = mean_matrix[gene_idx, ],
                               model_matrix = model_matrix, do_cox_reid_adjustment = TRUE)$estimate
   }, FUN.VALUE = 0.0)
 

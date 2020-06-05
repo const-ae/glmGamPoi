@@ -83,6 +83,6 @@ sample
 Internal Function to Fit a Gamma-Poisson GLM
 }
 \seealso{
-\code{\link[=glm_gp]{glm_gp()}} and \code{\link[=gampoi_overdispersion_mle]{gampoi_overdispersion_mle()}}
+\code{\link[=glm_gp]{glm_gp()}} and \code{\link[=overdispersion_mle]{overdispersion_mle()}}
 }
 \keyword{internal}

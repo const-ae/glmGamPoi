@@ -272,7 +272,7 @@ NumericVector estimate_overdispersions_fast_internal(RObject Y, RObject mean_mat
 
   // This is calling back to R, which simplifies my code a lot
   Environment glmGamPoiEnv = Environment::namespace_env("glmGamPoi");
-  Function gampoi_overdispersion_mle = glmGamPoiEnv["gampoi_overdispersion_mle"];
+  Function overdispersion_mle = glmGamPoiEnv["overdispersion_mle"];
 
   for(int gene_idx = 0; gene_idx < n_genes; gene_idx++){
     if (gene_idx % 100 == 0) checkUserInterrupt();
@@ -281,7 +281,7 @@ NumericVector estimate_overdispersions_fast_internal(RObject Y, RObject mean_mat
     NumericVector mu(n_samples);
     mean_mat_bm->get_row(gene_idx, mu.begin());
 
-    SEXP dispRes = gampoi_overdispersion_mle(counts, mu, model_matrix, do_cox_reid_adjustment, n_subsamples);
+    SEXP dispRes = overdispersion_mle(counts, mu, model_matrix, do_cox_reid_adjustment, n_subsamples);
     SEXP disp = Rcpp::as<List>(dispRes)["estimate"];
     result(gene_idx) = Rcpp::as<double>(disp);
   }
