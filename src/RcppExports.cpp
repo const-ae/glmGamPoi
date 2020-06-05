@@ -145,7 +145,7 @@ BEGIN_RCPP
 END_RCPP
 }
 // estimate_overdispersions_fast
-NumericVector estimate_overdispersions_fast(RObject Y, RObject mean_matrix, NumericMatrix model_matrix, bool do_cox_reid_adjustment, double n_subsamples);
+List estimate_overdispersions_fast(RObject Y, RObject mean_matrix, NumericMatrix model_matrix, bool do_cox_reid_adjustment, double n_subsamples);
 RcppExport SEXP _glmGamPoi_estimate_overdispersions_fast(SEXP YSEXP, SEXP mean_matrixSEXP, SEXP model_matrixSEXP, SEXP do_cox_reid_adjustmentSEXP, SEXP n_subsamplesSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;

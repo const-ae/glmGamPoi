@@ -6,30 +6,31 @@
 \usage{
 overdispersion_mle(
   y,
-  mean = base::mean(y),
-  model_matrix = matrix(1, nrow = length(y), ncol = 1),
-  do_cox_reid_adjustment = TRUE,
+  mean,
+  model_matrix = NULL,
+  do_cox_reid_adjustment = !is.null(model_matrix),
   subsample = FALSE,
   verbose = FALSE
 )
 }
 \arguments{
-\item{y}{a numeric or integer vector with the counts for which
+\item{y}{a numeric or integer vector or matrix with the counts for which
 the overdispersion is estimated}
 
-\item{mean}{a numeric vector of either length 1 or \code{length(y)}
-with the predicted value for that sample. Default: \code{mean(y)}.}
+\item{mean}{a numeric vector of either length 1 or \code{length(y)} or if
+\code{y} is a matrix, a matrix with the same dimensions. Contains
+the predicted value for that sample. If missing: \code{mean(y)} / \code{rowMeans(y)}}
 
 \item{model_matrix}{a numeric matrix that specifies the experimental
 design. It can be produced using \code{stats::model.matrix()}.
-Default: \code{matrix(1, nrow = length(y), ncol = 1)}, which is the
-model matrix for a 'just-intercept-model'.}
+Default: \code{NULL}}
 
 \item{do_cox_reid_adjustment}{the classical maximum likelihood estimator of the \code{overdisperion} is biased
 towards small values. McCarthy \emph{et al.} (2012) showed that it is preferable to optimize the Cox-Reid
 adjusted profile likelihood.\cr
 \code{do_cox_reid_adjustment} can be either be \code{TRUE} or \code{FALSE} to indicate if the adjustment is
-added during the optimization of the \code{overdispersion} parameter. Default: \code{TRUE}.}
+added during the optimization of the \code{overdispersion} parameter. Default: \code{TRUE} if a
+model matrix is provided, otherwise \code{FALSE}}
 
 \item{subsample}{the estimation of the overdispersion is the slowest step when fitting
 a Gamma-Poisson GLM. For datasets with many samples, the estimation can be considerably sped up
@@ -88,7 +89,12 @@ additional maintenance burden.
  y <- rnbinom(n = 1000, mu = 0.01, size = 1/50)
  summary(y)
  # estimate = 31
- overdispersion_mle(y)
+ overdispersion_mle(y, do_cox_reid_adjustment = TRUE)
+
+ # Function can also handle matrix input
+ Y <- matrix(rnbinom(n = 10 * 3, mu = 4, size = 1/2.2), nrow = 10, ncol = 3)
+ Y
+ as.data.frame(overdispersion_mle(Y))
 
 }
 \seealso{

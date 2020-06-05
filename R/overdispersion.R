@@ -3,14 +3,20 @@
 
 #' Estimate the Overdispersion for a Vector of Counts
 #'
-#' @param y a numeric or integer vector with the counts for which
+#' @param y a numeric or integer vector or matrix with the counts for which
 #'   the overdispersion is estimated
-#' @param mean a numeric vector of either length 1 or `length(y)`
-#'   with the predicted value for that sample. Default: `mean(y)`.
+#' @param mean a numeric vector of either length 1 or `length(y)` or if
+#'  `y` is a matrix, a matrix with the same dimensions. Contains
+#'   the predicted value for that sample. If missing: `mean(y)` / `rowMeans(y)`
 #' @param model_matrix a numeric matrix that specifies the experimental
 #'   design. It can be produced using `stats::model.matrix()`.
-#'   Default: `matrix(1, nrow = length(y), ncol = 1)`, which is the
-#'   model matrix for a 'just-intercept-model'.
+#'   Default: `NULL`
+#' @param do_cox_reid_adjustment the classical maximum likelihood estimator of the `overdisperion` is biased
+#'   towards small values. McCarthy _et al._ (2012) showed that it is preferable to optimize the Cox-Reid
+#'   adjusted profile likelihood.\cr
+#'   `do_cox_reid_adjustment` can be either be `TRUE` or `FALSE` to indicate if the adjustment is
+#'   added during the optimization of the `overdispersion` parameter. Default: `TRUE` if a
+#'   model matrix is provided, otherwise `FALSE`
 #' @inheritParams glm_gp
 #'
 #' @details
@@ -57,20 +63,21 @@
 #'  y <- rnbinom(n = 1000, mu = 0.01, size = 1/50)
 #'  summary(y)
 #'  # estimate = 31
-#'  overdispersion_mle(y)
+#'  overdispersion_mle(y, do_cox_reid_adjustment = TRUE)
+#'
+#'  # Function can also handle matrix input
+#'  Y <- matrix(rnbinom(n = 10 * 3, mu = 4, size = 1/2.2), nrow = 10, ncol = 3)
+#'  Y
+#'  as.data.frame(overdispersion_mle(Y))
 #'
 #' @seealso [glm_gp()]
 #' @export
-overdispersion_mle <- function(y, mean = base::mean(y),
-                           model_matrix = matrix(1, nrow = length(y), ncol = 1),
-                           do_cox_reid_adjustment = TRUE,
+overdispersion_mle <- function(y, mean,
+                           model_matrix = NULL,
+                           do_cox_reid_adjustment = ! is.null(model_matrix),
                            subsample = FALSE,
                            verbose = FALSE){
-  y <- as.numeric(y)
-  validate_model_matrix(model_matrix, matrix(y, nrow = 1))
-  if(length(mean) == 1){
-    mean <- rep(mean, length(y))
-  }
+
   # Validate n_subsampling
   stopifnot(length(subsample) == 1, subsample >= 0)
   if(isFALSE(subsample)){
@@ -80,7 +87,46 @@ overdispersion_mle <- function(y, mean = base::mean(y),
   }else{
     n_subsamples <- subsample
   }
-  n_subsamples <- min(n_subsamples, length(y))
+
+  if(! is.vector(y)){
+    if(missing(mean)){
+      mean <- array(DelayedMatrixStats::rowMeans2(y), dim = dim(y))
+    }
+    n_subsamples <- min(n_subsamples, ncol(y))
+    if(n_subsamples < ncol(y)){
+      if(verbose){ message("Subsample data to ", n_subsamples, " columns.") }
+    }
+    if(is.null(model_matrix)){
+      model_matrix <- matrix(1, nrow = ncol(y), ncol = 1)
+    }
+    # This function calls overdispersion_mle() for each row, but is faster than a vapply()
+    estimate_overdispersions_fast(y, mean, model_matrix, do_cox_reid_adjustment, n_subsamples)
+  }else{
+    overdispersion_mle_impl(as.numeric(y), mean, model_matrix, do_cox_reid_adjustment,
+                            min(n_subsamples, length(y)), verbose = verbose)
+  }
+
+}
+
+
+
+overdispersion_mle_impl <- function(y, mean,
+                                 model_matrix,
+                                 do_cox_reid_adjustment,
+                                 n_subsamples,
+                                 verbose = FALSE){
+
+  stopifnot(is.numeric(y))
+  if(missing(mean)){
+    mean <- base::mean(y)
+  }
+  if(is.null(model_matrix)){
+    model_matrix <- matrix(1, nrow = length(y), ncol = 1)
+  }
+  validate_model_matrix(model_matrix, matrix(y, nrow = 1))
+  if(length(mean) == 1){
+    mean <- rep(mean, length(y))
+  }
 
   # Apply subsampling by randomly selecting elements of y and mean
   if(n_subsamples != length(y)){
@@ -176,6 +222,7 @@ estimate_dispersions_by_moment <- function(Y, model_matrix, offset_matrix){
   (bv - xim * bm) / bm^2
 }
 
+
 estimate_dispersions_roughly <- function(Y, model_matrix, offset_matrix){
   # roughDisp <- DESeq2:::roughDispEstimate(y = Y / exp(offset_matrix),
   #                                         x = model_matrix)
@@ -185,31 +232,6 @@ estimate_dispersions_roughly <- function(Y, model_matrix, offset_matrix){
   ifelse(is.na(disp_rough) | disp_rough < 0, 0, disp_rough)
 }
 
-
-
-#' Call gp_overdispersion_mle multiple times
-#'
-#' @return a vector with the overdispersion estimates per gene
-#'
-#' @keywords internal
-estimate_overdispersions <- function(Y, mean_matrix, model_matrix, do_cox_reid_adjustment, subsample, verbose = FALSE){
-  stopifnot(is.numeric(subsample))
-  if(subsample < ncol(Y)){
-    if(verbose){ message("Subsample data to ", subsample, " columns.") }
-  }
-
-  ## The estimate_overdispersions_fast() method is actually just doing the same
-  ## as this vapply loop. However, the beachmat caching (?) is speeding up the procedure
-  ## for HDF5 backed matrices by a factor of 50 and gives almost equivalent speed to in RAM
-  ## methods.
-  # vapply(seq_len(nrow(Y)), function(gene_idx){
-  #   overdispersion_mle(y = Y[gene_idx, ], mean = mean_matrix[gene_idx, ],
-  #                             model_matrix = model_matrix, do_cox_reid_adjustment = do_cox_reid_adjustment,
-  #                             subsample = subsample)$estimate
-  # }, FUN.VALUE = 0.0)
-  estimate_overdispersions_fast(Y, mean_matrix, model_matrix, do_cox_reid_adjustment, subsample)
-
-}
 
 
 
