@@ -11,6 +11,10 @@
 #' @keywords internal
 loc_median_fit <- function(x, y, fraction = 0.1, npoints = max(1, round(length(x) * fraction)),
                            weighted = TRUE, ignore_zeros = FALSE){
+  # Make sure npoints is valid
+  npoints <- max(1, npoints)
+  npoints <- min(length(x), npoints)
+
   stopifnot(length(x) == length(y))
   if(length(x) == 0){
     return(numeric(0L))

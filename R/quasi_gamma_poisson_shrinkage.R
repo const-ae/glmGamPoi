@@ -1,29 +1,92 @@
 
 
 
+#' Shrink the overdispersion estimates
+#'
+#' Low-level function to shrink a set of overdispersion
+#' estimates following the quasi-likelihood and Empirical
+#' Bayesian framework.
+#'
+#' @param disp_est vector of overdispersion estimates
+#' @param gene_means vector of average gene expression values. Used
+#'   to fit `disp_trend` if that is `NULL`.
+#' @param df degrees of freedom for estimating the Empirical Bayesian
+#'   variance prior. Can be length 1 or same length as `disp_est` and
+#'   `gene_means`.
+#' @param disp_trend vector with the dispersion trend. If `NULL` or `TRUE` the
+#'   dispersion trend is fitted using a (weighted) local median fit.
+#'   Default: `TRUE`.
+#' @param ql_disp_trend a logical to indicate if a second abundance trend
+#'   using splines is fitted for the quasi-likelihood dispersions.
+#'   Default: `NULL` which means that the extra fit is only done if
+#'   enough observations are present.
+#' @param ... additional parameters for the `loc_median_fit()` function
+#' @inheritParams glm_gp
+#'
+#'
+#'
+#' @details
+#' The function goes through the following steps
+#' 1. Fit trend between overdispersion MLE's and the average
+#'  gene expression. Per default it uses the `loc_median_fit()`
+#'  function.
+#' 2. Convert the overdispersion MLE's to quasi-likelihood
+#'  dispersion estimates by fixing the trended dispersion as
+#'  the "true" dispersion value:
+#'  \eqn{disp_ql = (1 + mu * disp_mle) / (1 + mu * disp_trend)}
+#' 3. Shrink the quasi-likelihood dispersion estimates using
+#'  Empirical Bayesian variance shrinkage (see Smyth 2004).
+#'
+#' @examples
+#'  Y <- matrix(rnbinom(n = 300 * 4, mu = 6, size = 1/4.2), nrow = 30, ncol = 4)
+#'  disps <- sapply(seq_len(nrow(Y)), function(idx){
+#'    overdispersion_mle(Y[idx, ])$estimate
+#'  })
+#'  shrink_list <- overdispersion_shrinkage(disps, rowMeans(Y), df = ncol(Y) - 1,
+#'                                          disp_trend = FALSE, ql_disp_trend = FALSE)
+#'
+#'  plot(rowMeans(Y), shrink_list$ql_disp_estimate)
+#'  lines(sort(rowMeans(Y)), shrink_list$ql_disp_trend[order(rowMeans(Y))], col = "red")
+#'  points(rowMeans(Y), shrink_list$ql_disp_shrunken, col = "blue", pch = 16, cex = 0.5)
+#'
+#'
+#' @references
+#' * Lund, S. P., Nettleton, D., McCarthy, D. J., & Smyth, G. K. (2012). Detecting differential expression
+#'   in RNA-sequence data using quasi-likelihood with shrunken dispersion estimates. Statistical
+#'   Applications in Genetics and Molecular Biology, 11(5).
+#'   [https://doi.org/10.1515/1544-6115.1826](https://doi.org/10.1515/1544-6115.1826).
+#' * Smyth, G. K. (2004). Linear models and empirical bayes methods for assessing differential expression
+#'   in microarray experiments. Statistical Applications in Genetics and Molecular Biology, 3(1).
+#'   [https://doi.org/10.2202/1544-6115.1027](https://doi.org/10.2202/1544-6115.1027)
+#'
+#' @seealso \code{limma::squeezeVar()}
+#' @export
+overdispersion_shrinkage <- function(disp_est, gene_means, df,
+                                     disp_trend = TRUE,
+                                     ql_disp_trend = NULL,
+                                     ...,
+                                     verbose = FALSE){
+  stopifnot(length(disp_est) == length(gene_means))
+  min(length(disp_est), max(0.1 * length(disp_est), 100))
 
-shrink_ql_dispersion <- function(disp_est, gene_means,
-                                 df, disp_trend = NULL,
-                                 npoints = min(length(disp_est), max(0.1 * length(disp_est), 100)), weighted = TRUE,
-                                 verbose = FALSE){
-
-  if(verbose){ message("Fit dispersion trend") }
   if(is.null(disp_trend) || isTRUE(disp_trend)){
-    disp_trend <- loc_median_fit(gene_means, y = disp_est, npoints = npoints, weighted = weighted)
+    if(verbose){ message("Fit dispersion trend") }
+    disp_trend <- loc_median_fit(gene_means, y = disp_est, ...)
+  }else if(isFALSE(disp_trend)) {
+    disp_trend <- rep(mean(disp_est), length(disp_est))
   }
 
   if(verbose){ message("Shrink dispersion estimates") }
-  # The following equations are used to go between quasi-likelihood and normal representation
-  # variance = (gene_means + disp_est * gene_means^2)
-  # variance = ql_disp * (gene_means + disp_trend * gene_means^2)
-  # variances <- gene_means + disp_est * gene_means^2
-  # ql_disp <- variances / (gene_means + disp_trend * gene_means^2)
-  ql_disp <- (1 + gene_means * disp_est) / (1 + gene_means * disp_trend)
-
   # Lund et al. 2012. Equation 4. Not ideal for very small counts
   # ql_disp <- rowSums2(compute_gp_deviance_residuals_matrix(Y, Mu, disp_trend)^2) / df
 
-  var_pr <- variance_prior(ql_disp, df, covariate = gene_means)
+  # The following equations are used to go between quasi-likelihood and normal representation
+  # variance = (gene_means + disp_est * gene_means^2)
+  # variance = ql_disp * (gene_means + disp_trend * gene_means^2)
+  ql_disp <- (1 + gene_means * disp_est) / (1 + gene_means * disp_trend)
+
+  var_pr <- variance_prior(ql_disp, df, covariate = gene_means, abundance_trend = ql_disp_trend)
+
   list(dispersion_trend = disp_trend, ql_disp_estimate = ql_disp,
        ql_disp_trend = var_pr$variance0, ql_disp_shrunken = var_pr$var_post,
        ql_df0 = var_pr$df0)
@@ -45,7 +108,10 @@ shrink_ql_dispersion <- function(disp_est, gene_means,
 #' @param s2 vector of observed variances. Must not contain \code{0}'s.
 #' @param df vector or single number with the degrees of freedom
 #' @param covariate a vector with the same length as s2. \code{covariate} is used to regress
-#' out the trend in \code{s2}. If \code{covariate = NULL}, it is ignored.
+#'   out the trend in \code{s2}. If \code{covariate = NULL}, it is ignored.
+#' @param abundance_trend logical that decides if the additional abundance trend is fit
+#'   to the data. If `NULL` the abundance trend is fitted if there are more than 10 observations
+#'   and the `covariate` is not `NULL`. Default: `NULL`
 #'
 #' @return a list with three elements:
 #' \describe{
@@ -58,9 +124,12 @@ shrink_ql_dispersion <- function(disp_est, gene_means,
 #' @seealso \code{limma::squeezeVar()}
 #'
 #' @keywords internal
-variance_prior <- function(s2, df, covariate = NULL){
+variance_prior <- function(s2, df, covariate = NULL, abundance_trend = NULL){
   stopifnot(length(s2) == length(df) || length(df) == 1)
   stopifnot(is.null(covariate) || length(covariate) == length(s2))
+  if(is.null(covariate) && isTRUE(abundance_trend)) {
+    stop("If abundance_trend is true, covariate must not be 'NULL'.")
+  }
 
   if(all(is.na(s2))){
     # This happens if input has zero columns
@@ -72,12 +141,20 @@ variance_prior <- function(s2, df, covariate = NULL){
   if(any(s2 <= 0, na.rm=TRUE)){
     stop(paste0("All s2 must be positive. s2 ", paste0(which(s2 <= 0), collapse=", "), " are not."))
   }
-  if(is.null(covariate) || length(s2) <= 100){
+
+
+  if(is.numeric(abundance_trend)){
+    stop("Numeric abundance trend is not supported.")
+  }else if(is.null(covariate) || is.null(abundance_trend) || ! abundance_trend || length(s2) < 10) {
+    if(length(s2) < 10 && isTRUE(abundance_trend)){
+      warning("abundance_trend was set to 'TRUE', however there were not enough observations (length(s2) = ",
+              length(s2), " < 10) to fit the trend.")
+    }
     opt_res <- optim(par=c(log_variance0=0, log_df0_inv=0), function(par){
       -sum(df(s2/exp(par[1]), df1=df, df2=exp(par[2]), log=TRUE) - par[1], na.rm=TRUE)
     })
 
-    variance0 <- exp(unname(opt_res$par[1]))
+    variance0 <- rep(exp(unname(opt_res$par[1])), times = length(s2))
     df0 <- exp(unname(opt_res$par[2]))
   }else{
     # Fit a spline through the log(s2) ~ covariate + 1 to account

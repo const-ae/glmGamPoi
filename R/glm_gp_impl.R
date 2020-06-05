@@ -83,13 +83,15 @@ glm_gp_impl <- function(Y, model_matrix,
   # Make estimate of over-disperion
   if(isTRUE(overdispersion)){
     if(verbose){ message("Estimate dispersion") }
-    disp_est <- estimate_overdispersions(Y, Mu, model_matrix = model_matrix,
-                                         do_cox_reid_adjustment = do_cox_reid_adjustment,
-                                         subsample = subsample, verbose = verbose)
+    disp_est <- overdispersion_mle(Y, Mu, model_matrix = model_matrix,
+                                   do_cox_reid_adjustment = do_cox_reid_adjustment,
+                                   subsample = subsample, verbose = verbose)$estimates
 
     if(isTRUE(overdispersion_shrinkage)){
-      dispersion_shrinkage <- shrink_ql_dispersion(disp_est, gene_means = DelayedMatrixStats::rowMeans2(Mu),
+      dispersion_shrinkage <- overdispersion_shrinkage(disp_est, gene_means = DelayedMatrixStats::rowMeans2(Mu),
                                                    df = subsample - ncol(model_matrix),
+                                                   ql_disp_trend  = length(disp_est) >= 100,
+                                                   npoints = max(0.1 * length(disp_est), 100),
                                                    verbose = verbose)
       disp_latest <- dispersion_shrinkage$dispersion_trend
     }else{
@@ -113,9 +115,9 @@ glm_gp_impl <- function(Y, model_matrix,
   }else if(isTRUE(overdispersion_shrinkage) || is.numeric(overdispersion_shrinkage)){
     # Given predefined disp_est shrink them
     disp_est <- disp_init
-    dispersion_shrinkage <- shrink_ql_dispersion(disp_est, gene_means = DelayedMatrixStats::rowMeans2(Mu),
-                                                 df = subsample - ncol(model_matrix),
-                                                 disp_trend = overdispersion_shrinkage, verbose = verbose)
+    dispersion_shrinkage <- overdispersion_shrinkage(disp_est, gene_means = DelayedMatrixStats::rowMeans2(Mu),
+                                                     df = subsample - ncol(model_matrix),
+                                                     disp_trend = overdispersion_shrinkage, verbose = verbose)
     disp_latest <- dispersion_shrinkage$dispersion_trend
     if(only_intercept_model){
       beta_res <- estimate_betas_one_group(Y, offset_matrix = offset_matrix,

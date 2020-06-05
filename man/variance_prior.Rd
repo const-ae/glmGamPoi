@@ -4,7 +4,7 @@
 \alias{variance_prior}
 \title{Estimate the scale and df for a Inverse Chisquare distribution that generate the true gene variances}
 \usage{
-variance_prior(s2, df, covariate = NULL)
+variance_prior(s2, df, covariate = NULL, abundance_trend = NULL)
 }
 \arguments{
 \item{s2}{vector of observed variances. Must not contain \code{0}'s.}
@@ -13,6 +13,10 @@ variance_prior(s2, df, covariate = NULL)
 
 \item{covariate}{a vector with the same length as s2. \code{covariate} is used to regress
 out the trend in \code{s2}. If \code{covariate = NULL}, it is ignored.}
+
+\item{abundance_trend}{logical that decides if the additional abundance trend is fit
+to the data. If \code{NULL} the abundance trend is fitted if there are more than 10 observations
+and the \code{covariate} is not \code{NULL}. Default: \code{NULL}}
 }
 \value{
 a list with three elements:

@@ -19,35 +19,35 @@ test_that("loc_median_fit works", {
 
 
 
-test_that("shrink_ql_dispersion is robust", {
+test_that("overdispersion_shrinkage is robust", {
 
   expect_silent({
     mu <- rnorm(n = 100, mean = 5, sd = 0.1)
     disp_est <- rnorm(n = 100,  mean = 2, sd = 0.2)
-    my_res <- shrink_ql_dispersion(disp_est, mu, df = 2)
+    my_res <- overdispersion_shrinkage(disp_est, mu, df = 2)
 
 
     mu <- rnorm(n = 100, mean = 5, sd = 0.1)
     disp_est <- rep(2.1, 100)
-    shrink_ql_dispersion(disp_est, mu, df = 2)
+    overdispersion_shrinkage(disp_est, mu, df = 2)
 
 
     mu <- c(3, 2)
     disp_est <- c(1,1)
-    shrink_ql_dispersion(disp_est, mu, df = 2)
+    overdispersion_shrinkage(disp_est, mu, df = 2)
 
     mu <- c(3, 0)
     disp_est <- c(1,1)
-    shrink_ql_dispersion(disp_est, mu, df = 2)
+    overdispersion_shrinkage(disp_est, mu, df = 2)
 
 
     mu <- 2
     disp_est <- 2
-    shrink_ql_dispersion(disp_est, mu, df = 2)
+    overdispersion_shrinkage(disp_est, mu, df = 2)
 
     mu <- 0
     disp_est <- 1
-    shrink_ql_dispersion(disp_est, mu, df = 2)
+    overdispersion_shrinkage(disp_est, mu, df = 2)
   })
 })
 
@@ -87,7 +87,7 @@ test_that("variance prior estimation works with covariates", {
   obs_var <- DelayedMatrixStats::rowVars(observations)
   df <- ncol(observations) - 1
   res_limma <- limma::squeezeVar(obs_var, df = df, covariate = covariate)
-  res_gp <- variance_prior(obs_var, df, covariate = covariate)
+  res_gp <- variance_prior(obs_var, df, covariate = covariate, abundance_trend = TRUE)
   res_gp2 <- variance_prior(obs_var, df, covariate = NULL)
 
 
