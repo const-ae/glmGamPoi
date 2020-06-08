@@ -38,6 +38,23 @@ enough observations are present.}
 \item{verbose}{a boolean that indicates if information about the individual steps are printed
 while fitting the GLM. Default: \code{FALSE}.}
 }
+\value{
+the function returns a list with the following elements
+\describe{
+\item{dispersion_trend}{the dispersion trend provided by \code{disp_trend} or the
+local median fit.}
+\item{ql_disp_estimate}{the quasi-likelihood dispersion estimates based on
+the dispersion trend, \code{disp_est}, and \code{gene_means}}
+\item{ql_disp_trend}{the \code{ql_disp_estimate} still might show a trend with
+respect to \code{gene_means}. If \code{ql_disp_trend = TRUE} a spline is used to
+remove this secondary trend. If \code{ql_disp_trend = TRUE} it corresponds
+directly to the dispersion prior}
+\item{ql_disp_shrunken}{the shrunken quasi-likelihood dispersion estimates.
+They are shrunken towards \code{ql_disp_trend}.}
+\item{ql_df0}{the degrees of freedom of the empirical Bayesian shrinkage.
+They correspond to spread of the \code{ql_disp_estimate}'s}
+}
+}
 \description{
 Low-level function to shrink a set of overdispersion
 estimates following the quasi-likelihood and Empirical

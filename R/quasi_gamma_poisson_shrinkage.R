@@ -37,6 +37,22 @@
 #' 3. Shrink the quasi-likelihood dispersion estimates using
 #'  Empirical Bayesian variance shrinkage (see Smyth 2004).
 #'
+#' @return the function returns a list with the following elements
+#' \describe{
+#'   \item{dispersion_trend}{the dispersion trend provided by `disp_trend` or the
+#'     local median fit.}
+#'   \item{ql_disp_estimate}{the quasi-likelihood dispersion estimates based on
+#'     the dispersion trend, `disp_est`, and `gene_means`}
+#'   \item{ql_disp_trend}{the `ql_disp_estimate` still might show a trend with
+#'     respect to `gene_means`. If `ql_disp_trend = TRUE` a spline is used to
+#'     remove this secondary trend. If `ql_disp_trend = TRUE` it corresponds
+#'     directly to the dispersion prior}
+#'   \item{ql_disp_shrunken}{the shrunken quasi-likelihood dispersion estimates.
+#'     They are shrunken towards `ql_disp_trend`.}
+#'   \item{ql_df0}{the degrees of freedom of the empirical Bayesian shrinkage.
+#'     They correspond to spread of the `ql_disp_estimate`'s}
+#' }
+#'
 #' @examples
 #'  Y <- matrix(rnbinom(n = 300 * 4, mu = 6, size = 1/4.2), nrow = 30, ncol = 4)
 #'  disps <- sapply(seq_len(nrow(Y)), function(idx){
