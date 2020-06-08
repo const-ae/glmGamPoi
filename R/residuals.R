@@ -3,8 +3,6 @@
 #'
 #' @param object a fit of type `glmGamPoi`. It is usually produced with a call to
 #'   `glm_gp()`.
-#' @param Y any matrix-like object (e.g. `matrix()`, `DelayedArray()`, `HDF5Matrix()`) with
-#'   one column per sample and row per gene.
 #' @param type the type of residual that is calculated. See details for more information.
 #'   Default: `"deviance"`.
 #' @param ... currently ignored.
@@ -25,15 +23,16 @@
 #'   \item{response}{The response residuals are \eqn{res = y - m}}
 #' }
 #'
-#' @return a matrix with the same size as `Y`. If `Y` is a `DelayedArray` than the
-#'   result will be as well.
+#' @return a matrix with the same size as `fit$data`. If `fit$data` contains a `DelayedArray` than the
+#'   result will be a `DelayedArray` as well.
 #'
 #' @seealso [glm_gp()] and `stats::residuals.glm()
 #' @export
-residuals.glmGamPoi <- function(object, Y, type = c("deviance", "pearson", "randomized_quantile", "working", "response"), ...){
+residuals.glmGamPoi <- function(object, type = c("deviance", "pearson", "randomized_quantile", "working", "response"), ...){
   type <- match.arg(type, c("deviance", "pearson", "randomized_quantile", "working", "response"))
+  Y <- assay(object$data)
   if(type == "deviance"){
-    make_resid_hdf5_mat <- is(Y, "DelayedMatrix") && is(DelayedArray::seed(Y), "HDF5ArraySeed")
+    make_resid_hdf5_mat <- is_on_disk.glmGamPoi(object)
     if(! make_resid_hdf5_mat){
       compute_gp_deviance_residuals_matrix(Y, object$Mu, object$overdispersions)
     }else{
@@ -42,7 +41,7 @@ residuals.glmGamPoi <- function(object, Y, type = c("deviance", "pearson", "rand
   }else if(type == "pearson"){
     (Y - object$Mu) / sqrt(object$Mu + multiply_vector_to_each_column(object$Mu^2, object$overdispersions))
   }else if(type == "randomized_quantile"){
-    make_resid_hdf5_mat <- is(Y, "DelayedMatrix") && is(DelayedArray::seed(Y), "HDF5ArraySeed")
+    make_resid_hdf5_mat <- is_on_disk.glmGamPoi(object)
     if(! make_resid_hdf5_mat){
       qres.gampoi(Y, object$Mu, object$overdispersions)
     }else{

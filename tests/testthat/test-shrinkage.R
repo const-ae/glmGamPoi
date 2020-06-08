@@ -105,21 +105,23 @@ test_that("test_de works", {
   annot <- data.frame(group = sample(c("A", "B"), size = 10, replace = TRUE),
                       cont1 = rnorm(10), cont2 = rnorm(10, mean = 30))
   design <- model.matrix(~ group + cont1 + cont2, data = annot)
+  reduced_des <- model.matrix(~ group + cont1, data = annot)
   fit <- glm_gp(Y, design = design)
-  res <- test_de(Y, fit, reduced_design = ~ group + cont1, col_data = annot)
-  res2 <- test_de(Y, fit, contrast = cont2)
+  res <- test_de(fit, reduced_design = reduced_des)
+  res2 <- test_de(fit, contrast = cont2)
   # Should be equal except for log-fold change column
   expect_equal(res[,-7], res2[,-7], tolerance = 1e-6)
   expect_equal(res$lfc, rep(NA, 30), tolerance = 1e-6)
   expect_equal(res2$lfc, fit$Beta[,"cont2"] / log(2), tolerance = 1e-6)
 
   design_wo_intercept <- model.matrix(~ group + cont1 + cont2 - 1, data = annot)
+  red_design <- model.matrix( ~ cont1 + cont2 + 1, data = annot)
   fit_wo_intercept <- glm_gp(Y, design = design_wo_intercept)
-  res3 <- test_de(Y, fit_wo_intercept, reduced_design = ~ cont1 + cont2 + 1, col_data = annot)
-  res4 <- test_de(Y, fit_wo_intercept, contrast = groupA - groupB)
+  res3 <- test_de(fit_wo_intercept, reduced_design = red_design)
+  res4 <- test_de(fit_wo_intercept, contrast = groupA - groupB)
   expect_equal(res3[,-7], res4[,-7], tolerance = 1e-6)
 
-  res5 <- test_de(Y, fit, contrast = "-groupB", col_data = annot)
+  res5 <- test_de(fit, contrast = "-groupB")
   expect_equal(res4, res5, tolerance = 0.1)
 
 })
@@ -131,8 +133,8 @@ test_that("test_de works with contrast vector input", {
                       cont1 = rnorm(10), cont2 = rnorm(10, mean = 30))
   design <- model.matrix(~ group + cont1 + cont2, data = annot)
   fit <- glm_gp(Y, design = design)
-  res1 <- test_de(Y, fit, contrast = cont2 - groupB)
-  res2 <- test_de(Y, fit, contrast = c(0, -1, 0, 1))
+  res1 <- test_de(fit, contrast = cont2 - groupB)
+  res2 <- test_de(fit, contrast = c(0, -1, 0, 1))
   expect_equal(res1, res2)
 
 })
@@ -147,9 +149,9 @@ test_that("test_de handles on_disk correctly", {
   se <- SummarizedExperiment::SummarizedExperiment(Y_hdf5, colData = annot)
   # The actual check is difficult, because internally the res2 should be calculated on_disk
   fit1 <- glm_gp(se, design = ~ group + cont1 + cont2, on_disk = TRUE)
-  res1 <- test_de(se, fit1, reduced_design = ~ 1)
+  res1 <- test_de(fit1, reduced_design = ~ 1)
   fit2 <- glm_gp(se, design = ~ group + cont1 + cont2, on_disk = FALSE)
-  res2 <- test_de(se, fit2, reduced_design = ~ 1)
+  res2 <- test_de(fit2, reduced_design = ~ 1)
   expect_equal(res1, res2)
 
 })

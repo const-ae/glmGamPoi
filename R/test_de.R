@@ -42,10 +42,10 @@
 #'                       cont1 = rnorm(10), cont2 = rnorm(10, mean = 30))
 #'   design <- model.matrix(~ group + cont1 + cont2, data = annot)
 #'   fit <- glm_gp(Y, design = design)
-#'   res <- test_de(Y, fit, reduced_design = ~ group + cont1, col_data = annot)
+#'   res <- test_de(fit, reduced_design = ~ group + cont1, col_data = annot)
 #'   head(res)
 #'
-#'   res2 <- test_de(Y, fit, contrast = cont2)
+#'   res2 <- test_de(fit, contrast = cont2)
 #'   head(res2)
 #'
 #' @references
@@ -55,13 +55,12 @@
 #'   [https://doi.org/10.1515/1544-6115.1826](https://doi.org/10.1515/1544-6115.1826).
 #'
 #' @export
-test_de <- function(data, fit,
-                     contrast,
-                     reduced_design = NULL,
-                     col_data = NULL,
-                     pval_adjust_method = "BH", sort_by = NULL, decreasing = FALSE,
-                     n_max = Inf,
-                     verbose = FALSE){
+test_de <- function(fit,
+                    contrast,
+                    reduced_design = NULL,
+                    pval_adjust_method = "BH", sort_by = NULL, decreasing = FALSE,
+                    n_max = Inf,
+                    verbose = FALSE){
 
   if(is.null(reduced_design) == missing(contrast)){
     stop("Please provide either an alternative design (formula or matrix) or a contrast ",
@@ -91,8 +90,9 @@ test_de <- function(data, fit,
     lfc <- NA
   }
   if(verbose){message("Fit reduced model")}
-  do_on_disk <- is(fit$Mu, "DelayedMatrix") && is(DelayedArray::seed(fit$Mu), "HDF5ArraySeed")
-  fit_alt <- glm_gp(data, design = reduced_design, col_data = col_data,
+  data <- fit$data
+  do_on_disk <- is_on_disk.glmGamPoi(fit)
+  fit_alt <- glm_gp(data, design = reduced_design,
                     size_factors = fit$size_factors,
                     overdispersion = disp_trend,
                     overdispersion_shrinkage = FALSE,

@@ -8,22 +8,22 @@ test_that("residual calculation works", {
   expect_equal(fit$Beta[1,], unname(coef(r_fit1)), tolerance = 1e-4)
   expect_equal(fit$Beta[2,], unname(coef(r_fit2)), tolerance = 1e-4)
 
-  expect_equal(c(t(residuals(fit, Y, "response"))),
+  expect_equal(c(t(residuals(fit, "response"))),
               unname(c(residuals.glm(r_fit1, "response"), residuals.glm(r_fit2, "response"))),
               tolerance = 1e-4)
-  expect_equal(c(t(residuals(fit, Y, "working"))),
+  expect_equal(c(t(residuals(fit, "working"))),
                unname(c(residuals.glm(r_fit1, "working"), residuals.glm(r_fit2, "working"))),
                tolerance = 1e-5)
-  expect_equal(c(t(residuals(fit, Y, "pearson"))),
+  expect_equal(c(t(residuals(fit, "pearson"))),
                unname(c(residuals.glm(r_fit1, "pearson"), residuals.glm(r_fit2, "pearson"))),
                tolerance = 1e-5)
-  expect_equal(c(t(residuals(fit, Y, "deviance"))),
+  expect_equal(c(t(residuals(fit, "deviance"))),
                unname(c(residuals.glm(r_fit1, "deviance"), residuals.glm(r_fit2, "deviance"))),
                tolerance = 1e-5)
 
   # Randomized Quantiles are by definition not equal
   r_qs <- c(statmod::qresiduals(r_fit1),  statmod::qresiduals(r_fit2))
-  res <- c(t(residuals(fit, Y, "randomized_quantile")))
+  res <- c(t(residuals(fit, "randomized_quantile")))
   expect_gt(cor(r_qs, res), 0.99)
 })
 
@@ -41,27 +41,27 @@ test_that("residual calculation works with Delayed Matrix", {
   expect_equal(fit$Beta[1,], unname(coef(r_fit1)), tolerance = 1e-4)
   expect_equal(fit$Beta[2,], unname(coef(r_fit2)), tolerance = 1e-4)
 
-  expect_s4_class(residuals(fit, Y_hdf5, "response"), "DelayedMatrix")
-  expect_s4_class(residuals(fit, Y_hdf5, "working"), "DelayedMatrix")
-  expect_s4_class(residuals(fit, Y_hdf5, "pearson"), "DelayedMatrix")
-  expect_s4_class(residuals(fit, Y_hdf5, "deviance"), "DelayedMatrix")
+  expect_s4_class(residuals(fit, "response"), "DelayedMatrix")
+  expect_s4_class(residuals(fit, "working"), "DelayedMatrix")
+  expect_s4_class(residuals(fit, "pearson"), "DelayedMatrix")
+  expect_s4_class(residuals(fit, "deviance"), "DelayedMatrix")
 
-  expect_equal(c(t(residuals(fit, Y_hdf5, "response"))),
+  expect_equal(c(t(residuals(fit, "response"))),
                unname(c(residuals.glm(r_fit1, "response"), residuals.glm(r_fit2, "response"))),
                tolerance = 1e-4)
-  expect_equal(c(t(residuals(fit, Y_hdf5, "working"))),
+  expect_equal(c(t(residuals(fit, "working"))),
                unname(c(residuals.glm(r_fit1, "working"), residuals.glm(r_fit2, "working"))),
                tolerance = 1e-5)
-  expect_equal(c(t(residuals(fit, Y_hdf5, "pearson"))),
+  expect_equal(c(t(residuals(fit, "pearson"))),
                unname(c(residuals.glm(r_fit1, "pearson"), residuals.glm(r_fit2, "pearson"))),
                tolerance = 1e-5)
-  expect_equal(c(t(residuals(fit, Y_hdf5, "deviance"))),
+  expect_equal(c(t(residuals(fit, "deviance"))),
                unname(c(residuals.glm(r_fit1, "deviance"), residuals.glm(r_fit2, "deviance"))),
                tolerance = 1e-5)
 
   # Randomized Quantiles are by definition not equal
   r_qs <- c(statmod::qresiduals(r_fit1),  statmod::qresiduals(r_fit2))
-  res <- c(t(residuals(fit, Y_hdf5, "randomized_quantile")))
+  res <- c(t(residuals(fit, "randomized_quantile")))
   expect_gt(cor(r_qs, res), 0.99)
 
 })

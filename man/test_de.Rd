@@ -5,11 +5,9 @@
 \title{Test for Differential Expression}
 \usage{
 test_de(
-  data,
   fit,
   contrast,
   reduced_design = NULL,
-  col_data = NULL,
   pval_adjust_method = "BH",
   sort_by = NULL,
   decreasing = FALSE,
@@ -18,10 +16,6 @@ test_de(
 )
 }
 \arguments{
-\item{data}{any matrix-like object (e.g. \link{matrix}, \link{DelayedArray}, \link{HDF5Matrix}) or
-anything that can be cast to a \link{SummarizedExperiment} (e.g. \code{MSnSet}, \code{eSet} etc.) with
-one column per sample and row per gene.}
-
 \item{fit}{object of class \code{glmGamPoi}. Usually the result of calling \code{glm_gp(data, ...)}}
 
 \item{contrast}{The contrast to test. Can be a single column name (quoted or as a string)
@@ -34,8 +28,6 @@ how much better \code{fit} describes the data.
 Analogous to the \code{design} parameter in \code{glm_gp()}, it can be either a \code{formula},
 a \code{model.matrix()}, or a \code{vector}. \cr
 Only one of \code{contrast} or \code{reduced_design} must be specified.}
-
-\item{col_data}{a dataframe with one row for each sample in \code{data}. Default: \code{NULL}.}
 
 \item{pval_adjust_method}{one of the p-value adjustment method from
 \link{p.adjust.methods}. Default: \code{"BH"}.}
@@ -74,10 +66,10 @@ Conduct a quasi-likelihood ratio test for a Gamma-Poisson fit.
                       cont1 = rnorm(10), cont2 = rnorm(10, mean = 30))
   design <- model.matrix(~ group + cont1 + cont2, data = annot)
   fit <- glm_gp(Y, design = design)
-  res <- test_de(Y, fit, reduced_design = ~ group + cont1, col_data = annot)
+  res <- test_de(fit, reduced_design = ~ group + cont1, col_data = annot)
   head(res)
 
-  res2 <- test_de(Y, fit, contrast = cont2)
+  res2 <- test_de(fit, contrast = cont2)
   head(res2)
 
 }

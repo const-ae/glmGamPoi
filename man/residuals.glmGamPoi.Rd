@@ -6,7 +6,6 @@
 \usage{
 \method{residuals}{glmGamPoi}(
   object,
-  Y,
   type = c("deviance", "pearson", "randomized_quantile", "working", "response"),
   ...
 )
@@ -15,17 +14,14 @@
 \item{object}{a fit of type \code{glmGamPoi}. It is usually produced with a call to
 \code{glm_gp()}.}
 
-\item{Y}{any matrix-like object (e.g. \code{matrix()}, \code{DelayedArray()}, \code{HDF5Matrix()}) with
-one column per sample and row per gene.}
-
 \item{type}{the type of residual that is calculated. See details for more information.
 Default: \code{"deviance"}.}
 
 \item{...}{currently ignored.}
 }
 \value{
-a matrix with the same size as \code{Y}. If \code{Y} is a \code{DelayedArray} than the
-result will be as well.
+a matrix with the same size as \code{fit$data}. If \code{fit$data} contains a \code{DelayedArray} than the
+result will be a \code{DelayedArray} as well.
 }
 \description{
 Extract Residuals of Gamma Poisson Model

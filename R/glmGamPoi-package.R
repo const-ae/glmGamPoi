@@ -7,4 +7,5 @@ NULL
 #' @import Rcpp
 #' @importFrom methods as is canCoerce
 #' @importFrom utils head
+#' @importFrom SummarizedExperiment assay
 NULL

@@ -15,6 +15,9 @@ the conventional_likelihood_fast
 0 or 1 row. This will change the estimated beta, but not the
 mu's
 + Rename gampoi_overdispersion_mle() -> overdispersion_mle()
++ Store data in the object returned by glm_gp()
++ Remove Y from the interface of residuals.glmGamPoi, because
+I can just get it directly from fit$data
 
 
 Changes in version 0.0.99 (2020-03-23)

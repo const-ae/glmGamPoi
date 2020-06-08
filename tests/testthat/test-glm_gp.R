@@ -106,13 +106,18 @@ test_that("glm_gp can handle on_disk parameter", {
   fit_in_memory <- glm_gp(Y, design = ~ fav_food + city + age, col_data = data, on_disk = FALSE)
   fit_on_disk <- glm_gp(Y, design = ~ fav_food + city + age, col_data = data, on_disk = TRUE)
 
-  expect_equal(fit_in_memory[names(fit_in_memory) != "Mu"], fit_on_disk[names(fit_on_disk) != "Mu"])
+  expect_equal(fit_in_memory[!names(fit_in_memory) %in% c("Mu", "data")], fit_on_disk[!names(fit_on_disk) %in% c("Mu", "data")])
   expect_equal(c(fit_in_memory$Mu), c(fit_on_disk$Mu))
   expect_s4_class(fit_on_disk$Mu, "DelayedArray")
+  expect_equal(c(assay(fit_in_memory$data)), c(assay(fit_on_disk$data)))
+  expect_equal(class(fit_in_memory$data), class(fit_on_disk$data))
+  expect_s4_class(assay(fit_on_disk$data), "DelayedArray")
+
 
   fit_on_disk2 <- glm_gp(Y_hdf5, design = ~ fav_food + city + age, col_data = data)
-  expect_equal(fit_on_disk[names(fit_on_disk) != "Mu"], fit_on_disk2[names(fit_on_disk2) != "Mu"])
+  expect_equal(fit_on_disk[!names(fit_in_memory) %in% c("Mu", "data")], fit_on_disk2[!names(fit_on_disk2) %in% c("Mu", "data")])
   expect_s4_class(fit_on_disk2$Mu, "DelayedArray")
+  expect_s4_class(assay(fit_on_disk2$data), "DelayedArray")
 
   fit_in_memory2 <- glm_gp(Y_hdf5, design = ~ fav_food + city + age, col_data = data, on_disk = FALSE)
   expect_equal(fit_in_memory, fit_in_memory2)
@@ -207,5 +212,28 @@ test_that("glm_gp warns about mismatching col_data rownames ", {
   colnames(Y) <- paste0("sample_", 1:7)
   fit <- glm_gp(Y, design = ~ condition, col_data = coldata, size_factors = FALSE)
   expect_equal(c(fit$model_matrix), c(model.matrix(~ condition, coldata)[colnames(Y), ]))
+})
+
+
+test_that("glm_gp doesn't copy the data", {
+
+  data <- data.frame(fav_food = sample(c("apple", "banana", "cherry"), size = 50, replace = TRUE),
+                     city = sample(c("heidelberg", "paris", "new york"), size = 50, replace = TRUE),
+                     age = rnorm(n = 50, mean = 40, sd = 15))
+  Y <- matrix(rnbinom(n = 10 * 50, mu = 3, size = 1/3.1), nrow = 10, ncol = 50)
+  rownames(Y) <- paste0("gene_", seq_len(10))
+  colnames(Y) <- paste0("person_", seq_len(50))
+  Y_hdf5 <- HDF5Array::writeHDF5Array(Y)
+  dimnames(Y_hdf5) <- dimnames(Y)
+
+  fit_on_disk <- glm_gp(Y_hdf5, design = ~ fav_food + city + age, col_data = data)
+  expect_s4_class(assay(fit_on_disk$data), "DelayedArray")
+  expect_equal(assay(fit_on_disk$data)@seed@seed@filepath, Y_hdf5@seed@seed@filepath)
+
+
+  # fit_in_memory <- glm_gp(Y, design = ~ fav_food + city + age, col_data = data, on_disk = FALSE)
+  # # If you ignore the wrapper for the second, the two objects are identical
+  # .Internal(inspect(Y))
+  # .Internal(inspect(assay(fit_in_memory$data)))
 })
 

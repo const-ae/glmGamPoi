@@ -115,6 +115,7 @@
 #'   \item{`size_factors`}{a vector with length `ncol(data)`. The size factors are the inferred
 #'   correction factors for different sizes of each sample. They are also sometimes called the
 #'   exposure factor.}
+#'   \item{`data`}{a `SummarizedExperiment` that contains the input counts and the `col_data`}
 #'   \item{`model_matrix`}{a matrix with dimensions `ncol(data) x n_coefficients`. It is build based
 #'   on the `design` argument.}
 #' }
@@ -190,6 +191,7 @@ glm_gp <- function(data,
   data_mat <- handle_data_parameter(data, on_disk)
 
   # Convert the formula to a model_matrix
+  col_data <- get_col_data(data, col_data)
   des <- handle_design_parameter(design, data, col_data, reference_level, offset)
 
   # Call glm_gp_impl()
@@ -203,6 +205,10 @@ glm_gp <- function(data,
               subsample = subsample,
               verbose = verbose)
   # Make sure that the output is nice and beautiful
+  rownames(data_mat) <- rownames(data)
+  colnames(data_mat) <- colnames(data)
+  res$data <- SummarizedExperiment::SummarizedExperiment(list(counts = data_mat),
+                                                         colData = col_data)
   res$model_matrix <- des$model_matrix
   res$design_formula <- des$design_formula
   colnames(res$Beta) <- colnames(res$model_matrix)
@@ -249,6 +255,17 @@ handle_data_parameter <- function(data, on_disk){
 }
 
 
+get_col_data <- function(data, col_data){
+  if(is.null(col_data)){
+    col_data <- as.data.frame(matrix(numeric(0), nrow=ncol(data)))
+  }
+  if(is(data, "SummarizedExperiment")){
+    cbind(col_data, SummarizedExperiment::colData(data))
+  }else{
+    col_data
+  }
+}
+
 
 handle_design_parameter <- function(design, data, col_data, reference_level, offset){
   n_samples <- ncol(data)
@@ -277,16 +294,7 @@ handle_design_parameter <- function(design, data, col_data, reference_level, off
     model_matrix <- convert_chr_vec_to_model_matrix(design, reference_level)
     design_formula <- NULL
   }else if(inherits(design,"formula")){
-    if(design == formula(~ 1) && is.null(col_data)){
-      col_data <- as.data.frame(matrix(numeric(0), nrow=n_samples))
-    }
-    compl_col_data <- if(is(data, "SummarizedExperiment")){
-      if(is.null(col_data)) SummarizedExperiment::colData(data)
-      else cbind(col_data, SummarizedExperiment::colData(data))
-    }else{
-      col_data
-    }
-    model_matrix <- convert_formula_to_model_matrix(design, compl_col_data, reference_level)
+    model_matrix <- convert_formula_to_model_matrix(design, col_data, reference_level)
     design_formula <- design
   }else{
     stop(paste0("design argment of class ", class(design), " is not supported. Please ",
@@ -383,5 +391,9 @@ convert_formula_to_model_matrix <- function(formula, col_data, reference_level=N
   mm
 }
 
+
+is_on_disk.glmGamPoi <- function(fit){
+  is(fit$Mu, "DelayedMatrix") && is(DelayedArray::seed(fit$Mu), "HDF5ArraySeed")
+}
 
 
