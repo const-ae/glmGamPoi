@@ -18,6 +18,8 @@ mu's
 + Store data in the object returned by glm_gp()
 + Remove Y from the interface of residuals.glmGamPoi, because
 I can just get it directly from fit$data
++ Add function test_de() that does a quasi-likelihood ratio
+test to detect differentially expressed genes
 
 
 Changes in version 0.0.99 (2020-03-23)
