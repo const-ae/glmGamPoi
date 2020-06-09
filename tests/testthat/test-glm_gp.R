@@ -31,6 +31,21 @@ test_that("glm_gp can handle complicated formulas", {
 })
 
 
+test_that("handle_design_parameter throws error for degenerate design matrix", {
+
+  df <- data.frame(group = sample(LETTERS[1:3], size = 20, replace = TRUE),
+             cont = rnorm(20))
+  df$group_copy <- df$group
+  data <- matrix(0, ncol = 20, nrow = 1)
+  expect_error(handle_design_parameter(~ group + group_copy + cont, data, col_data = df, reference_level = NULL))
+
+  model_matrix <- model.matrix(~ group + cont, data = df)
+  model_matrix <- cbind(model_matrix, 0)
+  expect_error(handle_design_parameter(model_matrix, data, col_data = df, reference_level = NULL))
+
+})
+
+
 test_that("glm_gp can handle no-row input", {
 
   Y <- matrix(numeric(0), nrow = 0, ncol = 10)

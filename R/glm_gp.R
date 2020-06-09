@@ -192,12 +192,12 @@ glm_gp <- function(data,
 
   # Convert the formula to a model_matrix
   col_data <- get_col_data(data, col_data)
-  des <- handle_design_parameter(design, data, col_data, reference_level, offset)
+  des <- handle_design_parameter(design, data, col_data, reference_level)
 
   # Call glm_gp_impl()
   res <- glm_gp_impl(data_mat,
               model_matrix = des$model_matrix,
-              offset = des$offset,
+              offset = offset,
               size_factors = size_factors,
               overdispersion = overdispersion,
               overdispersion_shrinkage = overdispersion_shrinkage,
@@ -267,7 +267,7 @@ get_col_data <- function(data, col_data){
 }
 
 
-handle_design_parameter <- function(design, data, col_data, reference_level, offset){
+handle_design_parameter <- function(design, data, col_data, reference_level){
   n_samples <- ncol(data)
 
   # Handle the design parameter
@@ -315,11 +315,22 @@ handle_design_parameter <- function(design, data, col_data, reference_level, off
 
   }
 
+  # Check rank of model_matrix
+  qr_mm <- qr(model_matrix)
+  if(qr_mm$rank < ncol(model_matrix) && n_samples > 0){
+    is_zero_column <- matrixStats::colCounts(model_matrix, value = 0) == nrow(model_matrix)
+    if(any(is_zero_column)){
+      stop("The model matrix:\n", format_matrix(head(model_matrix)), "\nseems degenerate ('matrix_rank(model_matrix) < ncol(model_matrix)'). ",
+           "Column ", paste0(which(is_zero_column), collapse = ", "), " contains only zeros.")
+    }else{
+      stop("The model matrix:\n", format_matrix(head(model_matrix)), "\nseems degenerate ('matrix_rank(model_matrix) < ncol(model_matrix)'). ",
+           "Some columns are perfectly collinear. Did you maybe include the same coefficient twice?")
+    }
+  }
 
   rownames(model_matrix) <- colnames(data)
   validate_model_matrix(model_matrix, data)
-  list(model_matrix = model_matrix, design_formula = design_formula,
-       offset = offset)
+  list(model_matrix = model_matrix, design_formula = design_formula)
 }
 
 
