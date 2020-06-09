@@ -318,7 +318,7 @@ handle_design_parameter <- function(design, data, col_data, reference_level){
   # Check rank of model_matrix
   qr_mm <- qr(model_matrix)
   if(qr_mm$rank < ncol(model_matrix) && n_samples > 0){
-    is_zero_column <- matrixStats::colCounts(model_matrix, value = 0) == nrow(model_matrix)
+    is_zero_column <- DelayedMatrixStats::colCounts(model_matrix, value = 0) == nrow(model_matrix)
     if(any(is_zero_column)){
       stop("The model matrix:\n", format_matrix(head(model_matrix)), "\nseems degenerate ('matrix_rank(model_matrix) < ncol(model_matrix)'). ",
            "Column ", paste0(which(is_zero_column), collapse = ", "), " contains only zeros.")
