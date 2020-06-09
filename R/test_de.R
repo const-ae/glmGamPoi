@@ -40,9 +40,8 @@
 #'   Y <- matrix(rnbinom(n = 30 * 10, mu = 4, size = 0.3), nrow = 30, ncol  =10)
 #'   annot <- data.frame(group = sample(c("A", "B"), size = 10, replace = TRUE),
 #'                       cont1 = rnorm(10), cont2 = rnorm(10, mean = 30))
-#'   design <- model.matrix(~ group + cont1 + cont2, data = annot)
-#'   fit <- glm_gp(Y, design = design)
-#'   res <- test_de(fit, reduced_design = ~ group + cont1, col_data = annot)
+#'   fit <- glm_gp(Y, design = ~ group + cont1 + cont2, col_data = annot)
+#'   res <- test_de(fit, reduced_design = ~ group + cont1)
 #'   head(res)
 #'
 #'   res2 <- test_de(fit, contrast = cont2)
