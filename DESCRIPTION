@@ -35,6 +35,7 @@ LinkingTo:
 Imports: 
     Rcpp,
     DelayedMatrixStats,
+    matrixStats,
     DelayedArray,
     HDF5Array,
     SummarizedExperiment,
