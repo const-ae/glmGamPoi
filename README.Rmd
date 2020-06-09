@@ -50,13 +50,20 @@ For the latest developments, see the `r BiocStyle::Githubpkg("const-ae/glmGamPoi
 
 # Example
 
+Load the glmGamPoi package
+
+```{r}
+library(glmGamPoi)
+```
+
+
 To fit a single Gamma-Poisson GLM do:
 
 ```{r}
 # overdispersion = 1/size
 counts <- rnbinom(n = 10, mu = 5, size = 1/0.7)
 # size_factors = FALSE, because only a single GLM is fitted
-fit <- glmGamPoi::glm_gp(counts, design = ~ 1)
+fit <- glm_gp(counts, design = ~ 1)
 fit
 
 # Internally fit is just a list:
@@ -86,7 +93,7 @@ pbmcs_subset
 I call `glm_gp()` to fit one GLM model for each gene and force the calculation to happen in memory.
 
 ```{r}
-fit <- glmGamPoi::glm_gp(pbmcs_subset, on_disk = FALSE)
+fit <- glm_gp(pbmcs_subset, on_disk = FALSE)
 summary(fit)
 ```
 
@@ -106,9 +113,9 @@ model_matrix <- matrix(1, nrow = ncol(pbmcs_subset))
 
 bench::mark(
   glmGamPoi_in_memory = {
-    glmGamPoi::glm_gp(pbmcs_subset, design = model_matrix, on_disk = FALSE)
+    glm_gp(pbmcs_subset, design = model_matrix, on_disk = FALSE)
   }, glmGamPoi_on_disk = {
-    glmGamPoi::glm_gp(pbmcs_subset, design = model_matrix, on_disk = TRUE)
+    glm_gp(pbmcs_subset, design = model_matrix, on_disk = TRUE)
   }, DESeq2 = suppressMessages({
     dds <- DESeq2::DESeqDataSetFromMatrix(pbmcs_subset,
                         colData = data.frame(name = seq_len(4340)),
@@ -131,7 +138,7 @@ To demonstrate that the method does not sacrifice accuracy, I compare the parame
 
 ```{r message=FALSE, warning=FALSE}
 # Results with my method
-fit <- glmGamPoi::glm_gp(pbmcs_subset, design = model_matrix, on_disk = FALSE)
+fit <- glm_gp(pbmcs_subset, design = model_matrix, on_disk = FALSE)
 
 # DESeq2
 dds <- DESeq2::DESeqDataSetFromMatrix(pbmcs_subset, 
@@ -191,9 +198,9 @@ The method scales linearly, with the number of rows and columns in the dataset. 
 group <- sample(c("Group1", "Group2"), size = ncol(pbmcs_subset), replace = TRUE)
 
 # Fit model with group vector as design
-fit <- glmGamPoi::glm_gp(pbmcs_subset, design = group)
+fit <- glm_gp(pbmcs_subset, design = group)
 # Compare against model without group 
-res <- glmGamPoi::gampoi_test_qlr(pbmcs_subset, fit, reduced_design = ~ 1)
+res <- test_de(fit, reduced_design = ~ 1)
 # Look at first 6 genes
 head(res)
 ```

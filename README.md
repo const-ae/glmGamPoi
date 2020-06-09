@@ -39,13 +39,19 @@ For the latest developments, see the
 
 # Example
 
+Load the glmGamPoi package
+
+``` r
+library(glmGamPoi)
+```
+
 To fit a single Gamma-Poisson GLM do:
 
 ``` r
 # overdispersion = 1/size
 counts <- rnbinom(n = 10, mu = 5, size = 1/0.7)
 # size_factors = FALSE, because only a single GLM is fitted
-fit <- glmGamPoi::glm_gp(counts, design = ~ 1)
+fit <- glm_gp(counts, design = ~ 1)
 fit
 #> glmGamPoiFit object:
 #> The data had 1 rows and 10 columns.
@@ -107,7 +113,7 @@ I call `glm_gp()` to fit one GLM model for each gene and force the
 calculation to happen in memory.
 
 ``` r
-fit <- glmGamPoi::glm_gp(pbmcs_subset, on_disk = FALSE)
+fit <- glm_gp(pbmcs_subset, on_disk = FALSE)
 summary(fit)
 #> glmGamPoiFit object:
 #> The data had 300 rows and 4340 columns.
@@ -157,9 +163,9 @@ model_matrix <- matrix(1, nrow = ncol(pbmcs_subset))
 
 bench::mark(
   glmGamPoi_in_memory = {
-    glmGamPoi::glm_gp(pbmcs_subset, design = model_matrix, on_disk = FALSE)
+    glm_gp(pbmcs_subset, design = model_matrix, on_disk = FALSE)
   }, glmGamPoi_on_disk = {
-    glmGamPoi::glm_gp(pbmcs_subset, design = model_matrix, on_disk = TRUE)
+    glm_gp(pbmcs_subset, design = model_matrix, on_disk = TRUE)
   }, DESeq2 = suppressMessages({
     dds <- DESeq2::DESeqDataSetFromMatrix(pbmcs_subset,
                         colData = data.frame(name = seq_len(4340)),
@@ -177,10 +183,10 @@ bench::mark(
 #> # A tibble: 4 x 6
 #>   expression               min   median `itr/sec` mem_alloc `gc/sec`
 #>   <bch:expr>          <bch:tm> <bch:tm>     <dbl> <bch:byt>    <dbl>
-#> 1 glmGamPoi_in_memory 810.32ms 883.13ms    0.935   310.38MB    2.49 
-#> 2 glmGamPoi_on_disk      3.84s    4.31s    0.240   687.89MB    0.881
-#> 3 DESeq2                20.67s   21.07s    0.0468    1.16GB    0.421
-#> 4 edgeR                  6.04s    6.54s    0.157     1.19GB    1.41
+#> 1 glmGamPoi_in_memory 876.47ms 885.66ms    0.924   435.89MB    2.46 
+#> 2 glmGamPoi_on_disk      4.28s    4.38s    0.230    813.4MB    1.15 
+#> 3 DESeq2                20.29s   20.36s    0.0491    1.16GB    0.393
+#> 4 edgeR                  5.39s    5.46s    0.183     1.19GB    1.28
 ```
 
 On this dataset, `glmGamPoi` is more than 6 times faster than `edgeR`
@@ -198,7 +204,7 @@ are more reliable:
 
 ``` r
 # Results with my method
-fit <- glmGamPoi::glm_gp(pbmcs_subset, design = model_matrix, on_disk = FALSE)
+fit <- glm_gp(pbmcs_subset, design = model_matrix, on_disk = FALSE)
 
 # DESeq2
 dds <- DESeq2::DESeqDataSetFromMatrix(pbmcs_subset, 
@@ -246,18 +252,18 @@ to identify differentially expressed genes:
 group <- sample(c("Group1", "Group2"), size = ncol(pbmcs_subset), replace = TRUE)
 
 # Fit model with group vector as design
-fit <- glmGamPoi::glm_gp(pbmcs_subset, design = group)
+fit <- glm_gp(pbmcs_subset, design = group)
 # Compare against model without group 
-res <- glmGamPoi::gampoi_test_qlr(pbmcs_subset, fit, reduced_design = ~ 1)
+res <- test_de(fit, reduced_design = ~ 1)
 # Look at first 6 genes
 head(res)
-#>              name      pval  adj_pval f_statistic df1      df2
-#> 1 ENSG00000126457 0.4540555 0.8928787   0.5606071   1 4431.288
-#> 2 ENSG00000109832 0.5836666 0.9151578   0.3003885   1 4431.288
-#> 3 ENSG00000237339 0.2572241 0.8122865   1.2839669   1 4431.288
-#> 4 ENSG00000075234 0.3812121 0.8776873   0.7669423   1 4431.288
-#> 5 ENSG00000161057 0.8507711 0.9924359   0.0353988   1 4431.288
-#> 6 ENSG00000151366 0.4037362 0.8776873   0.6973038   1 4431.288
+#>              name      pval  adj_pval f_statistic df1      df2 lfc
+#> 1 ENSG00000126457 0.4540554 0.8928794  0.56060729   1 4431.258  NA
+#> 2 ENSG00000109832 0.5836666 0.9151576  0.30038847   1 4431.258  NA
+#> 3 ENSG00000237339 0.2572241 0.8122867  1.28396660   1 4431.258  NA
+#> 4 ENSG00000075234 0.3812125 0.8776874  0.76694090   1 4431.258  NA
+#> 5 ENSG00000161057 0.8507710 0.9924359  0.03539882   1 4431.258  NA
+#> 6 ENSG00000151366 0.4037362 0.8776874  0.69730362   1 4431.258  NA
 ```
 
 The p-values agree well with the ones that `edgeR` is calculating. This
@@ -275,7 +281,7 @@ edgeR_test <- edgeR::glmQLFTest(edgeR_fit, coef = 2)
 edgeR_res <- edgeR::topTags(edgeR_test, sort.by = "none", n = nrow(pbmcs_subset))
 ```
 
-![](man/figures/README-unnamed-chunk-10-1.png)<!-- -->
+![](man/figures/README-unnamed-chunk-11-1.png)<!-- -->
 
 # Session Info
 
@@ -304,13 +310,14 @@ sessionInfo()
 #>  [9] Biobase_2.48.0              GenomicRanges_1.40.0       
 #> [11] GenomeInfoDb_1.24.0         IRanges_2.22.1             
 #> [13] S4Vectors_0.26.0            BiocGenerics_0.34.0        
+#> [15] glmGamPoi_1.1.4            
 #> 
 #> loaded via a namespace (and not attached):
 #>  [1] bitops_1.0-6                  bit64_0.9-7                  
 #>  [3] RColorBrewer_1.1-2            httr_1.4.1                   
 #>  [5] tools_4.0.0                   utf8_1.1.4                   
 #>  [7] R6_2.4.1                      DBI_1.1.0                    
-#>  [9] colorspace_1.4-1              tidyselect_1.0.0             
+#>  [9] colorspace_1.4-1              tidyselect_1.1.0             
 #> [11] DESeq2_1.28.0                 bit_1.1-15.2                 
 #> [13] curl_4.3                      compiler_4.0.0               
 #> [15] cli_2.0.2                     scales_1.1.0                 
@@ -321,15 +328,15 @@ sessionInfo()
 #> [25] htmltools_0.4.0               dbplyr_1.4.3                 
 #> [27] fastmap_1.0.1                 limma_3.44.1                 
 #> [29] rlang_0.4.6                   RSQLite_2.2.0                
-#> [31] shiny_1.4.0.2                 BiocParallel_1.22.0          
-#> [33] dplyr_0.8.5                   RCurl_1.98-1.2               
-#> [35] magrittr_1.5                  GenomeInfoDbData_1.2.3       
-#> [37] Matrix_1.2-18                 fansi_0.4.1                  
-#> [39] Rcpp_1.0.4.6                  munsell_0.5.0                
-#> [41] Rhdf5lib_1.10.0               lifecycle_0.2.0              
-#> [43] stringi_1.4.6                 yaml_2.2.1                   
-#> [45] edgeR_3.27.8                  zlibbioc_1.34.0              
-#> [47] glmGamPoi_1.1.4               BiocFileCache_1.12.0         
+#> [31] shiny_1.4.0.2                 generics_0.0.2               
+#> [33] BiocParallel_1.22.0           dplyr_1.0.0                  
+#> [35] RCurl_1.98-1.2                magrittr_1.5                 
+#> [37] GenomeInfoDbData_1.2.3        Matrix_1.2-18                
+#> [39] fansi_0.4.1                   Rcpp_1.0.4.6                 
+#> [41] munsell_0.5.0                 Rhdf5lib_1.10.0              
+#> [43] lifecycle_0.2.0               stringi_1.4.6                
+#> [45] yaml_2.2.1                    edgeR_3.27.8                 
+#> [47] zlibbioc_1.34.0               BiocFileCache_1.12.0         
 #> [49] AnnotationHub_2.20.0          grid_4.0.0                   
 #> [51] blob_1.2.1                    promises_1.1.0               
 #> [53] ExperimentHub_1.14.0          crayon_1.3.4                 
@@ -340,7 +347,7 @@ sessionInfo()
 #> [63] geneplotter_1.66.0            XML_3.99-0.3                 
 #> [65] glue_1.4.0                    BiocVersion_3.11.1           
 #> [67] evaluate_0.14                 BiocManager_1.30.10          
-#> [69] vctrs_0.2.4                   httpuv_1.5.2                 
+#> [69] vctrs_0.3.1                   httpuv_1.5.2                 
 #> [71] gtable_0.3.0                  purrr_0.3.4                  
 #> [73] assertthat_0.2.1              ggplot2_3.3.0                
 #> [75] xfun_0.13                     mime_0.9                     
