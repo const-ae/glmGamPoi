@@ -175,7 +175,10 @@ variance_prior <- function(s2, df, covariate = NULL, abundance_trend = NULL){
   }else{
     # Fit a spline through the log(s2) ~ covariate + 1 to account
     # for remaing trends in s2
-    design <- splines::ns(log(covariate), df = 4, intercept = TRUE)
+    log_covariate <- log(covariate)
+    ra <- range(log_covariate)
+    knots <- ra[1] + c(1/3, 2/3) * (ra[2] - ra[1])
+    design <- splines::ns(log_covariate, df = 4, knots = knots, intercept = TRUE)
     init_fit <- lm.fit(design, log(s2))
     opt_res <- optim(par=c(betas = init_fit$coefficients, log_df0_inv=0), function(par){
       variance0 <- exp(design %*% par[1:4])

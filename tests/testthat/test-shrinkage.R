@@ -52,6 +52,16 @@ test_that("overdispersion_shrinkage is robust", {
 })
 
 
+test_that("spline fit is not degenerate", {
+
+  log_covariate <- sample(c(rep(-25, 350), rnorm(n = 650, mean = 0, sd = 2.6)))
+  ra <- range(log_covariate)
+  knots <- ra[1] + c(1/3, 2/3) * (ra[2] - ra[1])
+  design <- splines::ns(log_covariate, df = 4, knots = knots, intercept = TRUE)
+  expect_equal(qr(design)$rank, 4)
+
+})
+
 test_that("variance prior estimation works", {
   n <- 1000
   true_df0 <- 5
