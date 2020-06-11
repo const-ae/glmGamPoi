@@ -140,6 +140,8 @@ test_that("glm_gp can handle on_disk parameter", {
 })
 
 
+
+
 test_that("glm_gp can handle SummarizedExperiment correctly", {
 
 
@@ -159,6 +161,26 @@ test_that("glm_gp can handle SummarizedExperiment correctly", {
 
 })
 
+test_that("glm_gp can handle intercept model", {
+
+
+  data <- data.frame(fav_food = sample(c("apple", "banana", "cherry"), size = 150, replace = TRUE),
+                     city = sample(c("heidelberg", "paris", "new york"), size = 150, replace = TRUE),
+                     age = rnorm(n = 150, mean = 40, sd = 15))
+  Y <- matrix(rnbinom(n = 10 * 150, mu = 3, size = 1/3.1), nrow = 10, ncol = 150)
+  rownames(Y) <- paste0("gene_", seq_len(10))
+  colnames(Y) <- paste0("person_", seq_len(150))
+
+  se <- SummarizedExperiment::SummarizedExperiment(Y, colData = data)
+
+  expect_silent({
+    fit1 <- glm_gp(se, design = ~ fav_food + city + age)
+    fit2 <- glm_gp(Y, design = ~ 1)
+    fit3 <- glm_gp(se, design = ~ fav_food + city + age, overdispersion = 0)
+  })
+
+
+})
 
 
 test_that("glm_gp can handle design parameter of type vector", {

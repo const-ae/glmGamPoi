@@ -149,7 +149,11 @@ variance_prior <- function(s2, df, covariate = NULL, abundance_trend = NULL){
 
   if(all(is.na(s2))){
     # This happens if input has zero columns
-    return(list(variance0 = NA, df0 = NA, var_post = s2))
+    return(list(variance0 = rep(NA, length(s2)), df0 = NA, var_post = s2))
+  }
+  if(all(s2 == 1)){
+    # Happens for example if overdispersion is fixed to 0 -> Poisson GLM
+    return(list(variance0 = rep(1, length(s2)), df0 = Inf, var_post = s2))
   }
   if(any(df <= 0, na.rm=TRUE)){
     stop(paste0("All df must be positive. df ", paste0(which(df <= 0), collapse=", "), " are not."))
