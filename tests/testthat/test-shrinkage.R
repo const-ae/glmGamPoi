@@ -107,6 +107,30 @@ test_that("variance prior estimation works with covariates", {
 
 })
 
+test_that("variance prior estimation works with zeros", {
+
+  n <- 1000 + 10
+  true_df0 <- 50
+  covariate <- c(rep(0, 10), seq_len(n - 10) / (n-10))
+  true_variances0 <- 20 * covariate + 0.3
+  # Based on the first equation of section 3 in the 2004 limma paper by Smyth
+  true_variance <- 1/(rchisq(n = n, df = true_df0) / (true_df0 * true_variances0))
+  observations <- t(vapply(seq_len(n), function(idx){
+    rnorm(n = 5, mean = 0, sd = sqrt(true_variance[idx]))
+  }, FUN.VALUE = rep(0.0, 5)))
+
+  obs_var <- DelayedMatrixStats::rowVars(observations)
+  df <- ncol(observations) - 1
+  expect_silent(
+    res_gp <- variance_prior(obs_var, df, covariate = covariate, abundance_trend = TRUE)
+  )
+
+  obs_var[33:40] <- 0
+  expect_error(
+    res_gp2 <- variance_prior(obs_var, df, covariate = covariate, abundance_trend = TRUE)
+  )
+})
+
 
 
 test_that("test_de works", {

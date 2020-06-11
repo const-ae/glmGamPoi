@@ -176,17 +176,18 @@ variance_prior <- function(s2, df, covariate = NULL, abundance_trend = NULL){
     # Fit a spline through the log(s2) ~ covariate + 1 to account
     # for remaing trends in s2
     log_covariate <- log(covariate)
-    ra <- range(log_covariate)
+    not_zero <- covariate > 1e-30
+    ra <- range(log_covariate[not_zero])
     knots <- ra[1] + c(1/3, 2/3) * (ra[2] - ra[1])
-    design <- splines::ns(log_covariate, df = 4, knots = knots, intercept = TRUE)
-    init_fit <- lm.fit(design, log(s2))
+    design <- splines::ns(log_covariate[not_zero], df = 4, knots = knots, intercept = TRUE)
+    init_fit <- lm.fit(design, log(s2[not_zero]))
     opt_res <- optim(par=c(betas = init_fit$coefficients, log_df0_inv=0), function(par){
       variance0 <- exp(design %*% par[1:4])
       df0 <- exp(par[5])
-      -sum(df(s2/variance0, df1=df, df2=df0, log=TRUE) - log(variance0), na.rm=TRUE)
+      -sum(df(s2[not_zero]/variance0, df1=df, df2=df0, log=TRUE) - log(variance0), na.rm=TRUE)
     }, control = list(maxit = 5000))
-
-    variance0 <- c(exp(design %*% opt_res$par[1:4]))
+    variance0 <- rep(0, length(s2))
+    variance0[not_zero] <- c(exp(design %*% opt_res$par[1:4]))
     df0 <- exp(unname(opt_res$par[5]))
   }
 
