@@ -53,6 +53,8 @@
 #'   Applications in Genetics and Molecular Biology, 11(5).
 #'   [https://doi.org/10.1515/1544-6115.1826](https://doi.org/10.1515/1544-6115.1826).
 #'
+#' @seealso [glm_gp()]
+#'
 #' @export
 test_de <- function(fit,
                     contrast,

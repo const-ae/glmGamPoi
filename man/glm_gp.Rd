@@ -98,6 +98,10 @@ based on the \code{design} argument. It contains the estimated coefficients for 
 \item{\code{overdispersions}}{a vector with length \code{nrow(data)}. The overdispersion parameter for each
 gene. It describes how much more the counts vary than one would expect according to the Poisson
 model.}
+\item{\code{overdispersion_shrinkage_list}}{a list with additional information from the quasi-likelihood
+shrinkage. For details see \code{\link[=overdispersion_shrinkage]{overdispersion_shrinkage()}}.}
+\item{\code{deviances}}{a vector with the deviance of the fit for each row. The deviance is a measure
+how well the data is fit by the model. A smaller deviance means a better fit.}
 \item{\code{Mu}}{a matrix with the same dimensions as \code{dim(data)}. If the calculation happened on
 disk, than \code{Mu} is a \code{HDF5Matrix}. It contains the estimated mean value for each gene and
 sample.}
@@ -201,6 +205,6 @@ Applications in Genetics and Molecular Biology, 11(5).
 }
 }
 \seealso{
-\code{\link[=glm_gp_impl]{glm_gp_impl()}} and \code{\link[=overdispersion_mle]{overdispersion_mle()}} for the internal functions that do the
-work.
+\code{\link[=overdispersion_mle]{overdispersion_mle()}} and \code{\link[=overdispersion_shrinkage]{overdispersion_shrinkage()}} for the internal functions that do the
+work. For differential expression analysis, see \code{\link[=test_de]{test_de()}}.
 }

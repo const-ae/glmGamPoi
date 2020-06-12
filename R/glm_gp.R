@@ -109,6 +109,10 @@
 #'   \item{`overdispersions`}{a vector with length `nrow(data)`. The overdispersion parameter for each
 #'   gene. It describes how much more the counts vary than one would expect according to the Poisson
 #'   model.}
+#'   \item{`overdispersion_shrinkage_list`}{a list with additional information from the quasi-likelihood
+#'   shrinkage. For details see [overdispersion_shrinkage()].}
+#'   \item{`deviances`}{a vector with the deviance of the fit for each row. The deviance is a measure
+#'   how well the data is fit by the model. A smaller deviance means a better fit.}
 #'   \item{`Mu`}{a matrix with the same dimensions as `dim(data)`. If the calculation happened on
 #'   disk, than `Mu` is a `HDF5Matrix`. It contains the estimated mean value for each gene and
 #'   sample.}
@@ -147,8 +151,8 @@
 #'
 #'
 #'
-#' @seealso [glm_gp_impl()] and [overdispersion_mle()] for the internal functions that do the
-#'   work.
+#' @seealso [overdispersion_mle()] and [overdispersion_shrinkage()] for the internal functions that do the
+#'   work. For differential expression analysis, see [test_de()].
 #'
 #' @references
 #'   * McCarthy, D. J., Chen, Y., & Smyth, G. K. (2012). Differential expression analysis of multifactor

@@ -80,3 +80,6 @@ Applications in Genetics and Molecular Biology, 11(5).
 \url{https://doi.org/10.1515/1544-6115.1826}.
 }
 }
+\seealso{
+\code{\link[=glm_gp]{glm_gp()}}
+}
