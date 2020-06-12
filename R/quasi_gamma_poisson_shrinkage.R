@@ -162,42 +162,47 @@ variance_prior <- function(s2, df, covariate = NULL, abundance_trend = NULL){
     stop(paste0("All s2 must be positive. s2 ", paste0(which(s2 <= 0), collapse=", "), " are not."))
   }
 
+  # Fit an intercept to s2
+  opt_res <- optim(par=c(log_variance0=0, log_df0_inv=0), function(par){
+    -sum(df(s2/exp(par[1]), df1=df, df2=exp(par[2]), log=TRUE) - par[1], na.rm=TRUE)
+  })
+  variance0 <- rep(exp(unname(opt_res$par[1])), times = length(s2))
+  df0 <- exp(unname(opt_res$par[2]))
 
   if(is.numeric(abundance_trend)){
     stop("Numeric abundance trend is not supported.")
-  }else if(is.null(covariate) || is.null(abundance_trend) || ! abundance_trend || length(s2) < 10) {
+  }else if(is.null(covariate) || is.null(abundance_trend) || ! abundance_trend || length(s2) < 10 || sum(covariate > 1e-8) < 10) {
     if(length(s2) < 10 && isTRUE(abundance_trend)){
       warning("abundance_trend was set to 'TRUE', however there were not enough observations (length(s2) = ",
               length(s2), " < 10) to fit the trend.")
     }
-    opt_res <- optim(par=c(log_variance0=0, log_df0_inv=0), function(par){
-      -sum(df(s2/exp(par[1]), df1=df, df2=exp(par[2]), log=TRUE) - par[1], na.rm=TRUE)
-    })
-
-    variance0 <- rep(exp(unname(opt_res$par[1])), times = length(s2))
-    df0 <- exp(unname(opt_res$par[2]))
+    # Do nothing else to data
   }else{
+    # Fit a trend!
     # Fit a spline through the log(s2) ~ covariate + 1 to account
     # for remaing trends in s2
     log_covariate <- log(covariate)
-    not_zero <- covariate > 1e-30
+    not_zero <- covariate > 1e-8
     ra <- range(log_covariate[not_zero])
     knots <- ra[1] + c(1/3, 2/3) * (ra[2] - ra[1])
-    design <- splines::ns(log_covariate[not_zero], df = 4, knots = knots, intercept = TRUE)
-    init_fit <- lm.fit(design, log(s2[not_zero]))
-    opt_res <- optim(par=c(betas = init_fit$coefficients, log_df0_inv=0), function(par){
-      variance0 <- exp(design %*% par[1:4])
-      df0 <- exp(par[5])
-      -sum(df(s2[not_zero]/variance0, df1=df, df2=df0, log=TRUE) - log(variance0), na.rm=TRUE)
-    }, control = list(maxit = 5000))
-    variance0 <- rep(0, length(s2))
-    variance0[not_zero] <- c(exp(design %*% opt_res$par[1:4]))
-    df0 <- exp(unname(opt_res$par[5]))
+    tryCatch({
+      design <- splines::ns(log_covariate[not_zero], df = 4, knots = knots, intercept = TRUE)
+      init_fit <- lm.fit(design, log(s2[not_zero]))
+      opt_res <- optim(par=c(betas = init_fit$coefficients, log_df0_inv=0), function(par){
+        variance0 <- exp(design %*% par[1:4])
+        df0 <- exp(par[5])
+        -sum(df(s2[not_zero]/variance0, df1=df, df2=df0, log=TRUE) - log(variance0), na.rm=TRUE)
+      }, control = list(maxit = 5000))
+      variance0[not_zero] <- c(exp(design %*% opt_res$par[1:4]))
+      df0 <- exp(unname(opt_res$par[5]))
+    }, error = function(e){
+      warning("Problem fitting the abundance trend to the quasi-likelihood dispersion. ",
+              "Falling back to non-trended variance0 estimation.")
+    })
   }
 
   if(opt_res$convergence != 0){
     warning("Variance prior estimate did not properly converge\n")
-    print(opt_res)
   }
 
   var_post <- (df0 * variance0 + df * s2) / (df0 + df)
