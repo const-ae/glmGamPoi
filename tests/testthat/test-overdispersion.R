@@ -178,6 +178,17 @@ test_that("overdispersion_mle can handle weird input 4", {
 })
 
 
+test_that("estimation can handle extreme values", {
+
+  y <- rnbinom(n = 400, mu = 3000, size = 0.1)
+  # The warnings come from the first (failing) optimization
+  suppressWarnings(
+    res <- overdispersion_mle(y, mean = 1e226)
+  )
+  expect_false(is.na(res$estimate))
+
+})
+
 
 test_that("Estimation methods can handle Infinite dispersion", {
   # For some reason this model matrix makes the dispersion estimate

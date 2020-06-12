@@ -178,7 +178,7 @@ conventional_overdispersion_mle <- function(y, mean_vector,
   mean_vector[mean_vector == 0] <- 1e-6
 
   far_left_value <- conventional_score_function_fast(y, mu = mean_vector, log_theta = log(1e-8),
-                                   model_matrix = model_matrix, do_cr_adj = do_cox_reid_adjustment)
+                                   model_matrix = model_matrix, do_cr_adj = do_cox_reid_adjustment, tab[[1]], tab[[2]])
   if(far_left_value < 0){
     return_value$estimate <- 0
     return_value$iterations <- 0
@@ -204,6 +204,20 @@ conventional_overdispersion_mle <- function(y, mean_vector,
                              model_matrix = model_matrix, do_cr_adj = do_cox_reid_adjustment, tab[[1]], tab[[2]])
            matrix(- res, nrow = 1, ncol = 1)
          }, lower = log(1e-16), upper = log(1e16))
+
+  if(res$convergence != 0){
+    # Do the same thing again with numerical hessian as the
+    # analytical hessian is sometimes less robust than the other
+    # two functions
+    res <- nlminb(start = log(start_value),
+                  objective = function(log_theta){
+                    - conventional_loglikelihood_fast(y, mu = mean_vector, log_theta = log_theta,
+                                                      model_matrix = model_matrix, do_cr_adj = do_cox_reid_adjustment, tab[[1]], tab[[2]])
+                  }, gradient = function(log_theta){
+                    - conventional_score_function_fast(y, mu = mean_vector, log_theta = log_theta,
+                                                       model_matrix = model_matrix, do_cr_adj = do_cox_reid_adjustment, tab[[1]], tab[[2]])
+                  }, lower = log(1e-16), upper = log(1e16))
+  }
 
   return_value$estimate <- exp(res$par)
   return_value$iterations <- res$iterations
