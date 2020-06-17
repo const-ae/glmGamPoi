@@ -59,10 +59,26 @@
 test_de <- function(fit,
                     contrast,
                     reduced_design = NULL,
-                    pval_adjust_method = "BH", sort_by = NULL, decreasing = FALSE,
-                    n_max = Inf,
+                    subset_to = NULL, pseudo_bulk = NULL,
+                    pval_adjust_method = "BH", sort_by = NULL,
+                    decreasing = FALSE, n_max = Inf,
                     verbose = FALSE){
-
+  if(! is.null(subset_to) && is.null(pseudo_bulk)){
+    stop("Cannot specify 'subset_to' when pseudo_bulk is 'NULL'.")
+  }
+  if(! is.null(pseudo_bulk)){
+    # This method aggregates the data
+    # then does a fresh fit for the full model
+    # then calls test_de() with the reduced dataset
+    return(test_pseudo_bulk(fit$data, design = fit$model_matrix,
+                            aggregate_cells_by = pseudo_bulk,
+                            contrast = constrast,
+                            reduced_design = reduced_design,
+                            subset_to = subset_to,
+                            pval_adjust_method =pval_adjust_method, sort_by = sort_by,
+                            decreasing = decreasing, n_max = n_max,
+                            verbose = verbose))
+  }
   if(is.null(reduced_design) == missing(contrast)){
     stop("Please provide either an alternative design (formula or matrix) or a contrast ",
          "(name of a column in fit$model_matrix or a combination of them).")
