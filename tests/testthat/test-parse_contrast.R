@@ -40,3 +40,27 @@ test_that("parse contrast can handle being inside a function", {
   c2 <- fnc()
   expect_equal(c1, c2)
 })
+
+test_that("parse contrast can be called through multiple functions", {
+
+
+  c1 <- parse_contrast(A - B, levels = LETTERS[1:2])
+  fnc1 <- function(contrast){
+      parse_contrast(contrast, levels = LETTERS[1:2], direct_call = FALSE)
+  }
+  fnc2 <- function(crt){
+    cnt_capture <- substitute(crt)
+    fnc1(cnt_capture)
+  }
+  c2 <- fnc2(A - B)
+  expect_equal(c1, c2)
+  c3 <- fnc2("A - B")
+  expect_equal(c1, c3)
+  string <- "A - B"
+  c4 <- fnc2(string)
+  expect_equal(c1, c4)
+  c5 <- fnc2(paste0("A","-", "B"))
+  expect_equal(c1, c5)
+
+})
+
