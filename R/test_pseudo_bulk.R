@@ -43,8 +43,11 @@ test_pseudo_bulk <- function(data, design,
                 design = new_model_matrix,
                 verbose = verbose)
 
-  cnt_capture <- substitute(contrast)
-  test_de(fit, contrast = cnt_capture, reduced = reduced,
+  if(! missing(contrast)){
+    contrast <- parse_contrast(contrast, levels = colnames(fit$model_matrix),
+                             direct_call = FALSE)
+  }
+  test_de(fit, contrast = contrast, reduced = reduced,
           subset = NULL, pseudo_bulk = NULL,
           pval_adjust_method =pval_adjust_method, sort_by = sort_by,
           decreasing = decreasing, n_max = n_max,
