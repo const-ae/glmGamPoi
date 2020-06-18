@@ -5,8 +5,8 @@ test_that("residual calculation works", {
   fit <- glm_gp(Y, X, size_factors = FALSE, overdispersion = 1/0.7)
   r_fit1 <- glm(Y[1,] ~ X - 1, family = MASS::negative.binomial(theta = 0.7))
   r_fit2 <- glm(Y[2,] ~ X - 1, family = MASS::negative.binomial(theta = 0.7))
-  expect_equal(fit$Beta[1,], unname(coef(r_fit1)), tolerance = 1e-4)
-  expect_equal(fit$Beta[2,], unname(coef(r_fit2)), tolerance = 1e-4)
+  expect_equal(unname(fit$Beta[1,]), unname(coef(r_fit1)), tolerance = 1e-4)
+  expect_equal(unname(fit$Beta[2,]), unname(coef(r_fit2)), tolerance = 1e-4)
 
   expect_equal(c(t(residuals(fit, "response"))),
               unname(c(residuals.glm(r_fit1, "response"), residuals.glm(r_fit2, "response"))),
@@ -38,8 +38,8 @@ test_that("residual calculation works with Delayed Matrix", {
   fit <- glm_gp(Y_hdf5, X, size_factors = FALSE, overdispersion = 1/0.7)
   r_fit1 <- glm(Y[1,] ~ X - 1, family = MASS::negative.binomial(theta = 0.7))
   r_fit2 <- glm(Y[2,] ~ X - 1, family = MASS::negative.binomial(theta = 0.7))
-  expect_equal(fit$Beta[1,], unname(coef(r_fit1)), tolerance = 1e-4)
-  expect_equal(fit$Beta[2,], unname(coef(r_fit2)), tolerance = 1e-4)
+  expect_equal(unname(fit$Beta[1,]), unname(coef(r_fit1)), tolerance = 1e-4)
+  expect_equal(unname(fit$Beta[2,]), unname(coef(r_fit2)), tolerance = 1e-4)
 
   expect_s4_class(residuals(fit, "response"), "DelayedMatrix")
   expect_s4_class(residuals(fit, "working"), "DelayedMatrix")
