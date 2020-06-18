@@ -222,6 +222,9 @@ glm_gp <- function(data,
   res$data <- SummarizedExperiment::SummarizedExperiment(list(counts = data_mat),
                                                          colData = col_data)
   res$model_matrix <- des$model_matrix
+  if(is.null(colnames(res$model_matrix))){
+    colnames(res$model_matrix) <- paste0("Coef_", seq_len(ncol(res$model_matrix)))
+  }
   res$design_formula <- des$design_formula
   colnames(res$Beta) <- colnames(res$model_matrix)
   rownames(res$Beta) <- rownames(data)
