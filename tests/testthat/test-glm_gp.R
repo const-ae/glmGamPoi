@@ -58,16 +58,10 @@ test_that("glm_gp can handle no-row input", {
 
 })
 
-test_that("glm_gp can handle no-col input", {
+test_that("glm_gp throws error on no-col input", {
 
   Y <- matrix(numeric(0), nrow = 3, ncol = 0)
-  tmp <- glm_gp(Y, size_factors = FALSE)
-  expect_equal(dim(tmp$Beta), c(3, 1))
-  expect_equal(c(tmp$Beta), rep(-Inf, times = 3))
-  expect_equal(dim(tmp$Mu), c(3, 0))
-  expect_equal(tmp$size_factors, rep(1, times = 0))
-  expect_equal(dim(tmp$model_matrix), c(0, 1))
-  expect_equal(c(tmp$model_matrix), rep(1, times = 0))
+  expect_error(glm_gp(Y, size_factors = FALSE))
 
 
 })

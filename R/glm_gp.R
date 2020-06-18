@@ -198,6 +198,14 @@ glm_gp <- function(data,
   col_data <- get_col_data(data, col_data)
   des <- handle_design_parameter(design, data, col_data, reference_level)
 
+  if(ncol(des$model_matrix) >= ncol(data)){
+    stop("The model_matrix:\n", format_matrix(head(des$model_matrix)), "\nhas more columns (", ncol(des$model_matrix),
+         ") than the there are samples in the data matrix\n",
+         format_matrix(head(data[,seq_len(min(5, ncol(data))),drop=FALSE])),
+         "\nwhich has ", ncol(data), " columns. ",
+         "Too few replicates to fit model.")
+  }
+
   # Call glm_gp_impl()
   res <- glm_gp_impl(data_mat,
               model_matrix = des$model_matrix,
@@ -401,7 +409,19 @@ convert_formula_to_model_matrix <- function(formula, col_data, reference_level=N
       stats::relevel(col, ref = reference_level)
     })
   }
-  mm <- stats::model.matrix.default(formula, col_data)
+  tryCatch({
+    mm <- stats::model.matrix.default(formula, col_data)
+  }, error = function(e){
+    # Try to extract text from error message
+    match <- regmatches(e$message, regexec("object '(.+)' not found", e$message))[[1]]
+    if(length(match) == 2){
+      stop("Object '", match[2], "' not found. Allowed variables are:\n",
+           paste0(colnames(col_data), collapse = ", "))
+    }else{
+      stop(e$message)
+    }
+  })
+
   colnames(mm)[colnames(mm) == "(Intercept)"] <- "Intercept"
   mm
 }
