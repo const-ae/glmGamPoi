@@ -8,6 +8,9 @@ test_de(
   fit,
   contrast,
   reduced_design = NULL,
+  full_design = fit$model_matrix,
+  subset_to = NULL,
+  pseudobulk_by = NULL,
   pval_adjust_method = "BH",
   sort_by = NULL,
   decreasing = FALSE,
@@ -29,11 +32,29 @@ Analogous to the \code{design} parameter in \code{glm_gp()}, it can be either a 
 a \code{model.matrix()}, or a \code{vector}. \cr
 Only one of \code{contrast} or \code{reduced_design} must be specified.}
 
+\item{full_design}{option to specify an alternative \code{full_design} that can differ from
+\code{fit$model_matrix}. Can be a \code{formula} or a \code{matrix}. Default: \code{fit$model_matrix}}
+
+\item{subset_to}{a vector with the same length as \code{ncol(fit$data)} or  an expression
+that evaluates to such a vector. The expression can reference columns from \code{colData(fit$data)}.
+A typical use case in single cell analysis would be to subset to a specific cell type
+(e.g. \code{subset_to = cell_type == "T-cells"}).\cr
+Default: \code{NULL} which means that the data is not subset.}
+
+\item{pseudobulk_by}{a vector with the same length as \code{ncol(fit$data)} that is used to
+split the columns into different groups (calls \code{\link[=split]{split()}}). \code{pseudobulk_by} can also be an
+expression that evaluates to a vector. The expression can reference columns from \code{colData(fit$data)}. \cr
+The counts are summed across the groups
+to create "pseudobulk" samples. This is typically used in single cell analysis if the cells come
+from different samples to get a proper estimate of the differences. This is particularly powerful
+in combination with the \code{subset_to} parameter to analyze differences between samples for
+subgroups of cells. Default: \code{NULL} which means that the data is not aggregated.}
+
 \item{pval_adjust_method}{one of the p-value adjustment method from
 \link{p.adjust.methods}. Default: \code{"BH"}.}
 
-\item{sort_by}{the name of the column used to sort the result or \code{NULL} to return an
-unsorted table. Default: \code{NULL}}
+\item{sort_by}{the name of the column or an expression used to sort the result. If \code{sort_by} is \code{NULL}
+the table is not sorted. Default: \code{NULL}}
 
 \item{decreasing}{boolean to decide if the result is sorted increasing or decreasing
 order. Default: \code{FALSE}.}
@@ -61,15 +82,61 @@ be \code{NA}.}
 Conduct a quasi-likelihood ratio test for a Gamma-Poisson fit.
 }
 \examples{
-  Y <- matrix(rnbinom(n = 30 * 10, mu = 4, size = 0.3), nrow = 30, ncol  =10)
-  annot <- data.frame(group = sample(c("A", "B"), size = 10, replace = TRUE),
-                      cont1 = rnorm(10), cont2 = rnorm(10, mean = 30))
-  fit <- glm_gp(Y, design = ~ group + cont1 + cont2, col_data = annot)
-  res <- test_de(fit, reduced_design = ~ group + cont1)
+  Y <- matrix(rnbinom(n = 30 * 100, mu = 4, size = 0.3), nrow = 30, ncol = 100)
+  annot <- data.frame(sample = sample(LETTERS[1:6], size = 100, replace = TRUE),
+                      cont1 = rnorm(100), cont2 = rnorm(100, mean = 30))
+  annot$condition <- ifelse(annot$sample \%in\% c("A", "B", "C"), "ctrl", "treated")
+  head(annot)
+  se <- SummarizedExperiment::SummarizedExperiment(Y, colData = annot)
+  fit <- glm_gp(se, design = ~ condition + cont1 + cont2)
+
+  # Test with reduced design
+  res <- test_de(fit, reduced_design = ~ condition + cont1)
   head(res)
 
+  # Test with contrast argument, the results are identical
   res2 <- test_de(fit, contrast = cont2)
   head(res2)
+
+
+
+  # You can also have more complex contrasts:
+  # the following compares cont1 vs cont2:
+  test_de(fit, cont1 - cont2, n_max = 4)
+
+
+  # You can also sort the output
+  test_de(fit, cont1 - cont2, n_max = 4,
+          sort_by = "pval")
+
+  test_de(fit, cont1 - cont2, n_max = 4,
+          sort_by = - abs(f_statistic))
+
+  # If the data has multiple samples, it is a good
+  # idea to aggregate the cell counts by samples.
+  # This is called "pseudobulk".
+  test_de(fit, contrast = "conditiontreated", n_max = 4,
+          pseudobulk_by = sample)
+
+
+  # You can also do the pseudobulk only on a subset of cells:
+  cell_types <- sample(c("Tcell", "Bcell", "Makrophages"), size = 100, replace = TRUE)
+  test_de(fit, contrast = "conditiontreated", n_max = 4,
+          pseudobulk_by = sample,
+          subset_to = cell_types == "Bcell")
+
+
+  # Be care full, if you included the cell type information in
+  # the original fit, after subsetting the design matrix would
+  # be degenerate. To fix this, specify the full_design in 'test_de()'
+  SummarizedExperiment::colData(se)$ct <- cell_types
+  fit_with_celltype <- glm_gp(se, design = ~ condition + cont1 + cont2 + ct)
+  test_de(fit_with_celltype, contrast = cont1, n_max = 4,
+          full_design =  ~ condition + cont1 + cont2,
+          pseudobulk_by = sample,
+          subset_to = ct == "Bcell")
+
+
 
 }
 \references{

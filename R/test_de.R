@@ -15,10 +15,25 @@
 #'   Analogous to the `design` parameter in `glm_gp()`, it can be either a `formula`,
 #'   a `model.matrix()`, or a `vector`. \cr
 #'    Only one of `contrast` or `reduced_design` must be specified.
+#' @param full_design option to specify an alternative `full_design` that can differ from
+#'   `fit$model_matrix`. Can be a `formula` or a `matrix`. Default: `fit$model_matrix`
+#' @param subset_to a vector with the same length as `ncol(fit$data)` or  an expression
+#'   that evaluates to such a vector. The expression can reference columns from `colData(fit$data)`.
+#'   A typical use case in single cell analysis would be to subset to a specific cell type
+#'   (e.g. `subset_to = cell_type == "T-cells"`).\cr
+#'   Default: `NULL` which means that the data is not subset.
+#' @param pseudobulk_by a vector with the same length as `ncol(fit$data)` that is used to
+#'   split the columns into different groups (calls [split()]). `pseudobulk_by` can also be an
+#'   expression that evaluates to a vector. The expression can reference columns from `colData(fit$data)`. \cr
+#'   The counts are summed across the groups
+#'   to create "pseudobulk" samples. This is typically used in single cell analysis if the cells come
+#'   from different samples to get a proper estimate of the differences. This is particularly powerful
+#'   in combination with the `subset_to` parameter to analyze differences between samples for
+#'   subgroups of cells. Default: `NULL` which means that the data is not aggregated.
 #' @param pval_adjust_method one of the p-value adjustment method from
 #'   [p.adjust.methods]. Default: `"BH"`.
-#' @param sort_by the name of the column used to sort the result or `NULL` to return an
-#'   unsorted table. Default: `NULL`
+#' @param sort_by the name of the column or an expression used to sort the result. If `sort_by` is `NULL`
+#'   the table is not sorted. Default: `NULL`
 #' @param decreasing boolean to decide if the result is sorted increasing or decreasing
 #'   order. Default: `FALSE`.
 #' @param n_max the maximum number of rows to return. Default: `Inf` which means that all
@@ -37,15 +52,61 @@
 #' }
 #'
 #' @examples
-#'   Y <- matrix(rnbinom(n = 30 * 10, mu = 4, size = 0.3), nrow = 30, ncol  =10)
-#'   annot <- data.frame(group = sample(c("A", "B"), size = 10, replace = TRUE),
-#'                       cont1 = rnorm(10), cont2 = rnorm(10, mean = 30))
-#'   fit <- glm_gp(Y, design = ~ group + cont1 + cont2, col_data = annot)
-#'   res <- test_de(fit, reduced_design = ~ group + cont1)
+#'   Y <- matrix(rnbinom(n = 30 * 100, mu = 4, size = 0.3), nrow = 30, ncol = 100)
+#'   annot <- data.frame(sample = sample(LETTERS[1:6], size = 100, replace = TRUE),
+#'                       cont1 = rnorm(100), cont2 = rnorm(100, mean = 30))
+#'   annot$condition <- ifelse(annot$sample %in% c("A", "B", "C"), "ctrl", "treated")
+#'   head(annot)
+#'   se <- SummarizedExperiment::SummarizedExperiment(Y, colData = annot)
+#'   fit <- glm_gp(se, design = ~ condition + cont1 + cont2)
+#'
+#'   # Test with reduced design
+#'   res <- test_de(fit, reduced_design = ~ condition + cont1)
 #'   head(res)
 #'
+#'   # Test with contrast argument, the results are identical
 #'   res2 <- test_de(fit, contrast = cont2)
 #'   head(res2)
+#'
+#'
+#'
+#'   # You can also have more complex contrasts:
+#'   # the following compares cont1 vs cont2:
+#'   test_de(fit, cont1 - cont2, n_max = 4)
+#'
+#'
+#'   # You can also sort the output
+#'   test_de(fit, cont1 - cont2, n_max = 4,
+#'           sort_by = "pval")
+#'
+#'   test_de(fit, cont1 - cont2, n_max = 4,
+#'           sort_by = - abs(f_statistic))
+#'
+#'   # If the data has multiple samples, it is a good
+#'   # idea to aggregate the cell counts by samples.
+#'   # This is called "pseudobulk".
+#'   test_de(fit, contrast = "conditiontreated", n_max = 4,
+#'           pseudobulk_by = sample)
+#'
+#'
+#'   # You can also do the pseudobulk only on a subset of cells:
+#'   cell_types <- sample(c("Tcell", "Bcell", "Makrophages"), size = 100, replace = TRUE)
+#'   test_de(fit, contrast = "conditiontreated", n_max = 4,
+#'           pseudobulk_by = sample,
+#'           subset_to = cell_types == "Bcell")
+#'
+#'
+#'   # Be care full, if you included the cell type information in
+#'   # the original fit, after subsetting the design matrix would
+#'   # be degenerate. To fix this, specify the full_design in 'test_de()'
+#'   SummarizedExperiment::colData(se)$ct <- cell_types
+#'   fit_with_celltype <- glm_gp(se, design = ~ condition + cont1 + cont2 + ct)
+#'   test_de(fit_with_celltype, contrast = cont1, n_max = 4,
+#'           full_design =  ~ condition + cont1 + cont2,
+#'           pseudobulk_by = sample,
+#'           subset_to = ct == "Bcell")
+#'
+#'
 #'
 #' @references
 #' * Lund, S. P., Nettleton, D., McCarthy, D. J., & Smyth, G. K. (2012). Detecting differential expression
@@ -59,29 +120,80 @@
 test_de <- function(fit,
                     contrast,
                     reduced_design = NULL,
-                    subset_to = NULL, pseudo_bulk = NULL,
+                    full_design = fit$model_matrix,
+                    subset_to = NULL, pseudobulk_by = NULL,
                     pval_adjust_method = "BH", sort_by = NULL,
                     decreasing = FALSE, n_max = Inf,
                     verbose = FALSE){
-  if(! is.null(subset_to) && is.null(pseudo_bulk)){
-    stop("Cannot specify 'subset_to' when pseudo_bulk is 'NULL'.")
-  }
-  if(! is.null(pseudo_bulk)){
-    # This method aggregates the data
-    # then does a fresh fit for the full model
-    # then calls test_de() with the reduced dataset
-    return(test_pseudo_bulk(fit$data, design = fit$model_matrix,
-                            aggregate_cells_by = pseudo_bulk,
-                            contrast = constrast,
-                            reduced_design = reduced_design,
-                            subset_to = subset_to,
-                            pval_adjust_method =pval_adjust_method, sort_by = sort_by,
-                            decreasing = decreasing, n_max = n_max,
-                            verbose = verbose))
+  # Capture all NSE variables
+  contrast_capture <- substitute(contrast)
+  subset_to_capture <- substitute(subset_to)
+  pseudobulk_by_capture <- substitute(pseudobulk_by)
+  sort_by_capture <- substitute(sort_by)
+
+  test_de_q(fit, contrast = contrast_capture, reduced_design = reduced_design, full_design = full_design,
+            subset_to = subset_to_capture, pseudobulk_by = pseudobulk_by_capture,
+            pval_adjust_method = pval_adjust_method, sort_by = sort_by_capture,
+            decreasing = decreasing, n_max = n_max,
+            verbose = verbose,
+            env = parent.frame())
+}
+
+# This function is necessary to handle the NSE stuff
+# for an explanation see:
+# http://adv-r.had.co.nz/Computing-on-the-language.html
+test_de_q <- function(fit,
+                      contrast,
+                      reduced_design = NULL,
+                      full_design = fit$model_matrix,
+                      subset_to = NULL, pseudobulk_by = NULL,
+                      pval_adjust_method = "BH", sort_by = NULL,
+                      decreasing = FALSE, n_max = Inf,
+                      verbose = FALSE,
+                      env = parent.frame()){
+  if(! is.matrix(full_design) || length(full_design) != length(fit$model_matrix) || ! all(full_design == fit$model_matrix) ){
+    full_design <- handle_design_parameter(full_design, fit$data, SummarizedExperiment::colData(fit$data), NULL)$model_matrix
   }
   if(is.null(reduced_design) == missing(contrast)){
     stop("Please provide either an alternative design (formula or matrix) or a contrast ",
          "(name of a column in fit$model_matrix or a combination of them).")
+  }
+
+  pseudobulk_by_e <- eval_with_q(pseudobulk_by, SummarizedExperiment::colData(fit$data), env = env)
+  subset_to_e <- eval_with_q(subset_to, SummarizedExperiment::colData(fit$data), env = env)
+  if(! is.null(pseudobulk_by_e)){
+    if(verbose) { message("Aggregate counts of columns that belong to the same sample") }
+    # This method aggregates the data
+    # then does a fresh fit for the full model
+    # then calls test_de() with the reduced dataset
+    return(test_pseudobulk_q(fit$data, design = full_design,
+                             aggregate_cells_by = pseudobulk_by_e,
+                             contrast = contrast,
+                             reduced_design = reduced_design,
+                             subset_to = subset_to_e,
+                             pval_adjust_method = pval_adjust_method, sort_by = sort_by,
+                             decreasing = decreasing, n_max = n_max,
+                             verbose = verbose, env = env))
+  }
+
+  if(! is.null(subset_to_e)){
+    if(verbose) { message("Subset the dataset to a reduced number of columns") }
+    # Only run test on a subset of things:
+    # Redo fit, but keep dispersion
+    data_subset <- fit$data[,subset_to_e,drop=FALSE]
+
+    model_matrix_subset <- full_design[subset_to_e, ,drop=FALSE]
+    size_factor_subset <- fit$size_factors[subset_to_e]
+
+    fit_subset <- glm_gp(data_subset, design = model_matrix_subset, size_factors = size_factor_subset,
+                  overdispersion = fit$overdispersions, on_disk = is_on_disk.glmGamPoi(fit),
+                  verbose = verbose)
+    test_res <- test_de_q(fit_subset, contrast = contrast, reduced_design = reduced_design,
+                          subset_to = NULL, pseudobulk_by = NULL,
+                          pval_adjust_method = pval_adjust_method, sort_by = sort_by,
+                          decreasing = decreasing, n_max = n_max,
+                          verbose = verbose, env = env)
+    return(test_res)
   }
   if(is.null(fit$overdispersion_shrinkage_list)){
     stop("fit$overdispersion_shrinkage_list is NULL. Run 'glm_gp' with ",
@@ -140,10 +252,11 @@ test_de <- function(fit,
                     f_statistic = f_stat, df1 = df_test, df2 = df_fit,
                     lfc = lfc,
                     stringsAsFactors = FALSE, row.names = NULL)
-  res <- if(is.null(sort_by)) {
+  sort_by_e <- eval_with_q(sort_by, res, env = env)
+  res <- if(is.null(sort_by_e)) {
     res
   }else{
-    res[order(res[[sort_by]], decreasing = decreasing), ]
+    res[order(sort_by_e, decreasing = decreasing), ]
   }
   res[seq_len(min(nrow(res), n_max)), ,drop=FALSE]
 }
