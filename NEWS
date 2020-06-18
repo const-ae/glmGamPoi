@@ -20,6 +20,8 @@ mu's
 I can just get it directly from fit$data
 + Add function test_de() that does a quasi-likelihood ratio
 test to detect differentially expressed genes
++ Add functionality to make a pseudobulk test directly
+from test_de() by aggregating the data around one column
 
 
 Changes in version 0.0.99 (2020-03-23)
