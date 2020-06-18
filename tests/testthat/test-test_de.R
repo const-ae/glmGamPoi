@@ -75,7 +75,7 @@ test_that("NSE works", {
   res3 <- test_de(fit, conditionctrl - conditiontreated,
                   full_design =  ~ condition + cont1 - 1,
                   subset_to = cell_type == "Tcell",
-                  pseudobulk_by = sample,,
+                  pseudobulk_by = sample,
                   n_max = 4)
 
   res4 <- test_de(fit, reduced_design = ~ cont1 + 1,
@@ -83,16 +83,52 @@ test_that("NSE works", {
                   subset_to = cell_type == "Bcell",
                   pseudobulk_by = sample,
                   n_max = 4)
-  res4
 })
 
 
-test_that("calling subset_to works", {
+test_that("Pseudo bulk produces same results as making it manually", {
+  Y <- matrix(rnbinom(n = 30 * 100, mu = 4, size = 0.3), nrow = 30, ncol = 100)
+  annot <- data.frame(sample = sample(LETTERS[1:6], size = 100, replace = TRUE),
+                      cont1 = rnorm(100), cont2 = rnorm(100, mean = 30),
+                      cell_type = sample(c("Tcell", "Bcell", "Makrophages"), size = 100, replace = TRUE))
+  annot$condition <- ifelse(annot$sample %in% c("A", "B", "C"), "ctrl", "treated")
+  se <- SummarizedExperiment::SummarizedExperiment(Y, colData = annot)
+
+  fit <- glm_gp(se, design = ~ condition + cont1 + cont2 - 1)
+  res <- test_de(fit, reduced_design = ~ cont1 + cont2 + 1,
+                 pseudobulk_by = sample)
+
+  splitter <- split(seq_len(ncol(se)), SummarizedExperiment::colData(se)$sample)
+  pseudobulk_mat <- do.call(cbind, lapply(splitter, function(idx){
+    matrixStats::rowSums2(assay(se), cols = idx)
+  }))
+  pseudo_design_mat <- do.call(rbind, lapply(splitter, function(idx){
+    matrixStats::colMeans2(fit$model_matrix, rows = idx)
+  }))
+
+
+  fit2 <- glm_gp(pseudobulk_mat, design = pseudo_design_mat)
+  res2 <- test_de(fit2, contrast = Coef_1 - Coef_2)
+
+  # Equal except for lfc column because of contrast vs reduced_design stuff:
+  expect_equal(res[,-7], res2[,-7])
+
+  res3 <- test_pseudobulk(se, design = ~ condition + cont1 + cont2 - 1,
+                          aggregate_cells_by = sample,
+                          contrast = conditionctrl - conditiontreated)
+  expect_equal(res2, res3)
+
+  res4 <- test_pseudobulk(se, design = ~ condition + cont1 + cont2,
+                          reference_level = "treated",
+                          aggregate_cells_by = sample,
+                          contrast = conditionctrl)
+  # They are as good as identical
+  lapply(c("pval", "adj_pval", "f_statistic", "lfc"), function(col){
+    expect_gt(cor(res3[[col]], res4[[col]]), 0.99)
+  })
 
 })
 
-test_that("calling pseudo_bulk works", {
 
-})
 
 
