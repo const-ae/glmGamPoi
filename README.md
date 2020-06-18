@@ -133,8 +133,8 @@ summary(fit)
 #>    0       0  0.388    1.15 15724
 #> 
 #> Shrunken quasi-likelihood overdispersion:
-#>   Min 1st Qu. Median 3rd Qu.  Max
-#>  0.74   0.994      1    1.04 7.89
+#>    Min 1st Qu. Median 3rd Qu.  Max
+#>  0.739   0.994      1    1.04 7.89
 #> 
 #> size_factors:
 #>    Min 1st Qu. Median 3rd Qu.  Max
@@ -183,10 +183,10 @@ bench::mark(
 #> # A tibble: 4 x 6
 #>   expression               min   median `itr/sec` mem_alloc `gc/sec`
 #>   <bch:expr>          <bch:tm> <bch:tm>     <dbl> <bch:byt>    <dbl>
-#> 1 glmGamPoi_in_memory 876.47ms 885.66ms    0.924   435.89MB    2.46 
-#> 2 glmGamPoi_on_disk      4.28s    4.38s    0.230    813.4MB    1.15 
-#> 3 DESeq2                20.29s   20.36s    0.0491    1.16GB    0.393
-#> 4 edgeR                  5.39s    5.46s    0.183     1.19GB    1.28
+#> 1 glmGamPoi_in_memory 875.14ms 917.36ms    0.884   462.41MB    2.95 
+#> 2 glmGamPoi_on_disk      3.92s    4.06s    0.243   839.92MB    1.37 
+#> 3 DESeq2                19.95s   20.48s    0.0489    1.15GB    0.424
+#> 4 edgeR                  5.48s    6.12s    0.169     1.19GB    0.843
 ```
 
 On this dataset, `glmGamPoi` is more than 6 times faster than `edgeR`
@@ -258,12 +258,12 @@ res <- test_de(fit, reduced_design = ~ 1)
 # Look at first 6 genes
 head(res)
 #>              name      pval  adj_pval f_statistic df1      df2 lfc
-#> 1 ENSG00000126457 0.4540554 0.8928794  0.56060729   1 4431.258  NA
-#> 2 ENSG00000109832 0.5836666 0.9151576  0.30038847   1 4431.258  NA
-#> 3 ENSG00000237339 0.2572241 0.8122867  1.28396660   1 4431.258  NA
-#> 4 ENSG00000075234 0.3812125 0.8776874  0.76694090   1 4431.258  NA
-#> 5 ENSG00000161057 0.8507710 0.9924359  0.03539882   1 4431.258  NA
-#> 6 ENSG00000151366 0.4037362 0.8776874  0.69730362   1 4431.258  NA
+#> 1 ENSG00000126457 0.4540540 0.8928885  0.56061073   1 4431.149  NA
+#> 2 ENSG00000109832 0.5836619 0.9151704  0.30039595   1 4431.149  NA
+#> 3 ENSG00000237339 0.2572395 0.8123352  1.28388371   1 4431.149  NA
+#> 4 ENSG00000075234 0.3812221 0.8776658  0.76691013   1 4431.149  NA
+#> 5 ENSG00000161057 0.8507729 0.9924364  0.03539793   1 4431.149  NA
+#> 6 ENSG00000151366 0.4037263 0.8776658  0.69733318   1 4431.149  NA
 ```
 
 The p-values agree well with the ones that `edgeR` is calculating. This
@@ -282,6 +282,39 @@ edgeR_res <- edgeR::topTags(edgeR_test, sort.by = "none", n = nrow(pbmcs_subset)
 ```
 
 ![](man/figures/README-unnamed-chunk-11-1.png)<!-- -->
+
+#### Pseudobulk
+
+Be very careful how you interpret the p-values of a single cell
+experiment. Cells that come from one individual are not independent
+replicates. That means that you cannot turn your RNA-seq experiment with
+3 treated and 3 control samples into a 3000 vs 3000 experiment through
+single cell experiment with 1000 cells per sample. The actual unit of
+replication are still the 3 samples in each condition.
+
+Nonetheless, single cell data is valuable because it allows you to
+compare the effect of a treatment on specific cell types. The simplest
+way to do such a test is called pseudobulk. This means that the data is
+subset to the cells of a specific cell type. Then the counts of cells
+from the same sample are combined to form a “pseudobulk” sample. The
+`test_de()` function of glmGamPoi supports this feature directly through
+the `pseudobulk_by` and `subset_to` parameters:
+
+``` r
+# say we have cell type labels for each cell and know from which sample they come originally
+sample_labels <- rep(paste0("sample_", 1:6), length = ncol(pbmcs_subset))
+cell_type_labels <- sample(c("T-cells", "B-cells", "Macrophages"), ncol(pbmcs_subset), replace = TRUE)
+
+test_de(fit, contrast = Group1 - Group2,
+        pseudobulk_by = sample_labels, 
+        subset_to = cell_type_labels == "T-cells",
+        n_max = 4, sort_by = pval, decreasing = FALSE)
+#>                name       pval  adj_pval f_statistic df1      df2        lfc
+#> 110 ENSG00000134539 0.04960240 0.9999771    5.284968   1 8.250891  11.065413
+#> 218 ENSG00000158411 0.05579166 0.9999771    4.948362   1 8.250891 -15.112191
+#> 300 ENSG00000188243 0.05654532 0.9999771    4.910629   1 8.250891   4.728711
+#> 74  ENSG00000217128 0.07338284 0.9999771    4.204576   1 8.250891  13.096497
+```
 
 # Session Info
 
@@ -310,7 +343,7 @@ sessionInfo()
 #>  [9] Biobase_2.48.0              GenomicRanges_1.40.0       
 #> [11] GenomeInfoDb_1.24.0         IRanges_2.22.1             
 #> [13] S4Vectors_0.26.0            BiocGenerics_0.34.0        
-#> [15] glmGamPoi_1.1.4            
+#> [15] glmGamPoi_1.1.6            
 #> 
 #> loaded via a namespace (and not attached):
 #>  [1] bitops_1.0-6                  bit64_0.9-7                  

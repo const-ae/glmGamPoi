@@ -226,6 +226,24 @@ abline(0,1)
 ```
 
 
+#### Pseudobulk
+
+Be very careful how you interpret the p-values of a single cell experiment. Cells that come from one individual are not independent replicates. That means that you cannot turn your RNA-seq experiment with 3 treated and 3 control samples into a 3000 vs 3000 experiment through single cell experiment with 1000 cells per sample. The actual unit of replication are still the 3 samples in each condition. 
+
+Nonetheless, single cell data is valuable because it allows you to compare the effect of a treatment on specific cell types. The simplest way to do such a test is called pseudobulk. This means that the data is subset to the cells of a specific cell type. Then the counts of cells from the same sample are combined to form a "pseudobulk" sample. The `test_de()` function of glmGamPoi supports this feature directly through the `pseudobulk_by` and `subset_to` parameters:
+
+```{r}
+# say we have cell type labels for each cell and know from which sample they come originally
+sample_labels <- rep(paste0("sample_", 1:6), length = ncol(pbmcs_subset))
+cell_type_labels <- sample(c("T-cells", "B-cells", "Macrophages"), ncol(pbmcs_subset), replace = TRUE)
+
+test_de(fit, contrast = Group1 - Group2,
+        pseudobulk_by = sample_labels, 
+        subset_to = cell_type_labels == "T-cells",
+        n_max = 4, sort_by = pval, decreasing = FALSE)
+```
+
+
 # Session Info
 
 ```{r}
