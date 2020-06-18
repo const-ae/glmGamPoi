@@ -42,3 +42,12 @@ test_that("parse contrast can handle being inside a function", {
 })
 
 
+
+test_that("parse contrast throws appropriate errors", {
+
+  expect_error(parse_contrast(A - B, levels = LETTERS[3:4]))
+  expect_error(parse_contrast(A - B, levels = 3:4))
+  expect_error(parse_contrast(levels = LETTERS[1:2]))
+
+})
+

@@ -36,13 +36,6 @@ parse_contrast_q <- function(contrast, levels, env = parent.frame()) {
       if(is.character(res)){
         # If contrast was a string, eval will just spit it out the same way
         res <- eval(parse(text = res), envir= level_environment)
-      }else if(is.language(res)){
-        # This happens if a a captured contrast is passed
-        res <- eval(res, envir= level_environment)
-        if(is.character(res)){
-          # If contrast was a string, eval will just spit it out the same way
-          res <- eval(parse(text = res), envir= level_environment)
-        }
       }
     }
   }, error = function(e){
