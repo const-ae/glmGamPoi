@@ -1,19 +1,16 @@
 
 # This function was copied from proDA
-parse_contrast <- function(contrast, levels, direct_call=TRUE){
+parse_contrast <- function(contrast, levels) {
+  cnt_capture <- substitute(contrast)
+  parse_contrast_q(cnt_capture, levels, env = parent.frame())
+}
 
-  env <- if(direct_call){
-    environment()
-  }else{
-    parent.frame()
-  }
 
+parse_contrast_q <- function(contrast, levels, env = parent.frame()) {
   if(missing(contrast)){
     stop("No contrast argument was provided! The option is any linear combination of:\n",
          paste0(levels, collapse = ", "))
   }
-  cnt_capture <- substitute(contrast, env = env)
-
 
   stopifnot(! is.null(levels))
   if(is.factor(levels)){
@@ -26,7 +23,7 @@ parse_contrast <- function(contrast, levels, direct_call=TRUE){
   rownames(indicators) <- levels
   colnames(indicators) <- levels
 
-  level_environment <- new.env(parent = parent.frame(n = 1 + (!direct_call)))
+  level_environment <- new.env(parent = env)
 
   for(lvl in levels){
     ind <- indicators[, lvl]
@@ -34,7 +31,7 @@ parse_contrast <- function(contrast, levels, direct_call=TRUE){
     assign(lvl, ind, level_environment)
   }
   tryCatch({
-    res <- eval(cnt_capture, envir= level_environment)
+    res <- eval(contrast, envir= level_environment)
     if(! is.numeric(res)){
       if(is.character(res)){
         # If contrast was a string, eval will just spit it out the same way

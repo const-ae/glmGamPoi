@@ -90,8 +90,8 @@ test_de <- function(fit,
   disp_trend <- fit$overdispersion_shrinkage_list$dispersion_trend
   if(! missing(contrast)){
     # e.g. a vector with c(1, 0, -1, 0) for contrast = A - C
-    cntrst <- parse_contrast(contrast, levels = colnames(fit$model_matrix),
-                             direct_call = FALSE)
+    cntrst <- parse_contrast_q(contrast, levels = colnames(fit$model_matrix),
+                               env = env)
     # The modifying matrix of reduced_design has ncol(model_matrix) - 1 columns and rank.
     # The columns are all orthogonal to cntrst.
     # see: https://scicomp.stackexchange.com/a/27835/36204
