@@ -3,7 +3,7 @@
 
 test_that("eval_with works in simple cases", {
 
-  data <- data.frame(x = 1:3, a = LETTERS[1:3])
+  data <- data.frame(x = 1:3, a = LETTERS[1:3], stringsAsFactors = FALSE)
 
   expect_equal(eval_with(x * 3, data), data$x * 3)
   expect_equal(eval_with(a == "b", data), data$a == "b")
