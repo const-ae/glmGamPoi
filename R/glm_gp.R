@@ -233,6 +233,9 @@ glm_gp <- function(data,
 
 handle_data_parameter <- function(data, on_disk){
   if(is.matrix(data)){
+    if(! is.numeric(data)){
+      stop("The data argument must consist of numeric values and not of ", mode(data), " values")
+    }
     if(is.null(on_disk) || isFALSE(on_disk)){
       data_mat <- data
     }else if(isTRUE(on_disk)){
@@ -253,6 +256,11 @@ handle_data_parameter <- function(data, on_disk){
   }else if(canCoerce(data, "SummarizedExperiment")){
     se <- as(data, "SummarizedExperiment")
     data_mat <- handle_data_parameter(SummarizedExperiment::assay(se), on_disk)
+  }else if(is(data, "dgCMatrix")) {
+    stop("glmGamPoi does not yet support sparse input data of type 'dgCMatrix'. ",
+         "If your data fits into memory, please cast it to a dense matrix with ",
+         "'as.matrix(data)' or if it is too big, convert it to an on-disk dataset ",
+         "with the 'HDF5Array' package. ")
   }else{
     stop("Cannot handle data of class ", class(data), ".",
          "It must be of type matrix, DelayedArray, SummarizedExperiment, ",

@@ -235,6 +235,12 @@ test_that("glm_gp gives error for too large col_data ", {
 
 })
 
+test_that("glm_gp gives error for wrong input data ", {
+  expect_error(glm_gp(data = c("hello", "world")))
+  sp_mat <- as(matrix(1:10, nrow = 1), "dgCMatrix")
+  expect_error(glm_gp(data = sp_mat))
+})
+
 test_that("glm_gp warns about mismatching col_data rownames ", {
 
   coldata <- data.frame(condition = c(rep("A", 4), rep("B", 3)), stringsAsFactors = FALSE)
