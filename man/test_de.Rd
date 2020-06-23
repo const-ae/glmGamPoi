@@ -38,7 +38,8 @@ Only one of \code{contrast} or \code{reduced_design} must be specified.}
 \item{subset_to}{a vector with the same length as \code{ncol(fit$data)} or  an expression
 that evaluates to such a vector. The expression can reference columns from \code{colData(fit$data)}.
 A typical use case in single cell analysis would be to subset to a specific cell type
-(e.g. \code{subset_to = cell_type == "T-cells"}).\cr
+(e.g. \code{subset_to = cell_type == "T-cells"}). Note that if this argument is set a new
+the model for the \code{full_design} is re-fit.\cr
 Default: \code{NULL} which means that the data is not subset.}
 
 \item{pseudobulk_by}{a vector with the same length as \code{ncol(fit$data)} that is used to
@@ -48,7 +49,8 @@ The counts are summed across the groups
 to create "pseudobulk" samples. This is typically used in single cell analysis if the cells come
 from different samples to get a proper estimate of the differences. This is particularly powerful
 in combination with the \code{subset_to} parameter to analyze differences between samples for
-subgroups of cells. Default: \code{NULL} which means that the data is not aggregated.}
+subgroups of cells. Note that this does a fresh fit for both the full and the reduced design.
+Default: \code{NULL} which means that the data is not aggregated.}
 
 \item{pval_adjust_method}{one of the p-value adjustment method from
 \link{p.adjust.methods}. Default: \code{"BH"}.}
@@ -98,6 +100,8 @@ Conduct a quasi-likelihood ratio test for a Gamma-Poisson fit.
   res2 <- test_de(fit, contrast = cont2)
   head(res2)
 
+  # The column names of fit$Beta are valid variables in the contrast argument
+  colnames(fit$Beta)
 
 
   # You can also have more complex contrasts:

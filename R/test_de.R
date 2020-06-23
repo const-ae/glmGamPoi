@@ -20,7 +20,8 @@
 #' @param subset_to a vector with the same length as `ncol(fit$data)` or  an expression
 #'   that evaluates to such a vector. The expression can reference columns from `colData(fit$data)`.
 #'   A typical use case in single cell analysis would be to subset to a specific cell type
-#'   (e.g. `subset_to = cell_type == "T-cells"`).\cr
+#'   (e.g. `subset_to = cell_type == "T-cells"`). Note that if this argument is set a new
+#'   the model for the `full_design` is re-fit.\cr
 #'   Default: `NULL` which means that the data is not subset.
 #' @param pseudobulk_by a vector with the same length as `ncol(fit$data)` that is used to
 #'   split the columns into different groups (calls [split()]). `pseudobulk_by` can also be an
@@ -29,7 +30,8 @@
 #'   to create "pseudobulk" samples. This is typically used in single cell analysis if the cells come
 #'   from different samples to get a proper estimate of the differences. This is particularly powerful
 #'   in combination with the `subset_to` parameter to analyze differences between samples for
-#'   subgroups of cells. Default: `NULL` which means that the data is not aggregated.
+#'   subgroups of cells. Note that this does a fresh fit for both the full and the reduced design.
+#'   Default: `NULL` which means that the data is not aggregated.
 #' @param pval_adjust_method one of the p-value adjustment method from
 #'   [p.adjust.methods]. Default: `"BH"`.
 #' @param sort_by the name of the column or an expression used to sort the result. If `sort_by` is `NULL`
@@ -68,6 +70,8 @@
 #'   res2 <- test_de(fit, contrast = cont2)
 #'   head(res2)
 #'
+#'   # The column names of fit$Beta are valid variables in the contrast argument
+#'   colnames(fit$Beta)
 #'
 #'
 #'   # You can also have more complex contrasts:
