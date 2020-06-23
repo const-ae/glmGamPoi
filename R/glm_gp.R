@@ -198,14 +198,6 @@ glm_gp <- function(data,
   col_data <- get_col_data(data, col_data)
   des <- handle_design_parameter(design, data, col_data, reference_level)
 
-  if(ncol(des$model_matrix) >= ncol(data)){
-    stop("The model_matrix:\n", format_matrix(head(des$model_matrix)), "\nhas more columns (", ncol(des$model_matrix),
-         ") than the there are samples in the data matrix\n",
-         format_matrix(head(data[,seq_len(min(5, ncol(data))),drop=FALSE])),
-         "\nwhich has ", ncol(data), " columns. ",
-         "Too few replicates to fit model.")
-  }
-
   # Call glm_gp_impl()
   res <- glm_gp_impl(data_mat,
               model_matrix = des$model_matrix,
@@ -315,6 +307,8 @@ handle_design_parameter <- function(design, data, col_data, reference_level){
     stop(paste0("design argment of class ", class(design), " is not supported. Please ",
                 "specify a `model_matrix`, a `character vector`, or a `formula`."))
   }
+
+
   if(nrow(model_matrix) != ncol(data)) stop("Number of rows in col_data does not match number of columns of data")
   if(! is.null(rownames(model_matrix)) &&
      ! all(rownames(model_matrix) == as.character(seq_len(nrow(model_matrix)))) && # That's the default rownames
@@ -328,6 +322,14 @@ handle_design_parameter <- function(design, data, col_data, reference_level){
       }
     }
 
+  }
+
+  if(ncol(model_matrix) >= ncol(data)){
+    stop("The model_matrix:\n", format_matrix(head(model_matrix)), "\nhas more columns (", ncol(model_matrix),
+         ") than the there are samples in the data matrix\n",
+         format_matrix(head(data[,seq_len(min(5, ncol(data))),drop=FALSE])),
+         "\nwhich has ", ncol(data), " columns. ",
+         "Too few replicates / too many coefficients to fit model.")
   }
 
   # Check rank of model_matrix
