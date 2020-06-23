@@ -177,7 +177,7 @@ test_de_q <- function(fit,
   }
 
   if(! is.null(subset_to_e)){
-    if(verbose) { message("Subset the dataset to a reduced number of columns") }
+    if(verbose) { message("Subset the dataset, thus a new model is fitted!") }
     # Only run test on a subset of things:
     # Redo fit, but keep dispersion
     data_subset <- fit$data[,subset_to_e,drop=FALSE]
