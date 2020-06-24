@@ -51,7 +51,9 @@ same dimensions as \code{dim(data)}. Note that if data is a \link{DelayedArray} 
 (for example different sequencing depths). A size factor is an internal mechanism of GLMs to
 correct for this effect.\cr
 \code{size_factors} can either be a single boolean that indicates if the size factor for each sample should be
-calculated. Or it is a numeric vector that specifies the size factor for each sample. Note that
+calculated. Note that 'glmGamPoi'relies on a very simple method to estimate the size factors, which can lead
+to suboptimal results on challenging datasets. For better results consider using the more sophisticated
+\code{scran::calculateSumFactors()} method. In that case pass the result as a numeric vector. Also note that
 \code{size_factors = 1} and \code{size_factors = FALSE} are equivalent. Default: \code{TRUE}.}
 
 \item{overdispersion}{the simplest count model is the Poisson model. However, the Poisson model

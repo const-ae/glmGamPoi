@@ -34,7 +34,9 @@
 #'   (for example different sequencing depths). A size factor is an internal mechanism of GLMs to
 #'   correct for this effect.\cr
 #'   `size_factors` can either be a single boolean that indicates if the size factor for each sample should be
-#'   calculated. Or it is a numeric vector that specifies the size factor for each sample. Note that
+#'   calculated. Note that 'glmGamPoi'relies on a very simple method to estimate the size factors, which can lead
+#'   to suboptimal results on challenging datasets. For better results consider using the more sophisticated
+#'   `scran::calculateSumFactors()` method. In that case pass the result as a numeric vector. Also note that
 #'   `size_factors = 1` and `size_factors = FALSE` are equivalent. Default: `TRUE`.
 #' @param overdispersion the simplest count model is the Poisson model. However, the Poisson model
 #'   assumes that \eqn{variance = mean}. For many applications this is too rigid and the Gamma-Poisson
