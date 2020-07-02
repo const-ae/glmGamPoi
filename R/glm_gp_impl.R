@@ -123,6 +123,7 @@ glm_gp_impl <- function(Y, model_matrix,
                                                      df = subsample - ncol(model_matrix),
                                                      disp_trend = overdispersion_shrinkage, verbose = verbose)
     disp_latest <- dispersion_shrinkage$dispersion_trend
+    if(verbose){ message("Estimate beta again") }
     if(! is.null(groups)){
       beta_res <- estimate_betas_group_wise(Y, offset_matrix = offset_matrix,
                                        dispersions = disp_latest, beta_mat_init = Beta,
