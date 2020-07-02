@@ -5,7 +5,7 @@ lte_n_equal_rows <- function(matrix, n, tolerance = 1e-10) {
     .Call(`_glmGamPoi_lte_n_equal_rows`, matrix, n, tolerance)
 }
 
-get_row_groups <- function(matrix, n_groups, tolerance = 1e-16) {
+get_row_groups <- function(matrix, n_groups, tolerance = 1e-10) {
     .Call(`_glmGamPoi_get_row_groups`, matrix, n_groups, tolerance)
 }
 

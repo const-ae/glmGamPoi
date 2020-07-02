@@ -51,7 +51,7 @@ bool lte_n_equal_rows(const NumericMatrix& matrix, int n, double tolerance = 1e-
 }
 
 // [[Rcpp::export]]
-IntegerVector get_row_groups(const NumericMatrix& matrix, int n_groups, double tolerance = 1e-16) {
+IntegerVector get_row_groups(const NumericMatrix& matrix, int n_groups, double tolerance = 1e-10) {
   NumericMatrix reference_matrix(n_groups, matrix.ncol());
   IntegerVector groups(matrix.nrow());
   size_t n_matches = 0;
