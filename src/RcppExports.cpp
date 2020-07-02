@@ -6,6 +6,19 @@
 
 using namespace Rcpp;
 
+// lte_n_equal_rows
+bool lte_n_equal_rows(const NumericMatrix& matrix, int n, double tolerance);
+RcppExport SEXP _glmGamPoi_lte_n_equal_rows(SEXP matrixSEXP, SEXP nSEXP, SEXP toleranceSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const NumericMatrix& >::type matrix(matrixSEXP);
+    Rcpp::traits::input_parameter< int >::type n(nSEXP);
+    Rcpp::traits::input_parameter< double >::type tolerance(toleranceSEXP);
+    rcpp_result_gen = Rcpp::wrap(lte_n_equal_rows(matrix, n, tolerance));
+    return rcpp_result_gen;
+END_RCPP
+}
 // fitBeta_fisher_scoring
 List fitBeta_fisher_scoring(RObject Y, const arma::mat& model_matrix, RObject exp_offset_matrix, NumericVector thetas, SEXP beta_matSEXP, double ridge_penalty, double tolerance, int max_iter);
 RcppExport SEXP _glmGamPoi_fitBeta_fisher_scoring(SEXP YSEXP, SEXP model_matrixSEXP, SEXP exp_offset_matrixSEXP, SEXP thetasSEXP, SEXP beta_matSEXPSEXP, SEXP ridge_penaltySEXP, SEXP toleranceSEXP, SEXP max_iterSEXP) {
@@ -161,6 +174,7 @@ END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
+    {"_glmGamPoi_lte_n_equal_rows", (DL_FUNC) &_glmGamPoi_lte_n_equal_rows, 3},
     {"_glmGamPoi_fitBeta_fisher_scoring", (DL_FUNC) &_glmGamPoi_fitBeta_fisher_scoring, 8},
     {"_glmGamPoi_fitBeta_diagonal_fisher_scoring", (DL_FUNC) &_glmGamPoi_fitBeta_diagonal_fisher_scoring, 7},
     {"_glmGamPoi_fitBeta_one_group", (DL_FUNC) &_glmGamPoi_fitBeta_one_group, 6},

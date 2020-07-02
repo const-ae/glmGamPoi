@@ -274,3 +274,50 @@ test_that("glm_gp doesn't copy the data", {
   # .Internal(inspect(assay(fit_in_memory$data)))
 })
 
+
+
+test_that("lte_n_equal_rows works", {
+  df <- data.frame(v1 = rep(LETTERS[1:3], each = 10),
+                   v2 = rep(LETTERS[1:3], each = 10),
+                   cont = rnorm(30))
+  X1 <- model.matrix(~ v1 - 1, data = df)
+  X2 <- model.matrix(~ v1 + 1, data = df)
+  X3 <- model.matrix(~ v1 + v2 + 1, data = df)
+  X4 <- model.matrix(~ v1 + v2 + cont, data = df)
+
+  expect_true(lte_n_equal_rows(X1, n = ncol(X1)))
+  expect_false(lte_n_equal_rows(X1, n = 2))
+  expect_true(lte_n_equal_rows(X1, n = 4))
+
+
+  expect_true(lte_n_equal_rows(X2, n = 3))
+  expect_false(lte_n_equal_rows(X2, n = 2))
+
+  expect_true(lte_n_equal_rows(X3, n = ncol(X3)))
+  expect_true(lte_n_equal_rows(X3, n = 3))
+  expect_false(lte_n_equal_rows(X3, n = 2))
+
+  expect_false(lte_n_equal_rows(X4, n = 20))
+
+  df2 <- data.frame(v1 = rep(LETTERS[1:3], each = 1000),
+                   v2 = rep(LETTERS[1:3], each = 1000),
+                   cont = rnorm(30))
+  X_large <- model.matrix(~ v1 + v2 + cont - 1, data = df2)
+
+  # bench::mark(
+  #   lte_n_equal_rows(X_large, n = 10),
+  #   DESeq2:::nOrMoreInCell(X_large, 10),
+  #   check = FALSE
+  # )
+
+})
+
+
+
+
+
+
+
+
+
+

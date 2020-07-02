@@ -22,6 +22,35 @@ void clamp_inplace(arma::Mat<NumericType>& v, double min, double max){
 }
 
 
+// Check how many unique rows are in a matrix and if this number is less than or equal to n
+// This is important to determine if the model can be solved by group averages
+// (ie. the numer of unique rows == number of columns)
+// [[Rcpp::export]]
+bool lte_n_equal_rows(const NumericMatrix& matrix, int n, double tolerance = 1e-16) {
+  NumericMatrix reference_matrix(n, matrix.ncol());
+  size_t n_matches = 0;
+  for(size_t row_idx = 0; row_idx < matrix.nrow(); row_idx++){
+    bool matched = false;
+    NumericMatrix::ConstRow vec = matrix(row_idx, _);
+    for(size_t ref_idx = 0; ref_idx < n_matches; ref_idx++){
+      NumericMatrix::Row ref_vec  = reference_matrix(ref_idx, _);
+      if(sum(abs(vec - ref_vec)) < tolerance){
+        matched = true;
+        break;
+      }
+    }
+    if(! matched){
+      ++n_matches;
+      if(n_matches > n){
+        return false;
+      }
+      reference_matrix(n_matches - 1, _) = vec;
+    }
+  }
+  return true;
+}
+
+
 arma::vec calculate_mu(const arma::mat& model_matrix, const arma::vec& beta_hat, const arma::vec& exp_off){
   arma::vec mu_hat = exp(model_matrix * beta_hat) % exp_off;
   clamp_inplace(mu_hat, 1e-50, 1e50);
