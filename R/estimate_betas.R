@@ -46,13 +46,16 @@ estimate_betas_fisher_scoring <- function(Y, model_matrix, offset_matrix,
 }
 
 
-#' Make a quick first guess where reasonable beta would be for an individual group
+#' Make a quick first guess where reasonable beta would be for a set of groups
 #'
 #' @return a vector with the intercepts for each gene
 #'
 #' @keywords internal
-estimate_betas_roughly_one_group <- function(Y, offset_matrix){
-  log(DelayedMatrixStats::rowMeans2(Y / exp(offset_matrix)))
+estimate_betas_roughly_group_wise <- function(Y, offset_matrix, groups){
+  norm_Y <- Y / exp(offset_matrix)
+  do.call(cbind, lapply(unique(groups), function(gr){
+    log(DelayedMatrixStats::rowMeans2(norm_Y, cols = groups == gr))
+  }))
 }
 
 

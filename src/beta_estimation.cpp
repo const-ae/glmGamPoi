@@ -50,6 +50,31 @@ bool lte_n_equal_rows(const NumericMatrix& matrix, int n, double tolerance = 1e-
   return true;
 }
 
+// [[Rcpp::export]]
+IntegerVector get_row_groups(const NumericMatrix& matrix, int n_groups, double tolerance = 1e-16) {
+  NumericMatrix reference_matrix(n_groups, matrix.ncol());
+  IntegerVector groups(matrix.nrow());
+  size_t n_matches = 0;
+  for(size_t row_idx = 0; row_idx < matrix.nrow(); row_idx++){
+    bool matched = false;
+    NumericMatrix::ConstRow vec = matrix(row_idx, _);
+    for(size_t ref_idx = 0; ref_idx < n_matches; ref_idx++){
+      NumericMatrix::Row ref_vec  = reference_matrix(ref_idx, _);
+      if(sum(abs(vec - ref_vec)) < tolerance){
+        groups(row_idx) = ref_idx;
+        matched = true;
+        break;
+      }
+    }
+    if(! matched){
+      groups(row_idx) = n_matches;
+      reference_matrix(n_matches, _) = vec;
+      ++n_matches;
+    }
+  }
+  return groups + 1;
+}
+
 
 arma::vec calculate_mu(const arma::mat& model_matrix, const arma::vec& beta_hat, const arma::vec& exp_off){
   arma::vec mu_hat = exp(model_matrix * beta_hat) % exp_off;

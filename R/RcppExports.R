@@ -5,6 +5,10 @@ lte_n_equal_rows <- function(matrix, n, tolerance = 1e-16) {
     .Call(`_glmGamPoi_lte_n_equal_rows`, matrix, n, tolerance)
 }
 
+get_row_groups <- function(matrix, n_groups, tolerance = 1e-16) {
+    .Call(`_glmGamPoi_get_row_groups`, matrix, n_groups, tolerance)
+}
+
 fitBeta_fisher_scoring <- function(Y, model_matrix, exp_offset_matrix, thetas, beta_matSEXP, ridge_penalty, tolerance, max_iter) {
     .Call(`_glmGamPoi_fitBeta_fisher_scoring`, Y, model_matrix, exp_offset_matrix, thetas, beta_matSEXP, ridge_penalty, tolerance, max_iter)
 }

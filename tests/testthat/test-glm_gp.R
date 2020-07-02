@@ -276,10 +276,10 @@ test_that("glm_gp doesn't copy the data", {
 
 
 
-test_that("lte_n_equal_rows works", {
+test_that("lte_n_equal_rows and get_row_groups works", {
   df <- data.frame(v1 = rep(LETTERS[1:3], each = 10),
                    v2 = rep(LETTERS[1:3], each = 10),
-                   cont = rnorm(30))
+                   cont = rnorm(30), stringsAsFactors = TRUE)
   X1 <- model.matrix(~ v1 - 1, data = df)
   X2 <- model.matrix(~ v1 + 1, data = df)
   X3 <- model.matrix(~ v1 + v2 + 1, data = df)
@@ -288,22 +288,37 @@ test_that("lte_n_equal_rows works", {
   expect_true(lte_n_equal_rows(X1, n = ncol(X1)))
   expect_false(lte_n_equal_rows(X1, n = 2))
   expect_true(lte_n_equal_rows(X1, n = 4))
-
+  expect_equal(get_row_groups(X1, n_groups = ncol(X1)),
+               as.numeric(df$v1))
+  expect_equal(get_groups_for_model_matrix(X1),
+               as.numeric(df$v1))
 
   expect_true(lte_n_equal_rows(X2, n = 3))
   expect_false(lte_n_equal_rows(X2, n = 2))
+  expect_equal(get_row_groups(X2, n_groups = ncol(X2)),
+               as.numeric(df$v1))
+  expect_equal(get_groups_for_model_matrix(X2),
+               as.numeric(df$v1))
+
 
   expect_true(lte_n_equal_rows(X3, n = ncol(X3)))
   expect_true(lte_n_equal_rows(X3, n = 3))
   expect_false(lte_n_equal_rows(X3, n = 2))
+  expect_equal(get_row_groups(X3, n_groups = ncol(X3)),
+               as.numeric(df$v1))
+  expect_equal(get_groups_for_model_matrix(X3),
+               as.numeric(df$v1))
+
 
   expect_false(lte_n_equal_rows(X4, n = 20))
+  expect_equal(get_row_groups(X4, n_groups = nrow(X4)), seq_len(nrow(df)))
+  expect_null(get_groups_for_model_matrix(X4))
 
-  df2 <- data.frame(v1 = rep(LETTERS[1:3], each = 1000),
-                   v2 = rep(LETTERS[1:3], each = 1000),
-                   cont = rnorm(30))
-  X_large <- model.matrix(~ v1 + v2 + cont - 1, data = df2)
-
+  # df2 <- data.frame(v1 = rep(LETTERS[1:3], each = 1000),
+  #                  v2 = rep(LETTERS[1:3], each = 1000),
+  #                  cont = rnorm(30))
+  # X_large <- model.matrix(~ v1 + v2 + cont - 1, data = df2)
+  #
   # bench::mark(
   #   lte_n_equal_rows(X_large, n = 10),
   #   DESeq2:::nOrMoreInCell(X_large, 10),
@@ -311,6 +326,9 @@ test_that("lte_n_equal_rows works", {
   # )
 
 })
+
+
+
 
 
 

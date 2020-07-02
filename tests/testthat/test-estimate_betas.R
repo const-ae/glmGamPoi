@@ -52,6 +52,24 @@ test_that("Beta estimation can handle edge cases as input", {
   expect_equal(res2$Beta[1,1], -Inf)
 })
 
+test_that("Groupwise beta estimation works", {
+
+  mat <- matrix(1:32, nrow = 8, ncol = 4)
+  offset_matrix <- combine_size_factors_and_offset(0, size_factors = TRUE, mat)$offset_matrix
+  b1 <- estimate_betas_roughly_group_wise(mat, offset_matrix, groups = 1)
+  b2 <- estimate_betas_roughly_group_wise(mat, offset_matrix, groups = rep(1, times = ncol(mat)))
+  expect_equal(b1, b2)
+
+  model_matrix <- cbind(c(1,1,0,0), c(0,0,1,1))
+  b3 <- estimate_betas_roughly_group_wise(mat, offset_matrix, groups = c(1, 1, 2, 2))
+  b4 <- cbind(
+    estimate_betas_roughly_group_wise(mat[,1:2], offset_matrix[,1:2], groups = 1),
+    estimate_betas_roughly_group_wise(mat[,3:4], offset_matrix[,3:4], groups = 1)
+  )
+  expect_equal(b3, b4)
+})
+
+
 
 
 test_that("Beta estimation can handle any kind of model_matrix", {
@@ -105,8 +123,8 @@ test_that("estimate_betas_one_group can handle DelayedArray", {
   mat_hdf5 <-  as(mat, "HDF5Matrix")
   offset_matrix_hdf5 <- as(offset_matrix, "HDF5Matrix")
 
-  beta_vec_init <- estimate_betas_roughly_one_group(mat, offset_matrix)
-  beta_vec_init_da <- estimate_betas_roughly_one_group(mat_hdf5, offset_matrix_hdf5)
+  beta_vec_init <- estimate_betas_roughly_group_wise(mat, offset_matrix, groups = 1)
+  beta_vec_init_da <- estimate_betas_roughly_group_wise(mat_hdf5, offset_matrix_hdf5, groups = 1)
 
   res <- estimate_betas_one_group(mat, offset_matrix, dispersions, beta_vec_init)
   res2 <- estimate_betas_one_group(mat_hdf5, offset_matrix_hdf5, dispersions, beta_vec_init_da)
@@ -152,7 +170,7 @@ test_that("Beta estimation works", {
                                           dispersions = data$overdispersion, beta_mat_init = beta_mat_init)
 
   # Fit Model for One Group
-  beta_vec_init <- estimate_betas_roughly_one_group(Y = data$Y, offset_matrix = offset_matrix)
+  beta_vec_init <- estimate_betas_roughly_group_wise(Y = data$Y, offset_matrix = offset_matrix, groups = 1)
   my_res2 <- estimate_betas_one_group(Y = data$Y, offset_matrix = offset_matrix,
                                       dispersions = data$overdispersion, beta_vec_init = beta_vec_init)
 

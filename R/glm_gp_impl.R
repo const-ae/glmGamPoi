@@ -40,8 +40,10 @@ glm_gp_impl <- function(Y, model_matrix,
   offset_matrix <- off_and_sf$offset_matrix
   size_factors <- off_and_sf$size_factors
 
-  # Decide if there is only the intercept
-  only_intercept_model <- ncol(model_matrix) == 1 && all(model_matrix == 1)
+  # Check if there distinct groups in model matrix
+  # returns NULL if there would be more groups than columns
+  # only_intercept_model <- ncol(model_matrix) == 1 && all(model_matrix == 1)
+  groups <- get_groups_for_model_matrix(model_matrix)
 
   # If no overdispersion, make rough first estimate
   if(isTRUE(overdispersion)){
@@ -60,9 +62,9 @@ glm_gp_impl <- function(Y, model_matrix,
 
 
   # Estimate the betas
-  if(only_intercept_model){
+  if(! is.null(groups)){
     if(verbose){ message("Make initial beta estimate") }
-    beta_vec_init <- estimate_betas_roughly_one_group(Y, offset_matrix)
+    beta_vec_init <- estimate_betas_roughly_group_wise(Y, offset_matrix, groups)
     if(verbose){ message("Estimate beta") }
     beta_res <- estimate_betas_one_group(Y, offset_matrix = offset_matrix,
                                          dispersions = disp_init, beta_vec_init = beta_vec_init)
@@ -101,7 +103,7 @@ glm_gp_impl <- function(Y, model_matrix,
 
     # Estimate the betas again (only necessary if disp_est has changed)
     if(verbose){ message("Estimate beta again") }
-    if(only_intercept_model){
+    if(! is.null(groups)){
       beta_res <- estimate_betas_one_group(Y, offset_matrix = offset_matrix,
                                        dispersions = disp_latest, beta_vec_init = Beta[,1])
     }else{
@@ -119,7 +121,7 @@ glm_gp_impl <- function(Y, model_matrix,
                                                      df = subsample - ncol(model_matrix),
                                                      disp_trend = overdispersion_shrinkage, verbose = verbose)
     disp_latest <- dispersion_shrinkage$dispersion_trend
-    if(only_intercept_model){
+    if(! is.null(groups)){
       beta_res <- estimate_betas_one_group(Y, offset_matrix = offset_matrix,
                                        dispersions = disp_latest, beta_vec_init = Beta[,1])
     }else{
@@ -171,4 +173,13 @@ validate_Y_matrix <- function(Y){
   }
 }
 
+
+
+get_groups_for_model_matrix <- function(model_matrix){
+  if(! lte_n_equal_rows(model_matrix, ncol(model_matrix))){
+    return(NULL)
+  }else{
+    get_row_groups(model_matrix, n_groups = ncol(model_matrix))
+  }
+}
 
