@@ -48,7 +48,7 @@ estimate_betas_fisher_scoring <- function(Y, model_matrix, offset_matrix,
 
 #' Make a quick first guess where reasonable beta would be for a set of groups
 #'
-#' @return a vector with the intercepts for each gene
+#' @return a matrix with the mean per group for each gene
 #'
 #' @keywords internal
 estimate_betas_roughly_group_wise <- function(Y, offset_matrix, groups){
@@ -61,9 +61,10 @@ estimate_betas_roughly_group_wise <- function(Y, offset_matrix, groups){
 
 #' Estimate the Betas for Fixed Dispersions
 #'
-#' @return a list with two elements
-#'   * `Beta` a matrix with one column and the intercept for each gene
+#' @return a list with three elements
+#'   * `Beta` a matrix with one column per group and a row for each gene
 #'   * `iterations` the number of iterations from the Newton-Raphson method
+#'   * `deviances` the deviance for each gene (sum of the deviance per group)
 #'
 #' @keywords internal
 estimate_betas_group_wise <- function(Y, offset_matrix,  dispersions, beta_group_init = NULL, beta_mat_init = NULL, groups, model_matrix){
