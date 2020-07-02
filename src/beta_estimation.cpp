@@ -26,7 +26,7 @@ void clamp_inplace(arma::Mat<NumericType>& v, double min, double max){
 // This is important to determine if the model can be solved by group averages
 // (ie. the numer of unique rows == number of columns)
 // [[Rcpp::export]]
-bool lte_n_equal_rows(const NumericMatrix& matrix, int n, double tolerance = 1e-16) {
+bool lte_n_equal_rows(const NumericMatrix& matrix, int n, double tolerance = 1e-10) {
   NumericMatrix reference_matrix(n, matrix.ncol());
   size_t n_matches = 0;
   for(size_t row_idx = 0; row_idx < matrix.nrow(); row_idx++){
