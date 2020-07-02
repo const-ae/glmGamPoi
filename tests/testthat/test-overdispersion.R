@@ -284,7 +284,7 @@ test_that("DelayedArrays are handled efficiently", {
   dispersions <- estimate_dispersions_roughly(mat_hdf5, model_matrix, offset_matrix)
 
   beta_vec_init <- estimate_betas_roughly_group_wise(mat_hdf5, offset_matrix, groups = 1)
-  Betas <- estimate_betas_one_group(mat_hdf5, offset_matrix, dispersions, beta_vec_init)$Beta
+  Betas <- estimate_betas_group_wise(mat_hdf5, offset_matrix, dispersions, beta_vec_init, groups = 1, model_matrix = model_matrix)$Beta
   mean_matrix <- calculate_mu(Betas, model_matrix, offset_matrix)
   mean_matrix_ram <- as.matrix(mean_matrix)
 

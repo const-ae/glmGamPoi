@@ -64,10 +64,11 @@ glm_gp_impl <- function(Y, model_matrix,
   # Estimate the betas
   if(! is.null(groups)){
     if(verbose){ message("Make initial beta estimate") }
-    beta_vec_init <- estimate_betas_roughly_group_wise(Y, offset_matrix, groups)
+    beta_group_init <- estimate_betas_roughly_group_wise(Y, offset_matrix, groups)
     if(verbose){ message("Estimate beta") }
-    beta_res <- estimate_betas_one_group(Y, offset_matrix = offset_matrix,
-                                         dispersions = disp_init, beta_vec_init = beta_vec_init)
+    beta_res <- estimate_betas_group_wise(Y, offset_matrix = offset_matrix,
+                                         dispersions = disp_init, beta_group_init = beta_group_init,
+                                         groups = groups, model_matrix = model_matrix)
   }else{
     # Init beta with reasonable values
     if(verbose){ message("Make initial beta estimate") }
@@ -104,8 +105,9 @@ glm_gp_impl <- function(Y, model_matrix,
     # Estimate the betas again (only necessary if disp_est has changed)
     if(verbose){ message("Estimate beta again") }
     if(! is.null(groups)){
-      beta_res <- estimate_betas_one_group(Y, offset_matrix = offset_matrix,
-                                       dispersions = disp_latest, beta_vec_init = Beta[,1])
+      beta_res <- estimate_betas_group_wise(Y, offset_matrix = offset_matrix,
+                                       dispersions = disp_latest, beta_mat_init = Beta,
+                                       groups = groups, model_matrix = model_matrix)
     }else{
       beta_res <- estimate_betas_fisher_scoring(Y, model_matrix = model_matrix, offset_matrix = offset_matrix,
                                             dispersions = disp_latest, beta_mat_init = Beta)
@@ -122,8 +124,9 @@ glm_gp_impl <- function(Y, model_matrix,
                                                      disp_trend = overdispersion_shrinkage, verbose = verbose)
     disp_latest <- dispersion_shrinkage$dispersion_trend
     if(! is.null(groups)){
-      beta_res <- estimate_betas_one_group(Y, offset_matrix = offset_matrix,
-                                       dispersions = disp_latest, beta_vec_init = Beta[,1])
+      beta_res <- estimate_betas_group_wise(Y, offset_matrix = offset_matrix,
+                                       dispersions = disp_latest, beta_mat_init = Beta,
+                                       groups = groups, model_matrix = model_matrix)
     }else{
       beta_res <- estimate_betas_fisher_scoring(Y, model_matrix = model_matrix, offset_matrix = offset_matrix,
                                             dispersions = disp_latest, beta_mat_init = Beta)

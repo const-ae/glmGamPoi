@@ -44,12 +44,11 @@ test_that("Beta estimation can handle edge cases as input", {
   dispersion <- 0
 
 
-  res <- estimate_betas_one_group(Y, offset_matrix, dispersion, beta_vec_init = c(3))
-  expect_equal(res$Beta[1,1], -Inf)
+  res <- estimate_betas_group_wise(Y, offset_matrix, dispersion, beta_group_init = matrix(3, nrow = 1, ncol = 1), groups = 1, model_matrix = model_matrix)
+  expect_equal(res$Beta[1,1], -1e8)
   beta_mat_init <- estimate_betas_roughly(Y, model_matrix, offset_matrix)
   res2 <- estimate_betas_fisher_scoring(Y, model_matrix, offset_matrix, dispersion, beta_mat_init)
-  skip("Fisher scoring does not converge to -Inf")
-  expect_equal(res2$Beta[1,1], -Inf)
+  expect_lt(res2$Beta[1,1], -15)
 })
 
 test_that("Groupwise beta estimation works", {
@@ -67,6 +66,11 @@ test_that("Groupwise beta estimation works", {
     estimate_betas_roughly_group_wise(mat[,3:4], offset_matrix[,3:4], groups = 1)
   )
   expect_equal(b3, b4)
+
+
+  b5 <- estimate_betas_roughly_group_wise(mat, offset_matrix, groups = c(1, 1, 2, 2))
+  b6 <- estimate_betas_roughly_group_wise(mat, offset_matrix, groups = c(2, 2, 1, 1))
+  expect_equal(b5, b6)
 })
 
 
@@ -113,24 +117,47 @@ test_that("Beta estimation can handle any kind of model_matrix", {
   expect_lt(fit$iterations[1], 50)
 })
 
+test_that("estimate_betas_group_wise properly rescales result", {
+
+  dat <- make_dataset(n_genes = 20, n_samples = 30)
+  mat <- dat$Y
+  offset_matrix <- combine_size_factors_and_offset(0, size_factors = TRUE, mat)$offset_matrix
+  dispersions <- dat$overdispersion
+
+  df <- data.frame(cat1 = sample(LETTERS[1:3], size = 30, replace = TRUE))
+  model_matrix <- model.matrix(~ cat1, data = df)
+
+  groups <- get_groups_for_model_matrix(model_matrix)
+  beta_group_init <- estimate_betas_roughly_group_wise(mat, offset_matrix, groups = groups)
+
+  res <- estimate_betas_group_wise(mat, offset_matrix, dispersions, beta_group_init, groups = groups, model_matrix = model_matrix)
+
+  model_matrix2 <- model_matrix * 3
+  res2 <- estimate_betas_group_wise(mat, offset_matrix, dispersions, beta_group_init = beta_group_init, groups = groups, model_matrix = model_matrix2)
+  expect_equal(res$Beta, res2$Beta * 3)
+  expect_equal(calculate_mu(res$Beta, model_matrix, offset_matrix),
+               calculate_mu(res2$Beta, model_matrix2, offset_matrix))
+})
 
 
-test_that("estimate_betas_one_group can handle DelayedArray", {
+test_that("estimate_betas_group_wise can handle DelayedArray", {
 
   mat <- matrix(1:32, nrow = 8, ncol = 4)
   offset_matrix <- combine_size_factors_and_offset(0, size_factors = TRUE, mat)$offset_matrix
   dispersions <- rep(0, 8)
+  model_matrix <- matrix(1, nrow = 4)
   mat_hdf5 <-  as(mat, "HDF5Matrix")
   offset_matrix_hdf5 <- as(offset_matrix, "HDF5Matrix")
+
 
   beta_vec_init <- estimate_betas_roughly_group_wise(mat, offset_matrix, groups = 1)
   beta_vec_init_da <- estimate_betas_roughly_group_wise(mat_hdf5, offset_matrix_hdf5, groups = 1)
 
-  res <- estimate_betas_one_group(mat, offset_matrix, dispersions, beta_vec_init)
-  res2 <- estimate_betas_one_group(mat_hdf5, offset_matrix_hdf5, dispersions, beta_vec_init_da)
+  res <- estimate_betas_group_wise(mat, offset_matrix, dispersions, beta_vec_init, groups = 1, model_matrix = model_matrix)
+  res2 <- estimate_betas_group_wise(mat_hdf5, offset_matrix_hdf5, dispersions, beta_vec_init_da, groups = 1, model_matrix = model_matrix)
   # This check is important, because beachmat makes life difficult for
   # handling numeric and integer input generically
-  res3 <- estimate_betas_one_group(mat * 1.0, offset_matrix, dispersions, beta_vec_init)
+  res3 <- estimate_betas_group_wise(mat * 1.0, offset_matrix, dispersions, beta_vec_init, groups = 1, model_matrix = model_matrix)
   expect_equal(res, res2)
   expect_equal(res, res3)
 
@@ -163,22 +190,23 @@ test_that("Beta estimation works", {
   skip_if_not_installed("edgeR")
   data <- make_dataset(n_genes = 1000, n_samples = 30)
   offset_matrix <- matrix(log(data$size_factor), nrow=nrow(data$Y), ncol = ncol(data$Y), byrow = TRUE)
+  model_matrix <- matrix(1.1, nrow = 30)
 
   # Fit Standard Model
-  beta_mat_init <- estimate_betas_roughly(Y = data$Y, model_matrix = data$X, offset_matrix = offset_matrix)
-  my_res <- estimate_betas_fisher_scoring(Y = data$Y, model_matrix = data$X, offset_matrix = offset_matrix,
+  beta_mat_init <- estimate_betas_roughly(Y = data$Y, model_matrix = model_matrix, offset_matrix = offset_matrix)
+  my_res <- estimate_betas_fisher_scoring(Y = data$Y, model_matrix = model_matrix, offset_matrix = offset_matrix,
                                           dispersions = data$overdispersion, beta_mat_init = beta_mat_init)
 
   # Fit Model for One Group
   beta_vec_init <- estimate_betas_roughly_group_wise(Y = data$Y, offset_matrix = offset_matrix, groups = 1)
-  my_res2 <- estimate_betas_one_group(Y = data$Y, offset_matrix = offset_matrix,
-                                      dispersions = data$overdispersion, beta_vec_init = beta_vec_init)
+  my_res2 <- estimate_betas_group_wise(Y = data$Y, offset_matrix = offset_matrix,
+                                      dispersions = data$overdispersion, beta_group_init = beta_vec_init, groups = 1, model_matrix = model_matrix)
 
   expect_equal(my_res$Beta, my_res2$Beta, tolerance = 1e-6)
   expect_lt(max(my_res2$iterations), 10)
 
   # Compare with edgeR
-  edgeR_res <- edgeR::glmFit.default(data$Y, design = data$X,
+  edgeR_res <- edgeR::glmFit.default(data$Y, design = model_matrix,
                                    dispersion = data$overdispersion,
                                    offset = offset_matrix[1,],
                                    prior.count = 0, weights=NULL)
@@ -197,12 +225,11 @@ test_that("Beta estimation works", {
   #     beta values
   #   * The beta values are on a log2 scale. I need to convert it
   #     to the ln scale.
-  dds_design_mat <- matrix(1+1e-8, nrow = ncol(data$Y), ncol = 1)
   dds <- DESeq2::DESeqDataSetFromMatrix(data$Y, colData = data.frame(name = seq_len(ncol(data$Y))),
                                         design = ~ 1)
   DESeq2::sizeFactors(dds) <- data$size_factor
   DESeq2::dispersions(dds) <- data$overdispersion
-  dds <- DESeq2::nbinomWaldTest(dds, modelMatrix = dds_design_mat, minmu = 1e-6)
+  dds <- DESeq2::nbinomWaldTest(dds, modelMatrix = model_matrix, minmu = 1e-6)
   expect_equal(my_res$Beta[,1], coef(dds)[,1] / log2(exp(1)), tolerance = 1e-6)
   expect_equal(my_res2$Beta[,1], coef(dds)[,1] / log2(exp(1)), tolerance = 1e-6)
   expect_equal(coef(edgeR_res)[,1], coef(dds)[,1] / log2(exp(1)), tolerance = 1e-6)
@@ -290,7 +317,7 @@ test_that("glm_gp_impl can handle all zero rows", {
   Y[1, ] <- rpois(n = 10, lambda = 3)
   X <- matrix(1, nrow = 10, ncol = 1)
   res <- glm_gp_impl(Y, X)
-  expect_equal(res$Beta[2,1], -Inf)
+  expect_equal(res$Beta[2,1], -1e8)
   expect_equal(res$Mu[2, ], rep(0, 10))
 })
 
@@ -309,7 +336,7 @@ test_that("glm_gp_impl can handle all values zero", {
   res <- glm_gp_impl(Y, X)
   expect_equal(res$size_factors, rep(0.001, times = 10))
   expect_equal(res$overdispersions, rep(0, times = 3))
-  expect_equal(res$Beta[,1], rep(-Inf, times = 3))
+  expect_equal(res$Beta[,1], rep(-1e8, times = 3))
   expect_true(all(res$Mu == 0))
 })
 

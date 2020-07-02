@@ -66,17 +66,36 @@ estimate_betas_roughly_group_wise <- function(Y, offset_matrix, groups){
 #'   * `iterations` the number of iterations from the Newton-Raphson method
 #'
 #' @keywords internal
-estimate_betas_one_group <- function(Y, offset_matrix,  dispersions, beta_vec_init){
-  stopifnot(length(beta_vec_init) == nrow(Y))
+estimate_betas_group_wise <- function(Y, offset_matrix,  dispersions, beta_group_init = NULL, beta_mat_init = NULL, groups, model_matrix){
+  stopifnot(nrow(beta_group_init) == nrow(Y))
+  stopifnot(ncol(beta_group_init) == length(unique(groups)))
   stopifnot(length(dispersions) == nrow(Y))
   stopifnot(dim(offset_matrix) == dim(Y))
+  stopifnot(is.null(beta_mat_init) != is.null(beta_group_init))
+  if(is.null(beta_group_init)){
+    # Calculate group_init based on Beta
+    first_occurence_in_groups <- match(unique(groups), groups)
+    beta_group_init <- beta_mat_init %*% t(model_matrix[first_occurence_in_groups, ,drop=FALSE])
+  }
 
+  Beta_res_list <- lapply(unique(groups), function(gr){
+    betaRes <- fitBeta_one_group(Y[, gr == groups, drop = FALSE],
+                                 offset_matrix[, gr == groups, drop = FALSE], thetas = dispersions,
+                                 beta_start_values = beta_group_init[, gr == unique(groups),drop=TRUE],
+                                 tolerance = 1e-8, maxIter = 100)
+  })
+  Beta <- do.call(cbind, lapply(Beta_res_list, function(x) x$beta))
+  Iteration_mat <- do.call(cbind, lapply(Beta_res_list, function(x) x$iter))
+  Deviance_mat <- do.call(cbind, lapply(Beta_res_list, function(x) x$deviance))
 
-  betaRes <- fitBeta_one_group(Y, offset_matrix, thetas = dispersions,
-                               beta_start_values = beta_vec_init,
-                               tolerance = 1e-8, maxIter = 100)
+  # How about rotating the Beta into the right place?!
+  Beta <- pmax(Beta, -1e8)
+  first_occurence_in_groups <- match(unique(groups), groups)
+  if(nrow(Beta) > 0){
+    Beta <- t(solve(model_matrix[first_occurence_in_groups, ,drop=FALSE], t(Beta)))
+  }
 
-  list(Beta = matrix(betaRes$beta, nrow = nrow(Y), ncol = 1),
-       iterations = betaRes$iter,
-       deviances = betaRes$deviance)
+  list(Beta = Beta,
+       iterations = matrixStats::rowSums2(Iteration_mat),
+       deviances = matrixStats::rowSums2(Deviance_mat))
 }
