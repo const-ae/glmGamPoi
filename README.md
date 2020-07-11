@@ -50,7 +50,7 @@ To fit a single Gamma-Poisson GLM do:
 ``` r
 # overdispersion = 1/size
 counts <- rnbinom(n = 10, mu = 5, size = 1/0.7)
-# size_factors = FALSE, because only a single GLM is fitted
+# design = ~ 1 means that an intercept-only model is fit
 fit <- glm_gp(counts, design = ~ 1)
 fit
 #> glmGamPoiFit object:
@@ -343,7 +343,7 @@ sessionInfo()
 #>  [9] Biobase_2.48.0              GenomicRanges_1.40.0       
 #> [11] GenomeInfoDb_1.24.0         IRanges_2.22.1             
 #> [13] S4Vectors_0.26.0            BiocGenerics_0.34.0        
-#> [15] glmGamPoi_1.1.6            
+#> [15] glmGamPoi_1.1.7            
 #> 
 #> loaded via a namespace (and not attached):
 #>  [1] bitops_1.0-6                  bit64_0.9-7                  
@@ -351,7 +351,7 @@ sessionInfo()
 #>  [5] tools_4.0.0                   utf8_1.1.4                   
 #>  [7] R6_2.4.1                      DBI_1.1.0                    
 #>  [9] colorspace_1.4-1              tidyselect_1.1.0             
-#> [11] DESeq2_1.28.0                 bit_1.1-15.2                 
+#> [11] DESeq2_1.29.4                 bit_1.1-15.2                 
 #> [13] curl_4.3                      compiler_4.0.0               
 #> [15] cli_2.0.2                     scales_1.1.0                 
 #> [17] bench_1.1.1                   genefilter_1.70.0            

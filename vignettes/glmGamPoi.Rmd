@@ -60,7 +60,7 @@ To fit a single Gamma-Poisson GLM do:
 ```{r}
 # overdispersion = 1/size
 counts <- rnbinom(n = 10, mu = 5, size = 1/0.7)
-# size_factors = FALSE, because only a single GLM is fitted
+# design = ~ 1 means that an intercept-only model is fit
 fit <- glm_gp(counts, design = ~ 1)
 fit
 
