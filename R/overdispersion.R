@@ -161,7 +161,7 @@ conventional_overdispersion_mle <- function(y, mean_vector,
                                        verbose = FALSE){
   return_value = list(estimate = NA_real_, iterations = NA_real_, message = "")
   # Make a table of y
-  if(max(c(y, -Inf)) < length(y) * 10){
+  if(length(y) == 0 || max(y) < length(y) * 10){
      tab <- make_table(y)
   }else{
      tab <- list(numeric(0), numeric(0))
