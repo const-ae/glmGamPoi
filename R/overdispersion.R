@@ -160,8 +160,10 @@ conventional_overdispersion_mle <- function(y, mean_vector,
                                        do_cox_reid_adjustment = TRUE,
                                        verbose = FALSE){
   return_value = list(estimate = NA_real_, iterations = NA_real_, message = "")
-  # Make a table of y
-  if(length(y) == 0 || max(y) < length(y) * 10){
+  # The threshold comes from the fact that
+  # E[#distinct counts] / length(y) < 0.5 <==> max(y) / length(y)^2 < 0.03
+  # I don't have a formal proof, but plotting strongly indicates it works
+  if(length(y) == 0 || max(y) / length(y)^2 <  0.03){
      tab <- make_table(y)
   }else{
      tab <- list(numeric(0), numeric(0))
