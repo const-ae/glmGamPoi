@@ -22,6 +22,8 @@ I can just get it directly from fit$data
 test to detect differentially expressed genes
 + Add functionality to make a pseudobulk test directly
 from test_de() by aggregating the data around one column
++ In group-wise beta estimation, fall back to optimize()
+if the Newton method fails
 
 
 Changes in version 0.0.99 (2020-03-23)
