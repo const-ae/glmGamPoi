@@ -139,6 +139,15 @@ test_that("estimate_betas_group_wise properly rescales result", {
                calculate_mu(res2$Beta, model_matrix2, offset_matrix))
 })
 
+test_that("estimate_betas_group_wise can handle extreme case", {
+
+  y <- matrix(c(1, rep(0, 500)), nrow = 1)
+  res <- fitBeta_one_group(y, offset_matrix = matrix(0, nrow = 1, ncol = 501), thetas = 2.1, beta_start_values = -10, tolerance = 1e-8,  maxIter = 100)
+  expect_false(res$iter == 100)
+  expect_false(is.na(res$beta))
+
+})
+
 
 test_that("estimate_betas_group_wise can handle DelayedArray", {
 

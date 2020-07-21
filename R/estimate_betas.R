@@ -100,3 +100,10 @@ estimate_betas_group_wise <- function(Y, offset_matrix,  dispersions, beta_group
        iterations = matrixStats::rowSums2(Iteration_mat),
        deviances = matrixStats::rowSums2(Deviance_mat))
 }
+
+estimate_betas_group_wise_optimize_helper <- function(y, offset, theta, lower_bound = -30, upper_bound = 30){
+  optimize(function(beta){
+    sum(dnbinom(y, mu = exp(beta + offset), size = 1/theta, log = TRUE))
+  }, lower = lower_bound, upper = upper_bound, maximum = TRUE)$maximum
+}
+

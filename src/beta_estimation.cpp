@@ -274,6 +274,9 @@ List fitBeta_one_group_internal(SEXP Y_SEXP, SEXP offsets_SEXP,
   IntegerVector iterations(n_genes);
   NumericVector deviance(n_genes);
 
+  Environment glmGamPoiEnv = Environment::namespace_env("glmGamPoi");
+  Function estimate_betas_group_wise_optimize_helper = glmGamPoiEnv["estimate_betas_group_wise_optimize_helper"];
+
   for(int gene_idx = 0; gene_idx < n_genes; gene_idx++){
     if (gene_idx % 100 == 0) checkUserInterrupt();
 
@@ -307,7 +310,13 @@ List fitBeta_one_group_internal(SEXP Y_SEXP, SEXP offsets_SEXP,
       beta += step;
       if(std::abs(step) < tolerance){
         break;
+      }else if(Rcpp::traits::is_nan<REALSXP>(beta)){
+        break;
       }
+    }
+    if(iter == maxIter || Rcpp::traits::is_nan<REALSXP>(beta)){
+      // Not converged -> try again with optimize()
+      beta =  Rcpp::as<double>(estimate_betas_group_wise_optimize_helper(counts, off, theta));
     }
     result(gene_idx) = beta;
     iterations(gene_idx) = iter;
