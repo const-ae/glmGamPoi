@@ -121,28 +121,28 @@ summary(fit)
 #> The design formula is: Y~1
 #> 
 #> Beta:
-#>             Min 1st Qu. Median 3rd Qu.  Max
-#> Intercept -8.38   -6.43  -3.77   -2.46 1.01
+#>             Min 1st Qu. Median 3rd Qu.   Max
+#> Intercept -8.51   -6.57  -3.91   -2.59 0.903
 #> 
 #> deviance:
-#>   Min 1st Qu. Median 3rd Qu.  Max
-#>  16.5    89.3    681    1695 5750
+#>  Min 1st Qu. Median 3rd Qu.  Max
+#>   14    86.8    657    1686 5507
 #> 
 #> overdispersion:
-#>  Min 1st Qu. Median 3rd Qu.   Max
-#>    0       0  0.388    1.15 15724
+#>  Min  1st Qu. Median 3rd Qu.   Max
+#>    0 1.65e-13  0.288    1.84 24687
 #> 
 #> Shrunken quasi-likelihood overdispersion:
 #>    Min 1st Qu. Median 3rd Qu.  Max
-#>  0.739   0.994      1    1.04 7.89
+#>  0.707   0.991      1    1.04 7.45
 #> 
 #> size_factors:
 #>    Min 1st Qu. Median 3rd Qu.  Max
-#>  0.402   0.969      1    1.05 1.75
+#>  0.117   0.738   1.01    1.32 14.5
 #> 
 #> Mu:
-#>       Min 1st Qu. Median 3rd Qu. Max
-#>  9.24e-05 0.00158 0.0229  0.0871 4.8
+#>       Min 1st Qu. Median 3rd Qu.  Max
+#>  2.34e-05 0.00142 0.0185  0.0779 35.8
 ```
 
 # Benchmark
@@ -183,14 +183,14 @@ bench::mark(
 #> # A tibble: 4 x 6
 #>   expression               min   median `itr/sec` mem_alloc `gc/sec`
 #>   <bch:expr>          <bch:tm> <bch:tm>     <dbl> <bch:byt>    <dbl>
-#> 1 glmGamPoi_in_memory 875.14ms 917.36ms    0.884   462.41MB    2.95 
-#> 2 glmGamPoi_on_disk      3.92s    4.06s    0.243   839.92MB    1.37 
-#> 3 DESeq2                19.95s   20.48s    0.0489    1.15GB    0.424
-#> 4 edgeR                  5.48s    6.12s    0.169     1.19GB    0.843
+#> 1 glmGamPoi_in_memory    1.03s    1.11s    0.895   508.84MB    3.28 
+#> 2 glmGamPoi_on_disk      4.11s    4.18s    0.234   837.42MB    1.32 
+#> 3 DESeq2                20.11s   20.23s    0.0494    1.16GB    0.396
+#> 4 edgeR                  5.37s    5.42s    0.180     1.19GB    1.50
 ```
 
-On this dataset, `glmGamPoi` is more than 6 times faster than `edgeR`
-and more than 20 times faster than `DESeq2`. `glmGamPoi` does **not**
+On this dataset, `glmGamPoi` is more than 5 times faster than `edgeR`
+and more than 18 times faster than `DESeq2`. `glmGamPoi` does **not**
 use approximations to achieve this performance increase. The performance
 comes from an optimized algorithm for inferring the overdispersion for
 each gene. It is tuned for datasets typically encountered in single
@@ -210,13 +210,12 @@ fit <- glm_gp(pbmcs_subset, design = model_matrix, on_disk = FALSE)
 dds <- DESeq2::DESeqDataSetFromMatrix(pbmcs_subset, 
                         colData = data.frame(name = seq_len(4340)),
                         design = ~ 1)
-dds <- DESeq2::estimateSizeFactors(dds, "poscounts")
+sizeFactors(dds)  <- fit$size_factors
 dds <- DESeq2::estimateDispersions(dds, quiet = TRUE)
 dds <- DESeq2::nbinomWaldTest(dds, minmu = 1e-6)
 
 #edgeR
-edgeR_data <- edgeR::DGEList(pbmcs_subset)
-edgeR_data <- edgeR::calcNormFactors(edgeR_data)
+edgeR_data <- edgeR::DGEList(pbmcs_subset, lib.size = fit$size_factors)
 edgeR_data <- edgeR::estimateDisp(edgeR_data, model_matrix)
 edgeR_fit <- edgeR::glmFit(edgeR_data, design = model_matrix)
 ```
@@ -258,12 +257,12 @@ res <- test_de(fit, reduced_design = ~ 1)
 # Look at first 6 genes
 head(res)
 #>              name      pval  adj_pval f_statistic df1      df2 lfc
-#> 1 ENSG00000126457 0.4540540 0.8928885  0.56061073   1 4431.149  NA
-#> 2 ENSG00000109832 0.5836619 0.9151704  0.30039595   1 4431.149  NA
-#> 3 ENSG00000237339 0.2572395 0.8123352  1.28388371   1 4431.149  NA
-#> 4 ENSG00000075234 0.3812221 0.8776658  0.76691013   1 4431.149  NA
-#> 5 ENSG00000161057 0.8507729 0.9924364  0.03539793   1 4431.149  NA
-#> 6 ENSG00000151366 0.4037263 0.8776658  0.69733318   1 4431.149  NA
+#> 1 ENSG00000126457 0.2385897 0.8863222 1.389282669   1 4420.177  NA
+#> 2 ENSG00000109832 0.6491580 0.9275674 0.206991636   1 4420.177  NA
+#> 3 ENSG00000237339 0.4375426 0.9053288 0.602828102   1 4420.177  NA
+#> 4 ENSG00000075234 0.3118470 0.8877737 1.023070956   1 4420.177  NA
+#> 5 ENSG00000161057 0.9429562 0.9870835 0.005120673   1 4420.177  NA
+#> 6 ENSG00000151366 0.5245736 0.9225491 0.404956210   1 4420.177  NA
 ```
 
 The p-values agree well with the ones that `edgeR` is calculating. This
@@ -309,11 +308,11 @@ test_de(fit, contrast = Group1 - Group2,
         pseudobulk_by = sample_labels, 
         subset_to = cell_type_labels == "T-cells",
         n_max = 4, sort_by = pval, decreasing = FALSE)
-#>                name       pval  adj_pval f_statistic df1      df2        lfc
-#> 110 ENSG00000134539 0.04960240 0.9999771    5.284968   1 8.250891  11.065413
-#> 218 ENSG00000158411 0.05579166 0.9999771    4.948362   1 8.250891 -15.112191
-#> 300 ENSG00000188243 0.05654532 0.9999771    4.910629   1 8.250891   4.728711
-#> 74  ENSG00000217128 0.07338284 0.9999771    4.204576   1 8.250891  13.096497
+#>                name       pval adj_pval f_statistic df1     df2        lfc
+#> 218 ENSG00000158411 0.04705062        1    5.419094   1 8.34284 -15.892119
+#> 300 ENSG00000188243 0.04992313        1    5.246766   1 8.34284   4.053388
+#> 110 ENSG00000134539 0.05867890        1    4.790498   1 8.34284  10.438251
+#> 299 ENSG00000143819 0.07401184        1    4.169118   1 8.34284 -42.754649
 ```
 
 # Session Info
@@ -336,14 +335,14 @@ sessionInfo()
 #> [8] methods   base     
 #> 
 #> other attached packages:
-#>  [1] TENxPBMCData_1.6.0          HDF5Array_1.16.0           
+#>  [1] TENxPBMCData_1.6.0          HDF5Array_1.16.1           
 #>  [3] rhdf5_2.32.0                SingleCellExperiment_1.10.1
-#>  [5] DelayedMatrixStats_1.10.0   SummarizedExperiment_1.18.1
-#>  [7] DelayedArray_0.14.0         matrixStats_0.56.0-9000    
+#>  [5] DelayedMatrixStats_1.10.1   SummarizedExperiment_1.18.1
+#>  [7] DelayedArray_0.14.0         matrixStats_0.56.0         
 #>  [9] Biobase_2.48.0              GenomicRanges_1.40.0       
 #> [11] GenomeInfoDb_1.24.0         IRanges_2.22.1             
 #> [13] S4Vectors_0.26.0            BiocGenerics_0.34.0        
-#> [15] glmGamPoi_1.1.7            
+#> [15] glmGamPoi_1.1.9            
 #> 
 #> loaded via a namespace (and not attached):
 #>  [1] bitops_1.0-6                  bit64_0.9-7                  
@@ -387,6 +386,6 @@ sessionInfo()
 #> [77] xtable_1.8-4                  later_1.0.0                  
 #> [79] survival_3.1-12               tibble_3.0.1                 
 #> [81] AnnotationDbi_1.50.0          memoise_1.1.0                
-#> [83] ellipsis_0.3.0                interactiveDisplayBase_1.26.0
+#> [83] ellipsis_0.3.0                interactiveDisplayBase_1.26.3
 #> [85] BiocStyle_2.16.0
 ```

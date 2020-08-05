@@ -132,7 +132,7 @@ bench::mark(
 )
 ```
 
-On this dataset, `glmGamPoi` is more than 6 times faster than `edgeR` and more than 20 times faster than `DESeq2`. `glmGamPoi` does **not** use approximations to achieve this performance increase. The performance comes from an optimized algorithm for inferring the overdispersion for each gene. It is tuned for datasets typically encountered in single RNA-seq with many samples and many small counts, by avoiding duplicate calculations.
+On this dataset, `glmGamPoi` is more than 5 times faster than `edgeR` and more than 18 times faster than `DESeq2`. `glmGamPoi` does **not** use approximations to achieve this performance increase. The performance comes from an optimized algorithm for inferring the overdispersion for each gene. It is tuned for datasets typically encountered in single RNA-seq with many samples and many small counts, by avoiding duplicate calculations.
 
 To demonstrate that the method does not sacrifice accuracy, I compare the parameters that each method estimates. The means and β coefficients are identical, but that the overdispersion estimates from `glmGamPoi` are more reliable:
 
@@ -144,13 +144,12 @@ fit <- glm_gp(pbmcs_subset, design = model_matrix, on_disk = FALSE)
 dds <- DESeq2::DESeqDataSetFromMatrix(pbmcs_subset, 
                         colData = data.frame(name = seq_len(4340)),
                         design = ~ 1)
-dds <- DESeq2::estimateSizeFactors(dds, "poscounts")
+sizeFactors(dds)  <- fit$size_factors
 dds <- DESeq2::estimateDispersions(dds, quiet = TRUE)
 dds <- DESeq2::nbinomWaldTest(dds, minmu = 1e-6)
 
 #edgeR
-edgeR_data <- edgeR::DGEList(pbmcs_subset)
-edgeR_data <- edgeR::calcNormFactors(edgeR_data)
+edgeR_data <- edgeR::DGEList(pbmcs_subset, lib.size = fit$size_factors)
 edgeR_data <- edgeR::estimateDisp(edgeR_data, model_matrix)
 edgeR_fit <- edgeR::glmFit(edgeR_data, design = model_matrix)
 ```
@@ -165,7 +164,7 @@ plot(fit$Beta[,1], edgeR_fit$unshrunk.coefficients[,1], pch = 16,
      main = "Beta Coefficients", xlab = "glmGamPoi", ylab = "edgeR")
 abline(0,1)
 
-plot(fit$Mu[,1], rowData(dds)$baseMean, pch = 16, log="xy",
+plot(fit$Mu[,1], assay(dds, "mu")[,1], pch = 16, log="xy",
      main = "Gene Mean", xlab = "glmGamPoi", ylab = "DESeq2")
 abline(0,1)
 plot(fit$Mu[,1], edgeR_fit$fitted.values[,1], pch = 16, log="xy",
