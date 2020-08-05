@@ -24,6 +24,9 @@ test to detect differentially expressed genes
 from test_de() by aggregating the data around one column
 + In group-wise beta estimation, fall back to optimize()
 if the Newton method fails
++ Change the default size factor estimation method from
+"poscounts" to "normed_sum" and provide an easy way to
+call scran::calculateSumFactors()
 
 
 Changes in version 0.0.99 (2020-03-23)
