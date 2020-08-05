@@ -27,7 +27,8 @@ Suggests:
     knitr,
     rmarkdown,
     BiocStyle,
-    TENxPBMCData
+    TENxPBMCData,
+    scran
 LinkingTo: 
     Rcpp,
     RcppArmadillo,

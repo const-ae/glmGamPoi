@@ -4,11 +4,13 @@
 \alias{estimate_size_factors}
 \title{Estimate the Size Factors}
 \usage{
-estimate_size_factors(Y, verbose = FALSE)
+estimate_size_factors(Y, method, verbose = FALSE)
 }
 \arguments{
 \item{Y}{any matrix-like object (\code{base::matrix()}, \code{DelayedArray}, \code{HDF5Matrix},
 \code{Matrix::Matrix()}, etc.)}
+
+\item{method}{one of \code{c("normed_sum", "deconvolution", "poscounts")}}
 }
 \value{
 a vector with one size factor per column of \code{Y}

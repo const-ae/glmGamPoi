@@ -8,7 +8,7 @@ glm_gp_impl(
   Y,
   model_matrix,
   offset = 0,
-  size_factors = TRUE,
+  size_factors = c("normed_sum", "deconvolution", "poscounts"),
   overdispersion = TRUE,
   overdispersion_shrinkage = TRUE,
   do_cox_reid_adjustment = TRUE,
@@ -32,11 +32,16 @@ same dimensions as \code{dim(data)}. Note that if data is a \link{DelayedArray} 
 \item{size_factors}{in large scale experiments, each sample is typically of different size
 (for example different sequencing depths). A size factor is an internal mechanism of GLMs to
 correct for this effect.\cr
-\code{size_factors} can either be a single boolean that indicates if the size factor for each sample should be
-calculated. Note that 'glmGamPoi'relies on a very simple method to estimate the size factors, which can lead
-to suboptimal results on challenging datasets. For better results consider using the more sophisticated
-\code{scran::calculateSumFactors()} method. In that case pass the result as a numeric vector. Also note that
-\code{size_factors = 1} and \code{size_factors = FALSE} are equivalent. Default: \code{TRUE}.}
+\code{size_factors} is either a numeric vector with positive entries that has the same lengths as columns in the data
+that specifies the size factors that are used.
+Or it can be a string that species the method that is used to estimate the size factors
+(one of \code{c("normed_sum", "deconvolution", "poscounts")}).
+Note that \code{"normed_sum"} and \code{"poscounts"} are fairly
+simple methods and can lead to suboptimal results. For the best performance, I recommend to use
+\code{size_factors = "deconvolution"} which calls \code{scran::calculateSumFactors()}. However, you need
+to separately install the \code{scran} package from Bioconductor for this method to work.
+Also note that \code{size_factors = 1} and \code{size_factors = FALSE} are equivalent. If only a single gene is given,
+no size factor is estimated (ie. \code{size_factors = 1}). Default: \code{"normed_sum"}.}
 
 \item{overdispersion}{the simplest count model is the Poisson model. However, the Poisson model
 assumes that \eqn{variance = mean}. For many applications this is too rigid and the Gamma-Poisson

@@ -6,12 +6,13 @@
 #'
 #' @param Y any matrix-like object (\code{base::matrix()}, \code{DelayedArray}, \code{HDF5Matrix},
 #'   \code{Matrix::Matrix()}, etc.)
+#' @param method one of \code{c("normed_sum", "deconvolution", "poscounts")}
 #'
 #'
 #' @return a vector with one size factor per column of `Y`
 #'
 #' @keywords internal
-estimate_size_factors <- function(Y, verbose = FALSE){
+estimate_size_factors <- function(Y, method, verbose = FALSE){
   if(nrow(Y) <= 1){
     if(verbose) {
       message("Skipping size factor estimation, because there is only a single gene.",
@@ -19,17 +20,43 @@ estimate_size_factors <- function(Y, verbose = FALSE){
     }
     return(rep(1, ncol(Y)))
   }
-  # Accept any matrix-like object
-  log_geometric_means <- DelayedMatrixStats::rowMeans2(log(Y + 0.5))
-  Y2 <- Y
-  Y2[Y2 == 0] <- NA
-  sf <- exp(DelayedMatrixStats::colMedians(subtract_vector_from_each_column(log(Y2), log_geometric_means), na.rm = TRUE))
-  all_zero_column <- is.nan(sf)
+  stopifnot(length(method) == 1 && is.character(method))
+
+  if(method == "poscounts"){
+    # Accept any matrix-like object
+    log_geometric_means <- DelayedMatrixStats::rowMeans2(log(Y + 0.5))
+    Y2 <- Y
+    Y2[Y2 == 0] <- NA
+    sf <- exp(DelayedMatrixStats::colMedians(subtract_vector_from_each_column(log(Y2), log_geometric_means), na.rm = TRUE))
+  }else if(method == "deconvolution"){
+    if(requireNamespace("scran", quietly = TRUE)){
+      tryCatch({
+        sf <- scran::calculateSumFactors(Y)
+      }, error = function(err){
+        stop("Error in size factor estimation with 'size_factors = \"deconvolution\"'.\n",
+             "'scran::calculateSumFactors(Y)' threw the following error: \n\t",
+             err, call. = FALSE)
+      })
+    }else{
+      stop("To use the \"deconvolution\" method for size factor calculation, you need to install the ",
+           "'scran' package from Bioconductor. Alternatively, you can use \"normed_sum\" or \"poscounts\"",
+           "to calculate the size factors.", call. = FALSE)
+    }
+  }else if(method == "normed_sum"){
+    sf <- DelayedMatrixStats::colSums2(Y)
+  }else{
+    stop("Unknown size factor estimation method: ", method)
+  }
+
+
+
+  # stabilize size factors to have geometric mean of 1
+  all_zero_column <- is.nan(sf) | sf <= 0
+  sf[all_zero_column] <- NA
   if(any(all_zero_column)){
     sf <- sf/exp(mean(log(sf), na.rm=TRUE))
     sf[all_zero_column] <- 0.001
   }else{
-    # stabilize size factors to have geometric mean of 1
     sf <- sf/exp(mean(log(sf)))
   }
   sf
@@ -55,9 +82,18 @@ combine_size_factors_and_offset <- function(offset, size_factors, Y, verbose = F
       offset_matrix <- matrix(offset, nrow=n_genes, ncol = n_samples, byrow = TRUE)
     }
   }
-  if(isTRUE(size_factors)){
-    if(verbose){ message("Calculate Size Factors") }
-    lsf <- log(estimate_size_factors(Y, verbose))
+  if(isTRUE(size_factors) || is.character(size_factors)){
+    method <- if(isTRUE(size_factors)){
+      "deconvolution"
+    }else if(all(size_factors == c("normed_sum", "deconvolution", "poscounts"))){
+      "normed_sum"
+    }else if(length(size_factors) == 1 && size_factors %in% c("normed_sum", "deconvolution", "poscounts")){
+      size_factors
+    }else{
+      stop("Cannot handle size factor ", paste0(size_factors, collapse = ", "))
+    }
+    if(verbose){ message("Calculate Size Factors (", method, ")") }
+    lsf <- log(estimate_size_factors(Y, method = method, verbose = verbose))
   }else if(isFALSE(size_factors)){
     lsf <- rep(0, n_samples)
   }else{

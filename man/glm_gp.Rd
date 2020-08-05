@@ -10,7 +10,7 @@ glm_gp(
   col_data = NULL,
   reference_level = NULL,
   offset = 0,
-  size_factors = TRUE,
+  size_factors = c("normed_sum", "deconvolution", "poscounts"),
   overdispersion = TRUE,
   overdispersion_shrinkage = TRUE,
   do_cox_reid_adjustment = TRUE,
@@ -50,11 +50,16 @@ same dimensions as \code{dim(data)}. Note that if data is a \link{DelayedArray} 
 \item{size_factors}{in large scale experiments, each sample is typically of different size
 (for example different sequencing depths). A size factor is an internal mechanism of GLMs to
 correct for this effect.\cr
-\code{size_factors} can either be a single boolean that indicates if the size factor for each sample should be
-calculated. Note that 'glmGamPoi'relies on a very simple method to estimate the size factors, which can lead
-to suboptimal results on challenging datasets. For better results consider using the more sophisticated
-\code{scran::calculateSumFactors()} method. In that case pass the result as a numeric vector. Also note that
-\code{size_factors = 1} and \code{size_factors = FALSE} are equivalent. Default: \code{TRUE}.}
+\code{size_factors} is either a numeric vector with positive entries that has the same lengths as columns in the data
+that specifies the size factors that are used.
+Or it can be a string that species the method that is used to estimate the size factors
+(one of \code{c("normed_sum", "deconvolution", "poscounts")}).
+Note that \code{"normed_sum"} and \code{"poscounts"} are fairly
+simple methods and can lead to suboptimal results. For the best performance, I recommend to use
+\code{size_factors = "deconvolution"} which calls \code{scran::calculateSumFactors()}. However, you need
+to separately install the \code{scran} package from Bioconductor for this method to work.
+Also note that \code{size_factors = 1} and \code{size_factors = FALSE} are equivalent. If only a single gene is given,
+no size factor is estimated (ie. \code{size_factors = 1}). Default: \code{"normed_sum"}.}
 
 \item{overdispersion}{the simplest count model is the Poisson model. However, the Poisson model
 assumes that \eqn{variance = mean}. For many applications this is too rigid and the Gamma-Poisson
@@ -126,10 +131,13 @@ finds the best overdispersion parameter for each gene.
 The method follows the following steps:
 \enumerate{
 \item The size factors are estimated.\cr
-The code is a slightly adapted version of the procedure proposed by Anders and Huber (2010) in
-equation (5). To handle the large number of zeros the geometric means are calculated for
+If \code{size_factors = "normed_sum"}, the column-sum for each cell is calculated and the resulting
+size factors are normalized so that their geometric mean is \code{1}. If \code{size_factors = "poscounts"},
+a slightly adapted version of the procedure proposed by Anders and Huber (2010) in
+equation (5) is used. To handle the large number of zeros the geometric means are calculated for
 \eqn{Y + 0.5} and ignored during the calculation of the median. Columns with all zeros get a
-default size factor of \eqn{0.001}.
+default size factor of \eqn{0.001}. If \code{size_factors = "deconvolution"}, the method
+\code{scran::calculateSumFactors()} is called.
 \item The dispersion estimates are initialized based on the moments of each row of \eqn{Y}.
 \item The coefficients of the model are estimated.\cr
 If all samples belong to the same condition (i.e. \code{design = ~ 1}), the betas are estimated using
@@ -204,6 +212,9 @@ biological data from a variety of R matrix types.” PLoS Comput. Biol., 14(5), 
 in RNA-sequence data using quasi-likelihood with shrunken dispersion estimates. Statistical
 Applications in Genetics and Molecular Biology, 11(5).
 \url{https://doi.org/10.1515/1544-6115.1826}.
+\item Lun ATL, Bach K and Marioni JC (2016). Pooling across cells to normalize single-cell RNA sequencing
+data with many zero counts. Genome Biol. 17:75
+\url{https://doi.org/10.1186/s13059-016-0947-7}
 }
 }
 \seealso{
