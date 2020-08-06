@@ -1,7 +1,7 @@
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
-# glmGamPoi
+# glmGamPoi <a href='https://github.com/const-ae/glmGamPoi'><img src='man/figures/logo.svg' align="right" height="139" /></a>
 
 <!-- badges: start -->
 
@@ -9,6 +9,9 @@
 <!-- badges: end -->
 
 > Fit Gamma-Poisson Generalized Linear Models Reliably.
+
+Pronounciation: [`dʒi əl əm ɡam
+ˈpwɑ`](http://ipa-reader.xyz/?text=d%CA%92i%20%C9%99l%20%C9%99m%20%C9%A1am%20%CB%88pw%C9%91)
 
 The core design aims of `gmlGamPoi` are:
 
@@ -183,10 +186,10 @@ bench::mark(
 #> # A tibble: 4 x 6
 #>   expression               min   median `itr/sec` mem_alloc `gc/sec`
 #>   <bch:expr>          <bch:tm> <bch:tm>     <dbl> <bch:byt>    <dbl>
-#> 1 glmGamPoi_in_memory    1.03s    1.11s    0.895   508.84MB    3.28 
-#> 2 glmGamPoi_on_disk      4.11s    4.18s    0.234   837.42MB    1.32 
-#> 3 DESeq2                20.11s   20.23s    0.0494    1.16GB    0.396
-#> 4 edgeR                  5.37s    5.42s    0.180     1.19GB    1.50
+#> 1 glmGamPoi_in_memory    1.06s    1.15s    0.872   508.84MB    3.20 
+#> 2 glmGamPoi_on_disk      3.66s    4.41s    0.235   837.42MB    1.41 
+#> 3 DESeq2                19.55s   20.69s    0.0486    1.16GB    0.372
+#> 4 edgeR                  5.61s    5.62s    0.173     1.19GB    1.32
 ```
 
 On this dataset, `glmGamPoi` is more than 5 times faster than `edgeR`

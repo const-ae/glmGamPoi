@@ -13,14 +13,16 @@ knitr::opts_chunk$set(
 )
 set.seed(2)
 ```
-# glmGamPoi
+
+# glmGamPoi <a href='https://github.com/const-ae/glmGamPoi'><img src='man/figures/logo.svg' align="right" height="139" /></a>
 
 <!-- badges: start -->
 [![codecov](https://codecov.io/gh/const-ae/glmGamPoi/branch/master/graph/badge.svg)](https://codecov.io/gh/const-ae/glmGamPoi)
 <!-- badges: end -->
 
-
 > Fit Gamma-Poisson Generalized Linear Models Reliably.
+
+Pronounciation: [`dʒi əl əm ɡam ˈpwɑ`](http://ipa-reader.xyz/?text=d%CA%92i%20%C9%99l%20%C9%99m%20%C9%A1am%20%CB%88pw%C9%91)
 
 The core design aims of `gmlGamPoi` are:
 
