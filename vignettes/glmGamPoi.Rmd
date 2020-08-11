@@ -60,6 +60,7 @@ To fit a single Gamma-Poisson GLM do:
 ```{r}
 # overdispersion = 1/size
 counts <- rnbinom(n = 10, mu = 5, size = 1/0.7)
+
 # design = ~ 1 means that an intercept-only model is fit
 fit <- glm_gp(counts, design = ~ 1)
 fit
@@ -82,6 +83,7 @@ library(DelayedMatrixStats)
 # The full dataset with 33,000 genes and 4340 cells
 # The first time this is run, it will download the data
 pbmcs <- TENxPBMCData::TENxPBMCData("pbmc4k")
+
 # I want genes where at least some counts are non-zero
 non_empty_rows <- which(rowSums2(assay(pbmcs)) > 0)
 pbmcs_subset <- pbmcs[sample(non_empty_rows, 300), ]
@@ -183,7 +185,7 @@ I am comparing the gene-wise estimates of the coefficients from all three method
 
 ## Scalability
 
-The method scales linearly, with the number of rows and columns in the dataset. For example: fitting the full `pbmc4k` dataset with subsampling on a modern MacBook Pro in-memory takes ~1 minute and on-disk a little over 4 minutes. Fitting the `pbmc68k` (17x the size) takes ~73 minutes (17x the time) on-disk. Fitting that dataset in-memory is not possible because it is just too big: the maximum in-memory matrix size is `2^31-1 ≈ 2.1e9` is elements, the `pbmc68k` dataset however has nearly 100 million elements more than that.
+The method scales linearly, with the number of rows and columns in the dataset. For example: fitting the full `pbmc4k` dataset with subsampling on a modern MacBook Pro in-memory takes ~1 minute and on-disk a little over 4 minutes. Fitting the `pbmc68k` (17x the size) takes ~73 minutes (17x the time) on-disk.
 
 
 ## Differential expression analysis
@@ -225,7 +227,7 @@ abline(0,1)
 
 #### Pseudobulk
 
-Be very careful how you interpret the p-values of a single cell experiment. Cells that come from one individual are not independent replicates. That means that you cannot turn your RNA-seq experiment with 3 treated and 3 control samples into a 3000 vs 3000 experiment through single cell experiment with 1000 cells per sample. The actual unit of replication are still the 3 samples in each condition. 
+Be very careful how you interpret the p-values of a single cell experiment. Cells that come from one individual are not independent replicates. That means that you cannot turn your RNA-seq experiment with 3 treated and 3 control samples into a 3000 vs 3000 experiment by measuring 1000 cells per sample. The actual unit of replication are still the 3 samples in each condition. 
 
 Nonetheless, single cell data is valuable because it allows you to compare the effect of a treatment on specific cell types. The simplest way to do such a test is called pseudobulk. This means that the data is subset to the cells of a specific cell type. Then the counts of cells from the same sample are combined to form a "pseudobulk" sample. The `test_de()` function of glmGamPoi supports this feature directly through the `pseudobulk_by` and `subset_to` parameters:
 

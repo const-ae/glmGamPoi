@@ -13,12 +13,12 @@
 Pronounciation: [`dʒi əl əm ɡam
 ˈpwɑ`](http://ipa-reader.xyz/?text=d%CA%92i%20%C9%99l%20%C9%99m%20%C9%A1am%20%CB%88pw%C9%91)
 
-The core design aims of `gmlGamPoi` are:
+The core design aims of `glmGamPoi` are:
 
-  - Fit the Gamma-Poisson models on arbitrarily large or small datasets
+  - Fit Gamma-Poisson models on arbitrarily large or small datasets
   - Be faster than alternative methods, such as `DESeq2` or `edgeR`
   - Calculate exact or approximate results based on user preference
-  - Support in memory or on-disk data
+  - Support in-memory or on-disk data
   - Follow established conventions around tools for RNA-seq analysis
   - Present a simple user-interface
   - Avoid unnecessary dependencies
@@ -53,6 +53,7 @@ To fit a single Gamma-Poisson GLM do:
 ``` r
 # overdispersion = 1/size
 counts <- rnbinom(n = 10, mu = 5, size = 1/0.7)
+
 # design = ~ 1 means that an intercept-only model is fit
 fit <- glm_gp(counts, design = ~ 1)
 fit
@@ -95,6 +96,7 @@ pbmcs <- TENxPBMCData::TENxPBMCData("pbmc4k")
 #> snapshotDate(): 2020-04-27
 #> see ?TENxPBMCData and browseVignettes('TENxPBMCData') for documentation
 #> loading from cache
+
 # I want genes where at least some counts are non-zero
 non_empty_rows <- which(rowSums2(assay(pbmcs)) > 0)
 pbmcs_subset <- pbmcs[sample(non_empty_rows, 300), ]
@@ -186,10 +188,10 @@ bench::mark(
 #> # A tibble: 4 x 6
 #>   expression               min   median `itr/sec` mem_alloc `gc/sec`
 #>   <bch:expr>          <bch:tm> <bch:tm>     <dbl> <bch:byt>    <dbl>
-#> 1 glmGamPoi_in_memory    1.06s    1.15s    0.872   508.84MB    3.20 
-#> 2 glmGamPoi_on_disk      3.66s    4.41s    0.235   837.42MB    1.41 
-#> 3 DESeq2                19.55s   20.69s    0.0486    1.16GB    0.372
-#> 4 edgeR                  5.61s    5.62s    0.173     1.19GB    1.32
+#> 1 glmGamPoi_in_memory    1.06s    1.11s    0.874   508.84MB    3.20 
+#> 2 glmGamPoi_on_disk      4.22s    4.29s    0.228   837.42MB    1.29 
+#> 3 DESeq2                20.38s   20.45s    0.0486    1.16GB    0.389
+#> 4 edgeR                  5.51s    5.52s    0.176     1.19GB    1.47
 ```
 
 On this dataset, `glmGamPoi` is more than 5 times faster than `edgeR`
@@ -239,10 +241,7 @@ The method scales linearly, with the number of rows and columns in the
 dataset. For example: fitting the full `pbmc4k` dataset with subsampling
 on a modern MacBook Pro in-memory takes \~1 minute and on-disk a little
 over 4 minutes. Fitting the `pbmc68k` (17x the size) takes \~73 minutes
-(17x the time) on-disk. Fitting that dataset in-memory is not possible
-because it is just too big: the maximum in-memory matrix size is `2^31-1
-≈ 2.1e9` is elements, the `pbmc68k` dataset however has nearly 100
-million elements more than that.
+(17x the time) on-disk.
 
 ## Differential expression analysis
 
@@ -290,9 +289,9 @@ edgeR_res <- edgeR::topTags(edgeR_test, sort.by = "none", n = nrow(pbmcs_subset)
 Be very careful how you interpret the p-values of a single cell
 experiment. Cells that come from one individual are not independent
 replicates. That means that you cannot turn your RNA-seq experiment with
-3 treated and 3 control samples into a 3000 vs 3000 experiment through
-single cell experiment with 1000 cells per sample. The actual unit of
-replication are still the 3 samples in each condition.
+3 treated and 3 control samples into a 3000 vs 3000 experiment by
+measuring 1000 cells per sample. The actual unit of replication are
+still the 3 samples in each condition.
 
 Nonetheless, single cell data is valuable because it allows you to
 compare the effect of a treatment on specific cell types. The simplest
@@ -345,7 +344,7 @@ sessionInfo()
 #>  [9] Biobase_2.48.0              GenomicRanges_1.40.0       
 #> [11] GenomeInfoDb_1.24.0         IRanges_2.22.1             
 #> [13] S4Vectors_0.26.0            BiocGenerics_0.34.0        
-#> [15] glmGamPoi_1.1.9            
+#> [15] glmGamPoi_1.1.10           
 #> 
 #> loaded via a namespace (and not attached):
 #>  [1] bitops_1.0-6                  bit64_0.9-7                  
