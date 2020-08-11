@@ -260,7 +260,7 @@ double conventional_deriv_score_function_fast(NumericVector y, NumericVector mu,
 
 template<class NumericType>
 List estimate_overdispersions_fast_internal(RObject Y, RObject mean_matrix, NumericMatrix model_matrix, bool do_cox_reid_adjustment,
-                                       double n_subsamples){
+                                            double n_subsamples, int max_iter){
   auto Y_bm = beachmat::create_matrix<NumericType>(Y);
   auto mean_mat_bm = beachmat::create_numeric_matrix(mean_matrix);
   int n_samples = Y_bm->get_ncol();
@@ -282,7 +282,7 @@ List estimate_overdispersions_fast_internal(RObject Y, RObject mean_matrix, Nume
     NumericVector mu(n_samples);
     mean_mat_bm->get_row(gene_idx, mu.begin());
 
-    List dispRes =  Rcpp::as<List>(overdispersion_mle_impl(counts, mu, model_matrix, do_cox_reid_adjustment, n_subsamples));
+    List dispRes =  Rcpp::as<List>(overdispersion_mle_impl(counts, mu, model_matrix, do_cox_reid_adjustment, n_subsamples, max_iter));
     estimates(gene_idx) = Rcpp::as<double>(dispRes["estimate"]);
     iterations(gene_idx) = Rcpp::as<double>(dispRes["iterations"]);
     messages(gene_idx) = Rcpp::as<String>(dispRes["message"]);
@@ -295,12 +295,12 @@ List estimate_overdispersions_fast_internal(RObject Y, RObject mean_matrix, Nume
 
 // [[Rcpp::export]]
 List estimate_overdispersions_fast(RObject Y, RObject mean_matrix, NumericMatrix model_matrix, bool do_cox_reid_adjustment,
-                              double n_subsamples){
+                              double n_subsamples, int max_iter){
   auto mattype=beachmat::find_sexp_type(Y);
   if (mattype==INTSXP) {
-    return estimate_overdispersions_fast_internal<beachmat::integer_matrix>(Y, mean_matrix, model_matrix, do_cox_reid_adjustment, n_subsamples);
+    return estimate_overdispersions_fast_internal<beachmat::integer_matrix>(Y, mean_matrix, model_matrix, do_cox_reid_adjustment, n_subsamples, max_iter);
   } else if (mattype==REALSXP) {
-    return estimate_overdispersions_fast_internal<beachmat::numeric_matrix>(Y, mean_matrix, model_matrix, do_cox_reid_adjustment, n_subsamples);
+    return estimate_overdispersions_fast_internal<beachmat::numeric_matrix>(Y, mean_matrix, model_matrix, do_cox_reid_adjustment, n_subsamples, max_iter);
   } else {
     throw std::runtime_error("unacceptable matrix type");
   }

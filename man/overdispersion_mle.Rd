@@ -10,6 +10,7 @@ overdispersion_mle(
   model_matrix = NULL,
   do_cox_reid_adjustment = !is.null(model_matrix),
   subsample = FALSE,
+  max_iter = 200,
   verbose = FALSE
 )
 }
@@ -38,6 +39,8 @@ without loosing much precision by fitting the overdispersion only on a random su
 Default: \code{FALSE} which means that the data is not subsampled. If set to \code{TRUE}, at most 1,000 samples
 are considered. Otherwise the parameter just specifies the number of samples that are considered
 for each gene to estimate the overdispersion.}
+
+\item{max_iter}{the maximum number of iterations for each gene}
 
 \item{verbose}{a boolean that indicates if information about the individual steps are printed
 while fitting the GLM. Default: \code{FALSE}.}

@@ -244,6 +244,14 @@ test_that("one value is enough to get an answer", {
   expect_equal(conventional_overdispersion_mle(y = 3, mean_vector = 3.0001)$estimate, 0)
 })
 
+test_that("subsampling with max_iter works well enough", {
+  y <- rnbinom(n = 1e4, mu = 5, size = 1 / 2.3)
+  r1 <- overdispersion_mle(y = y, max_iter = 200)
+  r2 <- overdispersion_mle(y = y, max_iter = 1)
+  expect_equal(r2$iterations, 1)
+  expect_lt(abs(r1$estimate - r2$estimate), 0.1)
+})
+
 
 test_that("subsampling works and does not affect performance too badly", {
   y <- rnbinom(n = 1e4, mu = 5, size = 1 / 0.7)
@@ -299,9 +307,9 @@ test_that("DelayedArrays are handled efficiently", {
   }, FUN.VALUE = 0.0)
 
   beachmat_ram <- estimate_overdispersions_fast(mat, mean_matrix_ram, model_matrix,
-                                  do_cox_reid_adjustment = TRUE, n_subsamples = n_samples)$estimates
+                                  do_cox_reid_adjustment = TRUE, n_subsamples = n_samples, max_iter = 200)$estimates
   beachmat_hdf5 <- estimate_overdispersions_fast(mat_hdf5, mean_matrix, model_matrix,
-                                  do_cox_reid_adjustment = TRUE, n_subsamples = n_samples)$estimates
+                                  do_cox_reid_adjustment = TRUE, n_subsamples = n_samples, max_iter = 200)$estimates
 
   expect_equal(disp_est_r_ram, disp_est_r_hdf5)
   expect_equal(disp_est_r_ram, beachmat_ram)

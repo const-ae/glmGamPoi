@@ -171,8 +171,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // estimate_overdispersions_fast
-List estimate_overdispersions_fast(RObject Y, RObject mean_matrix, NumericMatrix model_matrix, bool do_cox_reid_adjustment, double n_subsamples);
-RcppExport SEXP _glmGamPoi_estimate_overdispersions_fast(SEXP YSEXP, SEXP mean_matrixSEXP, SEXP model_matrixSEXP, SEXP do_cox_reid_adjustmentSEXP, SEXP n_subsamplesSEXP) {
+List estimate_overdispersions_fast(RObject Y, RObject mean_matrix, NumericMatrix model_matrix, bool do_cox_reid_adjustment, double n_subsamples, int max_iter);
+RcppExport SEXP _glmGamPoi_estimate_overdispersions_fast(SEXP YSEXP, SEXP mean_matrixSEXP, SEXP model_matrixSEXP, SEXP do_cox_reid_adjustmentSEXP, SEXP n_subsamplesSEXP, SEXP max_iterSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -181,7 +181,8 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< NumericMatrix >::type model_matrix(model_matrixSEXP);
     Rcpp::traits::input_parameter< bool >::type do_cox_reid_adjustment(do_cox_reid_adjustmentSEXP);
     Rcpp::traits::input_parameter< double >::type n_subsamples(n_subsamplesSEXP);
-    rcpp_result_gen = Rcpp::wrap(estimate_overdispersions_fast(Y, mean_matrix, model_matrix, do_cox_reid_adjustment, n_subsamples));
+    Rcpp::traits::input_parameter< int >::type max_iter(max_iterSEXP);
+    rcpp_result_gen = Rcpp::wrap(estimate_overdispersions_fast(Y, mean_matrix, model_matrix, do_cox_reid_adjustment, n_subsamples, max_iter));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -198,7 +199,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_glmGamPoi_conventional_loglikelihood_fast", (DL_FUNC) &_glmGamPoi_conventional_loglikelihood_fast, 7},
     {"_glmGamPoi_conventional_score_function_fast", (DL_FUNC) &_glmGamPoi_conventional_score_function_fast, 7},
     {"_glmGamPoi_conventional_deriv_score_function_fast", (DL_FUNC) &_glmGamPoi_conventional_deriv_score_function_fast, 7},
-    {"_glmGamPoi_estimate_overdispersions_fast", (DL_FUNC) &_glmGamPoi_estimate_overdispersions_fast, 5},
+    {"_glmGamPoi_estimate_overdispersions_fast", (DL_FUNC) &_glmGamPoi_estimate_overdispersions_fast, 6},
     {NULL, NULL, 0}
 };
 

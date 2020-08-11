@@ -17,6 +17,7 @@
 #'   `do_cox_reid_adjustment` can be either be `TRUE` or `FALSE` to indicate if the adjustment is
 #'   added during the optimization of the `overdispersion` parameter. Default: `TRUE` if a
 #'   model matrix is provided, otherwise `FALSE`
+#' @param max_iter the maximum number of iterations for each gene
 #' @inheritParams glm_gp
 #'
 #' @details
@@ -76,6 +77,7 @@ overdispersion_mle <- function(y, mean,
                            model_matrix = NULL,
                            do_cox_reid_adjustment = ! is.null(model_matrix),
                            subsample = FALSE,
+                           max_iter = 200,
                            verbose = FALSE){
 
   # Validate n_subsampling
@@ -100,10 +102,10 @@ overdispersion_mle <- function(y, mean,
       model_matrix <- matrix(1, nrow = ncol(y), ncol = 1)
     }
     # This function calls overdispersion_mle() for each row, but is faster than a vapply()
-    estimate_overdispersions_fast(y, mean, model_matrix, do_cox_reid_adjustment, n_subsamples)
+    estimate_overdispersions_fast(y, mean, model_matrix, do_cox_reid_adjustment, n_subsamples, max_iter)
   }else{
     overdispersion_mle_impl(as.numeric(y), mean, model_matrix, do_cox_reid_adjustment,
-                            min(n_subsamples, length(y)), verbose = verbose)
+                            min(n_subsamples, length(y)), max_iter, verbose = verbose)
   }
 
 }
@@ -114,6 +116,7 @@ overdispersion_mle_impl <- function(y, mean,
                                  model_matrix,
                                  do_cox_reid_adjustment,
                                  n_subsamples,
+                                 max_iter,
                                  verbose = FALSE){
 
   stopifnot(is.numeric(y))
@@ -150,6 +153,7 @@ overdispersion_mle_impl <- function(y, mean,
   conventional_overdispersion_mle(y, mean_vector = mean,
                                   model_matrix = model_matrix,
                                   do_cox_reid_adjustment = do_cox_reid_adjustment,
+                                  max_iter = max_iter,
                                   verbose = verbose)
 }
 
@@ -157,7 +161,7 @@ overdispersion_mle_impl <- function(y, mean,
 
 conventional_overdispersion_mle <- function(y, mean_vector,
                                        model_matrix = matrix(1, nrow = length(y), ncol = 1),
-                                       do_cox_reid_adjustment = TRUE,
+                                       do_cox_reid_adjustment = TRUE, max_iter = 200,
                                        verbose = FALSE){
   return_value = list(estimate = NA_real_, iterations = NA_real_, message = "")
   # The threshold comes from the fact that
@@ -205,7 +209,8 @@ conventional_overdispersion_mle <- function(y, mean_vector,
            res <- conventional_deriv_score_function_fast(y, mu = mean_vector, log_theta = log_theta,
                              model_matrix = model_matrix, do_cr_adj = do_cox_reid_adjustment, tab[[1]], tab[[2]])
            matrix(- res, nrow = 1, ncol = 1)
-         }, lower = log(1e-16), upper = log(1e16))
+         }, lower = log(1e-16), upper = log(1e16),
+         control = list(iter.max = max_iter))
   # optimize_res <- optimise(function(log_theta){
   #   conventional_loglikelihood_fast(y, mu = mean_vector, log_theta = log_theta,
   #                                   model_matrix = model_matrix, do_cr_adj = FALSE, tab[[1]], tab[[2]])
@@ -223,7 +228,8 @@ conventional_overdispersion_mle <- function(y, mean_vector,
                   }, gradient = function(log_theta){
                     - conventional_score_function_fast(y, mu = mean_vector, log_theta = log_theta,
                                                        model_matrix = model_matrix, do_cr_adj = do_cox_reid_adjustment, tab[[1]], tab[[2]])
-                  }, lower = log(1e-16), upper = log(1e16))
+                  }, lower = log(1e-16), upper = log(1e16),
+                  control = list(iter.max = max_iter))
   }
 
   return_value$estimate <- exp(res$par)
