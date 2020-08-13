@@ -60,9 +60,11 @@ Estimate the Overdispersion for a Vector of Counts
 \details{
 The function is optimized to be fast on many small counts. To
 achieve this, the frequency table of the counts is calculated and
-some parts are calculated based on this frequency table. If
-there are probably many unique counts (heuristic: \code{max(y) > length(y)}),
-the optimization is skipped.
+used to avoid repetitive calculations. If
+there are probably many unique counts the optimization is skipped.
+Currently the heuristic is to skip if more than half of the counts
+are expected to be unique. The estimation is based on the largest observed
+count in \code{y}.
 
 An earlier version of this package (< 1.1.1) used a separate
 set of functions for the case of many small counts based on a paper
