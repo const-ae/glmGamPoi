@@ -17,6 +17,8 @@
 #'   `do_cox_reid_adjustment` can be either be `TRUE` or `FALSE` to indicate if the adjustment is
 #'   added during the optimization of the `overdispersion` parameter. Default: `TRUE` if a
 #'   model matrix is provided, otherwise `FALSE`
+#' @param global_estimate flag to decide if a single overdispersion for a whole matrix is calculated
+#'   instead of one estimate per row. This parameter has no affect if `y` is a vector. Default: `FALSE`
 #' @param max_iter the maximum number of iterations for each gene
 #' @inheritParams glm_gp
 #'
@@ -78,6 +80,7 @@
 overdispersion_mle <- function(y, mean,
                            model_matrix = NULL,
                            do_cox_reid_adjustment = ! is.null(model_matrix),
+                           global_estimate = FALSE,
                            subsample = FALSE,
                            max_iter = 200,
                            verbose = FALSE){
@@ -103,8 +106,12 @@ overdispersion_mle <- function(y, mean,
     if(is.null(model_matrix)){
       model_matrix <- matrix(1, nrow = ncol(y), ncol = 1)
     }
-    # This function calls overdispersion_mle() for each row, but is faster than a vapply()
-    estimate_overdispersions_fast(y, mean, model_matrix, do_cox_reid_adjustment, n_subsamples, max_iter)
+    if(global_estimate){
+      estimate_global_overdispersion(y, mean, model_matrix, do_cox_reid_adjustment)
+    }else{
+      # This function calls overdispersion_mle() for each row, but is faster than a vapply()
+      estimate_overdispersions_fast(y, mean, model_matrix, do_cox_reid_adjustment, n_subsamples, max_iter)
+    }
   }else{
     overdispersion_mle_impl(as.numeric(y), mean, model_matrix, do_cox_reid_adjustment,
                             min(n_subsamples, length(y)), max_iter, verbose = verbose)
@@ -240,6 +247,18 @@ conventional_overdispersion_mle <- function(y, mean_vector,
   return_value
 }
 
+
+
+estimate_global_overdispersion <- function(Y, Mu, model_matrix, do_cox_reid_adjustment){
+  # The idea to calculate the log-likelihood and than maximize the interpolation
+  # is from edgeR.
+  # The runtime is linear with the number of `log_thetas`
+  log_thetas <- seq(-3, 3, length.out = 10)
+  log_likes <- estimate_global_overdispersions_fast(Y, Mu, model_matrix, do_cox_reid_adjustment, log_thetas)
+  spl <- spline(log_thetas, log_likes, n = 1000)
+  est <- exp(spl$x[which.max(spl$y)])
+  list(estimate = est, iterations = 10, message = "global estimate using spline interpolation")
+}
 
 
 

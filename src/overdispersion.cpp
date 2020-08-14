@@ -305,3 +305,49 @@ List estimate_overdispersions_fast(RObject Y, RObject mean_matrix, NumericMatrix
     throw std::runtime_error("unacceptable matrix type");
   }
 }
+
+
+template<class NumericType>
+NumericVector estimate_global_overdispersions_fast_internal(RObject Y, RObject mean_matrix, const arma::mat model_matrix, const bool do_cox_reid_adjustment,
+                                                            const NumericVector log_thetas){
+  const auto Y_bm = beachmat::create_matrix<NumericType>(Y);
+  const auto mean_mat_bm = beachmat::create_numeric_matrix(mean_matrix);
+  int n_samples = Y_bm->get_ncol();
+  int n_genes = Y_bm->get_nrow();
+  int n_spline_points = log_thetas.size();
+
+  NumericVector log_likelihoods(n_spline_points);
+
+  for(int gene_idx = 0; gene_idx < n_genes; gene_idx++){
+    if (gene_idx % 100 == 0) checkUserInterrupt();
+    NumericVector counts(n_samples);
+    Y_bm->get_row(gene_idx, counts.begin());
+    NumericVector mu(n_samples);
+    mean_mat_bm->get_row(gene_idx, mu.begin());
+
+    ListOf<NumericVector> tab = List::create(NumericVector::create(), NumericVector::create());
+    if(max(counts) / (n_samples * n_samples) < 0.03){
+      tab = make_table(counts);
+    }
+
+    for(int point_idx = 0; point_idx < n_spline_points; point_idx++){
+      log_likelihoods[point_idx] += conventional_loglikelihood_fast(counts, mu, log_thetas[point_idx], model_matrix,
+                                                                    do_cox_reid_adjustment, tab[0], tab[1]);
+    }
+  }
+  return log_likelihoods;
+}
+
+
+// [[Rcpp::export]]
+NumericVector estimate_global_overdispersions_fast(RObject Y, RObject mean_matrix, const arma::mat model_matrix, const bool do_cox_reid_adjustment,
+                                                   const NumericVector log_thetas){
+  auto mattype=beachmat::find_sexp_type(Y);
+  if (mattype==INTSXP) {
+    return estimate_global_overdispersions_fast_internal<beachmat::integer_matrix>(Y, mean_matrix, model_matrix, do_cox_reid_adjustment, log_thetas);
+  } else if (mattype==REALSXP) {
+    return estimate_global_overdispersions_fast_internal<beachmat::numeric_matrix>(Y, mean_matrix, model_matrix, do_cox_reid_adjustment, log_thetas);
+  } else {
+    throw std::runtime_error("unacceptable matrix type");
+  }
+}

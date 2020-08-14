@@ -186,6 +186,21 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// estimate_global_overdispersions_fast
+NumericVector estimate_global_overdispersions_fast(RObject Y, RObject mean_matrix, const arma::mat model_matrix, const bool do_cox_reid_adjustment, const NumericVector log_thetas);
+RcppExport SEXP _glmGamPoi_estimate_global_overdispersions_fast(SEXP YSEXP, SEXP mean_matrixSEXP, SEXP model_matrixSEXP, SEXP do_cox_reid_adjustmentSEXP, SEXP log_thetasSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< RObject >::type Y(YSEXP);
+    Rcpp::traits::input_parameter< RObject >::type mean_matrix(mean_matrixSEXP);
+    Rcpp::traits::input_parameter< const arma::mat >::type model_matrix(model_matrixSEXP);
+    Rcpp::traits::input_parameter< const bool >::type do_cox_reid_adjustment(do_cox_reid_adjustmentSEXP);
+    Rcpp::traits::input_parameter< const NumericVector >::type log_thetas(log_thetasSEXP);
+    rcpp_result_gen = Rcpp::wrap(estimate_global_overdispersions_fast(Y, mean_matrix, model_matrix, do_cox_reid_adjustment, log_thetas));
+    return rcpp_result_gen;
+END_RCPP
+}
 
 static const R_CallMethodDef CallEntries[] = {
     {"_glmGamPoi_lte_n_equal_rows", (DL_FUNC) &_glmGamPoi_lte_n_equal_rows, 3},
@@ -200,6 +215,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_glmGamPoi_conventional_score_function_fast", (DL_FUNC) &_glmGamPoi_conventional_score_function_fast, 7},
     {"_glmGamPoi_conventional_deriv_score_function_fast", (DL_FUNC) &_glmGamPoi_conventional_deriv_score_function_fast, 7},
     {"_glmGamPoi_estimate_overdispersions_fast", (DL_FUNC) &_glmGamPoi_estimate_overdispersions_fast, 6},
+    {"_glmGamPoi_estimate_global_overdispersions_fast", (DL_FUNC) &_glmGamPoi_estimate_global_overdispersions_fast, 5},
     {NULL, NULL, 0}
 };
 

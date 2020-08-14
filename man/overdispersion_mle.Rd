@@ -9,6 +9,7 @@ overdispersion_mle(
   mean,
   model_matrix = NULL,
   do_cox_reid_adjustment = !is.null(model_matrix),
+  global_estimate = FALSE,
   subsample = FALSE,
   max_iter = 200,
   verbose = FALSE
@@ -32,6 +33,9 @@ adjusted profile likelihood.\cr
 \code{do_cox_reid_adjustment} can be either be \code{TRUE} or \code{FALSE} to indicate if the adjustment is
 added during the optimization of the \code{overdispersion} parameter. Default: \code{TRUE} if a
 model matrix is provided, otherwise \code{FALSE}}
+
+\item{global_estimate}{flag to decide if a single overdispersion for a whole matrix is calculated
+instead of one estimate per row. This parameter has no affect if \code{y} is a vector. Default: \code{FALSE}}
 
 \item{subsample}{the estimation of the overdispersion is the slowest step when fitting
 a Gamma-Poisson GLM. For datasets with many samples, the estimation can be considerably sped up

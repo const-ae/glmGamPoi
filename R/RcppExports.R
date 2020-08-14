@@ -49,3 +49,7 @@ estimate_overdispersions_fast <- function(Y, mean_matrix, model_matrix, do_cox_r
     .Call(`_glmGamPoi_estimate_overdispersions_fast`, Y, mean_matrix, model_matrix, do_cox_reid_adjustment, n_subsamples, max_iter)
 }
 
+estimate_global_overdispersions_fast <- function(Y, mean_matrix, model_matrix, do_cox_reid_adjustment, log_thetas) {
+    .Call(`_glmGamPoi_estimate_global_overdispersions_fast`, Y, mean_matrix, model_matrix, do_cox_reid_adjustment, log_thetas)
+}
+

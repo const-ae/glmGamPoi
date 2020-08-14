@@ -317,7 +317,26 @@ test_that("DelayedArrays are handled efficiently", {
 })
 
 
+test_that("global overdispersion estimation works", {
+  mu <- rgamma(n = 100, shape = 2, rate = 0.8)
+  disp <- rgamma(n = 100, shape = 0.6, rate = 0.4)
+  Y <- t(sapply(seq_len(100), function(idx){
+    rnbinom(n = 20, mu = mu[idx], size = 1/disp[idx])
+  }))
+  Mu <- array(DelayedMatrixStats::rowMeans2(Y), dim = dim(Y))
 
+  res1 <- overdispersion_mle(c(Y), c(Mu), do_cox_reid_adjustment = FALSE)
+  res2 <- overdispersion_mle(Y, Mu, do_cox_reid_adjustment = FALSE, global_estimate = TRUE)
+
+  expect_equal(res1$estimate, res2$estimate, tolerance = 0.01)
+
+  # And HDF5 doesn't change anything
+  Y_hdf5 <-  as(Y, "HDF5Matrix")
+  Mu_hdf5 <-  as(Mu, "HDF5Matrix")
+  res3 <- overdispersion_mle(Y_hdf5, Mu_hdf5, do_cox_reid_adjustment = FALSE, global_estimate = TRUE)
+  expect_equal(res3, res2)
+
+})
 
 
 
