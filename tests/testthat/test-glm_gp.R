@@ -30,6 +30,18 @@ test_that("glm_gp can handle complicated formulas", {
   expect_equal(names(fit$size_factors), colnames(Y))
 })
 
+test_that("glm_gp can handle overdispersion = 'global'", {
+  Y <- matrix(rnbinom(n = 100 * 50, mu = 3, size = 1/3.1), nrow = 100, ncol = 50)
+  rownames(Y) <- paste0("gene_", seq_len(100))
+  colnames(Y) <- paste0("person_", seq_len(50))
+
+  fit <- glm_gp(Y, overdispersion = "global")
+  res <- overdispersion_mle(Y, fit$Mu, global_estimate = TRUE)
+  expect_equal(unname(fit$overdispersions[1]), res$estimate)
+  expect_equal(unname(fit$overdispersion_shrinkage_list$dispersion_trend), unname(fit$overdispersions))
+  expect_equal(unname(fit$overdispersion_shrinkage_list$ql_disp_estimate[1]), 1)
+})
+
 
 test_that("handle_design_parameter throws error for degenerate design matrix", {
 

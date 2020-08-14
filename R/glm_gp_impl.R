@@ -51,6 +51,10 @@ glm_gp_impl <- function(Y, model_matrix,
     disp_init <- estimate_dispersions_roughly(Y, model_matrix, offset_matrix = offset_matrix)
   }else if(isFALSE(overdispersion)){
     disp_init <- rep(0, times = nrow(Y))
+  }else if(is.character(overdispersion) && overdispersion == "global"){
+    if(verbose){ message("Make initial dispersion estimate") }
+    disp_init <- estimate_dispersions_roughly(Y, model_matrix, offset_matrix = offset_matrix)
+    disp_init <- rep(median(disp_init), nrow(Y))
   }else{
     stopifnot(is.numeric(overdispersion) && (length(overdispersion) == 1 || length(overdispersion) == nrow(Y)))
     if(length(overdispersion) == 1){
@@ -84,11 +88,19 @@ glm_gp_impl <- function(Y, model_matrix,
   Mu <- calculate_mu(Beta, model_matrix, offset_matrix)
 
   # Make estimate of over-disperion
-  if(isTRUE(overdispersion)){
+  if(isTRUE(overdispersion) || (is.character(overdispersion) && overdispersion == "global")){
     if(verbose){ message("Estimate dispersion") }
+    if(isTRUE(overdispersion)){
       disp_est <- overdispersion_mle(Y, Mu, model_matrix = model_matrix,
                                      do_cox_reid_adjustment = do_cox_reid_adjustment,
                                      subsample = subsample, verbose = verbose)$estimate
+    }else if(is.character(overdispersion) && overdispersion == "global"){
+      disp_est <- overdispersion_mle(Y, Mu, model_matrix = model_matrix,
+                                     do_cox_reid_adjustment = do_cox_reid_adjustment,
+                                     global_estimate = TRUE,
+                                     subsample = subsample, verbose = verbose)$estimate
+      disp_est <- rep(disp_est, times = nrow(Y))
+    }
 
     if(isTRUE(overdispersion_shrinkage)){
       dispersion_shrinkage <- overdispersion_shrinkage(disp_est, gene_means = DelayedMatrixStats::rowMeans2(Mu),

@@ -46,10 +46,14 @@ no size factor is estimated (ie. \code{size_factors = 1}). Default: \code{"norme
 \item{overdispersion}{the simplest count model is the Poisson model. However, the Poisson model
 assumes that \eqn{variance = mean}. For many applications this is too rigid and the Gamma-Poisson
 allows a more flexible mean-variance relation (\eqn{variance = mean + mean^2 * overdispersion}). \cr
-\code{overdispersion} can either be a single boolean that indicates if an overdispersion is estimated
-for each gene. Or it can be a numeric vector of length \code{nrow(data)}. Note that \code{overdispersion = 0} and
-\code{overdispersion = FALSE} are equivalent and both reduce the Gamma-Poisson to the classical Poisson
-model. Default: \code{TRUE}.}
+\code{overdispersion} can either be
+\itemize{
+\item a single boolean that indicates if an overdispersion is estimated for each gene.
+\item a numeric vector of length \code{nrow(data)} fixing the overdispersion to those values.
+\item the string \code{"global"} to indicate that one dispersion is fit across all genes.
+}
+Note that \code{overdispersion = 0} and \code{overdispersion = FALSE} are equivalent and both reduce
+the Gamma-Poisson to the classical Poisson model. Default: \code{TRUE}.}
 
 \item{overdispersion_shrinkage}{the overdispersion can be difficult to estimate with few replicates. To
 improve the overdispersion estimates, we can share information across genes and shrink each individual
