@@ -27,6 +27,7 @@ if the Newton method fails
 + Change the default size factor estimation method from
 "poscounts" to "normed_sum" and provide an easy way to
 call scran::calculateSumFactors()
++ New "global" mode for dispersion estimation
 
 
 Changes in version 0.0.99 (2020-03-23)
