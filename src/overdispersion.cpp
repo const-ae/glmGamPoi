@@ -288,9 +288,9 @@ List estimate_overdispersions_fast_internal(RObject Y, RObject mean_matrix, Nume
     messages(gene_idx) = Rcpp::as<String>(dispRes["message"]);
   }
   return List::create(
-    Named("estimates", estimates),
+    Named("estimate", estimates),
     Named("iterations", iterations),
-    Named("messages", messages));;
+    Named("message", messages));;
 }
 
 // [[Rcpp::export]]

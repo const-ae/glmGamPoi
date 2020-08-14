@@ -86,9 +86,9 @@ glm_gp_impl <- function(Y, model_matrix,
   # Make estimate of over-disperion
   if(isTRUE(overdispersion)){
     if(verbose){ message("Estimate dispersion") }
-    disp_est <- overdispersion_mle(Y, Mu, model_matrix = model_matrix,
-                                   do_cox_reid_adjustment = do_cox_reid_adjustment,
-                                   subsample = subsample, verbose = verbose)$estimates
+      disp_est <- overdispersion_mle(Y, Mu, model_matrix = model_matrix,
+                                     do_cox_reid_adjustment = do_cox_reid_adjustment,
+                                     subsample = subsample, verbose = verbose)$estimate
 
     if(isTRUE(overdispersion_shrinkage)){
       dispersion_shrinkage <- overdispersion_shrinkage(disp_est, gene_means = DelayedMatrixStats::rowMeans2(Mu),
