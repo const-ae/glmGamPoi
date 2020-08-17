@@ -40,6 +40,14 @@ BiocManager::install("glmGamPoi")
 For the latest developments, see the
 *[GitHub](https://github.com/const-ae/glmGamPoi)* repo.
 
+If you use this package in a scientific publication, please cite:
+
+> glmGamPoi: Fitting Gamma-Poisson Generalized Linear Models on Single
+> Cell Count Data  
+> Constantin Ahlmann-Eltze, Wolfgang Huber  
+> bioRxiv 2020.08.13.249623; doi:
+> <https://doi.org/10.1101/2020.08.13.249623>
+
 # Example
 
 Load the glmGamPoi package
@@ -188,10 +196,10 @@ bench::mark(
 #> # A tibble: 4 x 6
 #>   expression               min   median `itr/sec` mem_alloc `gc/sec`
 #>   <bch:expr>          <bch:tm> <bch:tm>     <dbl> <bch:byt>    <dbl>
-#> 1 glmGamPoi_in_memory    1.06s    1.11s    0.874   508.84MB    3.20 
-#> 2 glmGamPoi_on_disk      4.22s    4.29s    0.228   837.42MB    1.29 
-#> 3 DESeq2                20.38s   20.45s    0.0486    1.16GB    0.389
-#> 4 edgeR                  5.51s    5.52s    0.176     1.19GB    1.47
+#> 1 glmGamPoi_in_memory    1.04s    1.14s    0.778   508.84MB    3.11 
+#> 2 glmGamPoi_on_disk      3.86s     4.2s    0.243   837.42MB    1.30 
+#> 3 DESeq2                20.42s   20.52s    0.0485    1.15GB    0.437
+#> 4 edgeR                  5.71s    5.77s    0.170     1.19GB    1.36
 ```
 
 On this dataset, `glmGamPoi` is more than 5 times faster than `edgeR`

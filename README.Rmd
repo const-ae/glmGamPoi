@@ -49,6 +49,11 @@ BiocManager::install("glmGamPoi")
 
 For the latest developments, see the `r BiocStyle::Githubpkg("const-ae/glmGamPoi", "GitHub")` repo.
 
+If you use this package in a scientific publication, please cite:
+
+> glmGamPoi: Fitting Gamma-Poisson Generalized Linear Models on Single Cell Count Data  
+> Constantin Ahlmann-Eltze, Wolfgang Huber  
+> bioRxiv 2020.08.13.249623; doi: https://doi.org/10.1101/2020.08.13.249623
 
 # Example
 
