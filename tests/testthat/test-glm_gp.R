@@ -10,6 +10,28 @@ test_that("glm_gp works for simple cases", {
   expect_equal(c(tmp$Beta), log(mean(y)))
 })
 
+test_that("glm_gp() can be called like glm(): formula first", {
+
+  y <- c(1, 3, 6)
+  expect_equal(glm_gp(y ~ 1), glm_gp(y))
+
+  Y <- matrix(rpois(n = 4 * 9, lambda = 2), nrow = 4, ncol = 9)
+  expect_equal(glm_gp(Y ~ 1), glm_gp(Y))
+
+  a <- rnorm(9)
+  df <- data.frame(b = runif(9),
+                   y = rpois(9, lambda = 3))
+  y <- df$y + 10
+  expect_equal(glm_gp(Y ~ a + b, col_data = df), glm_gp(Y, ~ a + b, col_data = df))
+  expect_error(expect_equal(glm_gp(y ~ a + b, col_data = df), glm_gp(y, ~ a + b, col_data = df)))
+  expect_equal(glm_gp(y ~ a + b, col_data = df), glm_gp(df$y, ~ a + b, col_data = df))
+
+  expect_error(glm_gp(~ a + b))
+  expect_error(glm_gp(y ~ a,  ~ a))
+  glm_gp(y ~ ., col_data = df)$design_formula
+
+})
+
 
 test_that("glm_gp can handle complicated formulas", {
 

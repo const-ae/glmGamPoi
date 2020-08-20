@@ -206,6 +206,15 @@ glm_gp <- function(data,
                    verbose = FALSE){
 
   # Validate `data`
+  if(inherits(data, "formula")){
+    if(length(design) != 2 || design != ~ 1){
+      stop("If the first argument is already a formula, the second argument must not be set. Please call this function like this:\n",
+           "'glm_gp(data = mat, design = ~ a + b + c, ...)'", call. = FALSE)
+    }
+    extr <- extract_data_from_formula(data, col_data, parent.frame())
+    data <- extr$data
+    design <- extr$design
+  }
   if(is.vector(data)){
     data <- matrix(data, nrow = 1)
   }
@@ -421,6 +430,16 @@ convert_chr_vec_to_model_matrix <- function(design, reference_level){
   }
   colnames(mm)[colnames(mm) == "(Intercept)"] <- "Intercept"
   mm
+}
+
+extract_data_from_formula <- function(formula, col_data, encl = parent.frame()){
+  if(length(formula) < 3){
+    stop("The formula does not have a left hand side. Please call this function like this:\n",
+         "'glm_gp(data = mat, design = ~ a + b + c, ...)'", call. = FALSE)
+  }
+  data <- eval(formula[[2]], envir = col_data, enclos = encl)
+  formula[[2]] <- NULL
+  list(data = data, design = formula)
 }
 
 
