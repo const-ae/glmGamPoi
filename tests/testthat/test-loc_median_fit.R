@@ -20,7 +20,6 @@ test_that("loc_median_fit works", {
   expect_equal(r5, numeric(0))
 
   y[c(1, 4)] <- 0
-  plot(x, y)
 
   r6 <- loc_median_fit(x, y, npoints = 1, ignore_zeros = TRUE)
   expect_equal(y == 0, is.na(r6))
