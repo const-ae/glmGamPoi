@@ -220,12 +220,8 @@ conventional_overdispersion_mle <- function(y, mean_vector,
            matrix(- res, nrow = 1, ncol = 1)
          }, lower = log(1e-16), upper = log(1e16),
          control = list(iter.max = max_iter))
-  # optimize_res <- optimise(function(log_theta){
-  #   conventional_loglikelihood_fast(y, mu = mean_vector, log_theta = log_theta,
-  #                                   model_matrix = model_matrix, do_cr_adj = FALSE, tab[[1]], tab[[2]])
-  # }, lower = log(1e-16), upper = log(1e16), maximum = TRUE)
-  # res <- list(par = optimize_res$maximum, objective = optimize_res$objective, iterations  = 0, convergence = if(is.na(optimize_res$objective)) 1 else 0,
-  #             message = "Success")
+
+
   if(res$convergence != 0){
     # Do the same thing again with numerical hessian as the
     # analytical hessian is sometimes less robust than the other
@@ -239,7 +235,23 @@ conventional_overdispersion_mle <- function(y, mean_vector,
                                                        model_matrix = model_matrix, do_cr_adj = do_cox_reid_adjustment, tab[[1]], tab[[2]])
                   }, lower = log(1e-16), upper = log(1e16),
                   control = list(iter.max = max_iter))
+
+    if(res$convergence != 0){
+      # Still problematic result: do the same thing without Cox-Reid adjustment
+      res <- nlminb(start = log(start_value),
+                    objective = function(log_theta){
+                      - conventional_loglikelihood_fast(y, mu = mean_vector, log_theta = log_theta,
+                                                        model_matrix = model_matrix, do_cr_adj = FALSE, tab[[1]], tab[[2]])
+                    }, gradient = function(log_theta){
+                      - conventional_score_function_fast(y, mu = mean_vector, log_theta = log_theta,
+                                                         model_matrix = model_matrix, do_cr_adj = FALSE, tab[[1]], tab[[2]])
+                    }, lower = log(1e-16), upper = log(1e16),
+                    control = list(iter.max = max_iter))
+    }
+
+
   }
+
 
   return_value$estimate <- exp(res$par)
   return_value$iterations <- res$iterations
