@@ -196,10 +196,10 @@ bench::mark(
 #> # A tibble: 4 x 6
 #>   expression               min   median `itr/sec` mem_alloc `gc/sec`
 #>   <bch:expr>          <bch:tm> <bch:tm>     <dbl> <bch:byt>    <dbl>
-#> 1 glmGamPoi_in_memory    1.04s    1.14s    0.778   508.84MB    3.11 
-#> 2 glmGamPoi_on_disk      3.86s     4.2s    0.243   837.42MB    1.30 
-#> 3 DESeq2                20.42s   20.52s    0.0485    1.15GB    0.437
-#> 4 edgeR                  5.71s    5.77s    0.170     1.19GB    1.36
+#> 1 glmGamPoi_in_memory    1.14s    1.17s    0.824   523.16MB    3.29 
+#> 2 glmGamPoi_on_disk      4.22s    4.41s    0.225   851.75MB    1.20 
+#> 3 DESeq2                20.13s   20.28s    0.0493    1.16GB    0.362
+#> 4 edgeR                  5.49s     5.6s    0.179     1.19GB    0.894
 ```
 
 On this dataset, `glmGamPoi` is more than 5 times faster than `edgeR`
@@ -267,12 +267,12 @@ res <- test_de(fit, reduced_design = ~ 1)
 # Look at first 6 genes
 head(res)
 #>              name      pval  adj_pval f_statistic df1      df2 lfc
-#> 1 ENSG00000126457 0.2385897 0.8863222 1.389282669   1 4420.177  NA
-#> 2 ENSG00000109832 0.6491580 0.9275674 0.206991636   1 4420.177  NA
-#> 3 ENSG00000237339 0.4375426 0.9053288 0.602828102   1 4420.177  NA
-#> 4 ENSG00000075234 0.3118470 0.8877737 1.023070956   1 4420.177  NA
-#> 5 ENSG00000161057 0.9429562 0.9870835 0.005120673   1 4420.177  NA
-#> 6 ENSG00000151366 0.5245736 0.9225491 0.404956210   1 4420.177  NA
+#> 1 ENSG00000126457 0.2385897 0.8863222 1.389282668   1 4420.177  NA
+#> 2 ENSG00000109832 0.6491580 0.9275674 0.206991593   1 4420.177  NA
+#> 3 ENSG00000237339 0.4375426 0.9053288 0.602828041   1 4420.177  NA
+#> 4 ENSG00000075234 0.3118470 0.8877735 1.023070971   1 4420.177  NA
+#> 5 ENSG00000161057 0.9429562 0.9870834 0.005120673   1 4420.177  NA
+#> 6 ENSG00000151366 0.5245737 0.9225491 0.404956209   1 4420.177  NA
 ```
 
 The p-values agree well with the ones that `edgeR` is calculating. This
@@ -319,10 +319,10 @@ test_de(fit, contrast = Group1 - Group2,
         subset_to = cell_type_labels == "T-cells",
         n_max = 4, sort_by = pval, decreasing = FALSE)
 #>                name       pval adj_pval f_statistic df1     df2        lfc
-#> 218 ENSG00000158411 0.04705062        1    5.419094   1 8.34284 -15.892119
-#> 300 ENSG00000188243 0.04992313        1    5.246766   1 8.34284   4.053388
-#> 110 ENSG00000134539 0.05867890        1    4.790498   1 8.34284  10.438251
-#> 299 ENSG00000143819 0.07401184        1    4.169118   1 8.34284 -42.754649
+#> 218 ENSG00000158411 0.03539352        1    5.609945   1 12.0646  -15.89212
+#> 96  ENSG00000105610 0.04160948        1    5.195969   1 12.0646 1156.23142
+#> 110 ENSG00000134539 0.04802063        1    4.840090   1 12.0646   10.43825
+#> 107 ENSG00000162642 0.06805301        1    4.015867   1 12.0646  -16.94800
 ```
 
 # Session Info
@@ -352,7 +352,7 @@ sessionInfo()
 #>  [9] Biobase_2.48.0              GenomicRanges_1.40.0       
 #> [11] GenomeInfoDb_1.24.0         IRanges_2.22.1             
 #> [13] S4Vectors_0.26.0            BiocGenerics_0.34.0        
-#> [15] glmGamPoi_1.1.10           
+#> [15] glmGamPoi_1.1.13           
 #> 
 #> loaded via a namespace (and not attached):
 #>  [1] bitops_1.0-6                  bit64_0.9-7                  
@@ -360,7 +360,7 @@ sessionInfo()
 #>  [5] tools_4.0.0                   utf8_1.1.4                   
 #>  [7] R6_2.4.1                      DBI_1.1.0                    
 #>  [9] colorspace_1.4-1              tidyselect_1.1.0             
-#> [11] DESeq2_1.29.4                 bit_1.1-15.2                 
+#> [11] DESeq2_1.29.10                bit_1.1-15.2                 
 #> [13] curl_4.3                      compiler_4.0.0               
 #> [15] cli_2.0.2                     scales_1.1.0                 
 #> [17] bench_1.1.1                   genefilter_1.70.0            
