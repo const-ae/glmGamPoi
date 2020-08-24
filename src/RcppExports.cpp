@@ -109,12 +109,12 @@ BEGIN_RCPP
 END_RCPP
 }
 // make_table
-List make_table(NumericVector x);
+List make_table(const NumericVector& x);
 RcppExport SEXP _glmGamPoi_make_table(SEXP xSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< NumericVector >::type x(xSEXP);
+    Rcpp::traits::input_parameter< const NumericVector& >::type x(xSEXP);
     rcpp_result_gen = Rcpp::wrap(make_table(x));
     return rcpp_result_gen;
 END_RCPP

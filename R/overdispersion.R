@@ -177,10 +177,11 @@ conventional_overdispersion_mle <- function(y, mean_vector,
   # E[#distinct counts] / length(y) < 0.5 <==> max(y) / length(y)^2 < 0.03
   # I don't have a formal proof, but plotting strongly indicates it works
   if(length(y) == 0 || max(y) / length(y)^2 <  0.03){
-     tab <- make_table(y)
+    tab <- make_table(y)
   }else{
-     tab <- list(numeric(0), numeric(0))
+    tab <- list(numeric(0), numeric(0))
   }
+
 
   if(all(y == 0)){
     return_value$estimate <- 0

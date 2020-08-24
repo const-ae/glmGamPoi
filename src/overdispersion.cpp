@@ -18,7 +18,7 @@ const double cr_correction_factor = 0.99;
 
 
 // [[Rcpp::export]]
-List make_table(NumericVector x){
+List make_table(const NumericVector& x){
   std::unordered_map<long, size_t> counts;
   for (double v : x){
     ++counts[(long) v];
