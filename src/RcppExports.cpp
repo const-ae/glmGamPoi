@@ -108,14 +108,15 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// make_table
-List make_table(const NumericVector& x);
-RcppExport SEXP _glmGamPoi_make_table(SEXP xSEXP) {
+// make_table_if_small
+List make_table_if_small(const NumericVector& x, int stop_if_larger);
+RcppExport SEXP _glmGamPoi_make_table_if_small(SEXP xSEXP, SEXP stop_if_largerSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< const NumericVector& >::type x(xSEXP);
-    rcpp_result_gen = Rcpp::wrap(make_table(x));
+    Rcpp::traits::input_parameter< int >::type stop_if_larger(stop_if_largerSEXP);
+    rcpp_result_gen = Rcpp::wrap(make_table_if_small(x, stop_if_larger));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -210,7 +211,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_glmGamPoi_fitBeta_one_group", (DL_FUNC) &_glmGamPoi_fitBeta_one_group, 6},
     {"_glmGamPoi_compute_gp_deviance_mask", (DL_FUNC) &_glmGamPoi_compute_gp_deviance_mask, 3},
     {"_glmGamPoi_compute_gp_deviance_residuals_matrix_mask", (DL_FUNC) &_glmGamPoi_compute_gp_deviance_residuals_matrix_mask, 3},
-    {"_glmGamPoi_make_table", (DL_FUNC) &_glmGamPoi_make_table, 1},
+    {"_glmGamPoi_make_table_if_small", (DL_FUNC) &_glmGamPoi_make_table_if_small, 2},
     {"_glmGamPoi_conventional_loglikelihood_fast", (DL_FUNC) &_glmGamPoi_conventional_loglikelihood_fast, 7},
     {"_glmGamPoi_conventional_score_function_fast", (DL_FUNC) &_glmGamPoi_conventional_score_function_fast, 7},
     {"_glmGamPoi_conventional_deriv_score_function_fast", (DL_FUNC) &_glmGamPoi_conventional_deriv_score_function_fast, 7},

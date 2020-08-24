@@ -18,10 +18,14 @@ const double cr_correction_factor = 0.99;
 
 
 // [[Rcpp::export]]
-List make_table(const NumericVector& x){
+List make_table_if_small(const NumericVector& x, int stop_if_larger){
   std::unordered_map<long, size_t> counts;
+  counts.reserve(stop_if_larger);
   for (double v : x){
     ++counts[(long) v];
+    if(counts.size() > stop_if_larger){
+      return List::create(NumericVector::create(), NumericVector::create());
+    }
   }
   NumericVector keys(counts.size());
   NumericVector values(counts.size());
@@ -326,9 +330,8 @@ NumericVector estimate_global_overdispersions_fast_internal(RObject Y, RObject m
     mean_mat_bm->get_row(gene_idx, mu.begin());
 
     ListOf<NumericVector> tab = List::create(NumericVector::create(), NumericVector::create());
-    if(max(counts) / (n_samples * n_samples) < 0.03){
-      tab = make_table(counts);
-    }
+
+    tab = make_table_if_small(counts, /*stop_if_larger = */ n_samples / 2);
 
     for(int point_idx = 0; point_idx < n_spline_points; point_idx++){
       log_likelihoods[point_idx] += conventional_loglikelihood_fast(counts, mu, log_thetas[point_idx], model_matrix,

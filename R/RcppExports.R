@@ -29,8 +29,8 @@ compute_gp_deviance_residuals_matrix <- function(Y_SEXP, Mu, thetas) {
     .Call(`_glmGamPoi_compute_gp_deviance_residuals_matrix_mask`, Y_SEXP, Mu, thetas)
 }
 
-make_table <- function(x) {
-    .Call(`_glmGamPoi_make_table`, x)
+make_table_if_small <- function(x, stop_if_larger) {
+    .Call(`_glmGamPoi_make_table_if_small`, x, stop_if_larger)
 }
 
 conventional_loglikelihood_fast <- function(y, mu, log_theta, model_matrix, do_cr_adj, unique_counts = as.numeric( c()), count_frequencies = as.numeric( c())) {

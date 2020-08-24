@@ -3,10 +3,13 @@
 
 test_that("make_table works", {
   vector <- rpois(n = 100, lambda = 10)
-  tab <- make_table(vector)
+  tab <- make_table_if_small(vector, stop_if_larger = 100)
   tab2 <- table(vector)
   expect_equal(as.numeric(tab2), tab[[2]][order(tab[[1]])])
   expect_equal(as.numeric(names(tab2)), sort(tab[[1]]))
+
+  tab3 <- make_table_if_small(vector, stop_if_larger = 1)
+  expect_equal(tab3, list(numeric(length = 0L), numeric(length = 0L)))
 })
 
 
@@ -45,7 +48,7 @@ test_that("Score function can handle extreme inputs properly", {
   samples <- rpois(n = 3, lambda = 3)
   mu <- rnorm(n = length(samples), mean = 4)
   X <- matrix(rnorm(n = length(samples) * 4), nrow = length(samples), ncol = 4)
-  tab <- make_table(samples)
+  tab <- make_table_if_small(samples, length(samples))
   expect_equal(conventional_score_function_fast(samples, mu, -35, X, do_cr_adj = TRUE),
                conventional_score_function_fast(samples, mu, -35, X, do_cr_adj = TRUE, tab[[1]], tab[[2]]))
 
