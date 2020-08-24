@@ -146,7 +146,7 @@ test_that("overdispersion_mle can handle weird input 3", {
                                            do_cox_reid_adjustment = TRUE,
                                            verbose = FALSE)
 
-  expect_gt(est$estimate, 1e8)
+  expect_lt(est$estimate, 1e8)
 })
 
 test_that("overdispersion_mle can handle weird input 4", {
