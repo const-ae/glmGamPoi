@@ -13,8 +13,35 @@ loc_median_fit(
   ignore_zeros = FALSE
 )
 }
+\arguments{
+\item{x, y}{the x and y coordinates of the points.}
+
+\item{fraction, npoints}{the fraction / number of the points that are
+considered for each fit. \code{npoints} is the argument that is used in the
+end it is at least one. Default: \code{fraction = 0.1} and
+\code{npoints = length(x) * fraction}.}
+
+\item{weighted}{a boolean that indicates if a weighted median is calculated.}
+
+\item{ignore_zeros}{should the zeros be excluded from the fit}
+}
 \description{
 This function fits y based on x through a (weighted) median using
 the \code{npoints/2} neighborhood.
 }
-\keyword{internal}
+\details{
+This function is low-level and should usually not be called by the user.
+}
+\examples{
+  x <- runif(n = 1000, max = 4)
+  y <- rpois(n = 1000, lambda = x * 10)
+
+  plot(x, y)
+  fit <- loc_median_fit(x, y, fraction = 0.1)
+  points(x, fit, col = "red")
+
+
+}
+\seealso{
+\code{locfit}: a package dedicated to local regression.
+}

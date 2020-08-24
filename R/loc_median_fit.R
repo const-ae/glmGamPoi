@@ -6,9 +6,31 @@
 #' This function fits y based on x through a (weighted) median using
 #' the \code{npoints/2} neighborhood.
 #'
+#' @param x,y the x and y coordinates of the points.
+#' @param fraction,npoints the fraction / number of the points that are
+#'   considered for each fit. `npoints` is the argument that is used in the
+#'   end it is at least one. Default: `fraction = 0.1` and
+#'   `npoints = length(x) * fraction`.
+#' @param weighted a boolean that indicates if a weighted median is calculated.
+#' @param ignore_zeros should the zeros be excluded from the fit
+#'
+#' @details
+#' This function is low-level implementation detail and should usually not be
+#' called by the user.
 #'
 #'
-#' @keywords internal
+#' @seealso `locfit`: a package dedicated to local regression.
+#'
+#' @examples
+#'   x <- runif(n = 1000, max = 4)
+#'   y <- rpois(n = 1000, lambda = x * 10)
+#'
+#'   plot(x, y)
+#'   fit <- loc_median_fit(x, y, fraction = 0.1)
+#'   points(x, fit, col = "red")
+#'
+#'
+#' @export
 loc_median_fit <- function(x, y, fraction = 0.1, npoints = max(1, round(length(x) * fraction)),
                            weighted = TRUE, ignore_zeros = FALSE){
   # Make sure npoints is valid
