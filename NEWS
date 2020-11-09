@@ -1,4 +1,9 @@
-Changes in devel (version 1.1)
+Changes in development version
++ Make sure that Fisher scoring does not converge to unrealistically
+large values of mu
+
+
+Version 1.2 (2020-11-09)
 + Remove dual likelihood functions for overdispersion estimation.
 Instead merge functionality into conventional_***. This should
 cause no user facing changes, however should make it easier to
