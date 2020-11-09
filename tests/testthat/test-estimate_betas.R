@@ -51,6 +51,32 @@ test_that("Beta estimation can handle edge cases as input", {
   expect_lt(res2$Beta[1,1], -15)
 })
 
+test_that("Beta estimation can handle edge case (2)", {
+  # In version 1.1.13, glmGamPoi converged to an extreme result (mu = 1e50) for this input.
+  # With the introduction of the max_rel_mu_change parameter, this seems to be fixed
+
+  y <- c(0, 0, 14, 2, 0, 0, 0, 0, 10, 12, 6, 2, 0, 4, 1, 1, 2, 6, 165, 2, 1, 0, 0, 0, 259, 2050, 715, 0, 0, 96, 2658, 149, 56, 7, 0, 0, 0, 0, 0, 0, 0, 5, 9, 1, 1, 0, 0, 1, 1, 5, 7, 0, 0, 1, 0, 3, 6, 19, 29, 0, 0, 0, 1, 4, 73, 3, 4, 1, 0, 1, 0, 0, 5, 169, 58, 1, 0, 32, 0, 2, 1, 1, 170, 30, 0, 1, 0, 4, 123, 1655, 1292, 101, 0, 732, 2866, 207, 3, 6, 3, 0, 0, 2, 0, 1, 0, 110, 27, 0, 0, 0, 0, 1, 51, 3, 198, 1, 0, 1, 0, 78, 9, 2, 142, 2, 0, 2, 1, 1)
+  clust <- c("B cells", "CD14+ Monocytes", "CD4 T cells", "CD8 T cells", "Dendritic cells", "FCGR3A+ Monocytes", "Megakaryocytes", "NK cells", "B cells", "CD14+ Monocytes", "CD4 T cells", "CD8 T cells", "Dendritic cells", "FCGR3A+ Monocytes", "Megakaryocytes", "NK cells", "B cells", "CD14+ Monocytes", "CD4 T cells", "CD8 T cells", "Dendritic cells", "FCGR3A+ Monocytes", "Megakaryocytes", "NK cells", "B cells", "CD14+ Monocytes", "CD4 T cells", "CD8 T cells", "Dendritic cells", "FCGR3A+ Monocytes", "Megakaryocytes", "NK cells", "B cells", "CD14+ Monocytes", "CD4 T cells", "CD8 T cells", "Dendritic cells", "FCGR3A+ Monocytes", "Megakaryocytes", "NK cells", "B cells", "CD14+ Monocytes", "CD4 T cells", "CD8 T cells", "Dendritic cells", "FCGR3A+ Monocytes", "Megakaryocytes", "NK cells", "B cells", "CD14+ Monocytes", "CD4 T cells", "CD8 T cells", "Dendritic cells", "FCGR3A+ Monocytes", "Megakaryocytes", "NK cells", "B cells", "CD14+ Monocytes", "CD4 T cells", "CD8 T cells", "Dendritic cells", "FCGR3A+ Monocytes", "Megakaryocytes", "NK cells", "B cells",
+             "CD14+ Monocytes", "CD4 T cells", "CD8 T cells", "Dendritic cells", "FCGR3A+ Monocytes", "Megakaryocytes", "NK cells", "B cells", "CD14+ Monocytes", "CD4 T cells", "CD8 T cells", "Dendritic cells", "FCGR3A+ Monocytes", "Megakaryocytes", "NK cells", "B cells", "CD14+ Monocytes", "CD4 T cells", "CD8 T cells", "Dendritic cells", "FCGR3A+ Monocytes", "Megakaryocytes", "NK cells", "B cells", "CD14+ Monocytes", "CD4 T cells", "CD8 T cells", "Dendritic cells", "FCGR3A+ Monocytes", "Megakaryocytes", "NK cells", "B cells", "CD14+ Monocytes", "CD4 T cells", "CD8 T cells", "Dendritic cells", "FCGR3A+ Monocytes", "Megakaryocytes", "NK cells", "B cells", "CD14+ Monocytes", "CD4 T cells", "CD8 T cells", "Dendritic cells", "FCGR3A+ Monocytes", "Megakaryocytes", "NK cells", "B cells", "CD14+ Monocytes", "CD4 T cells", "CD8 T cells", "Dendritic cells", "FCGR3A+ Monocytes", "Megakaryocytes", "NK cells", "B cells", "CD14+ Monocytes", "CD4 T cells", "CD8 T cells", "Dendritic cells", "FCGR3A+ Monocytes", "Megakaryocytes", "NK cell")
+  cond <- c("ctrl", "ctrl", "ctrl", "ctrl", "ctrl", "ctrl", "ctrl", "ctrl", "ctrl", "ctrl", "ctrl", "ctrl", "ctrl", "ctrl", "ctrl", "ctrl", "ctrl", "ctrl", "ctrl", "ctrl", "ctrl", "ctrl", "ctrl", "ctrl", "ctrl", "ctrl", "ctrl", "ctrl", "ctrl", "ctrl", "ctrl", "ctrl", "ctrl", "ctrl", "ctrl", "ctrl", "ctrl", "ctrl", "ctrl", "ctrl", "ctrl", "ctrl", "ctrl", "ctrl", "ctrl", "ctrl", "ctrl", "ctrl", "ctrl", "ctrl", "ctrl", "ctrl", "ctrl", "ctrl", "ctrl", "ctrl", "ctrl", "ctrl", "ctrl", "ctrl", "ctrl", "ctrl", "ctrl", "ctrl", "stim", "stim", "stim", "stim", "stim", "stim", "stim", "stim", "stim", "stim", "stim", "stim", "stim", "stim", "stim", "stim", "stim", "stim", "stim", "stim", "stim", "stim", "stim", "stim", "stim", "stim", "stim", "stim", "stim", "stim", "stim", "stim", "stim", "stim", "stim", "stim", "stim", "stim", "stim", "stim", "stim", "stim", "stim", "stim", "stim", "stim", "stim", "stim", "stim", "stim", "stim", "stim", "stim", "stim", "stim", "stim", "stim", "stim", "stim", "stim", "stim", "stim", "stim", "stim")
+  sf <- c(1.25495746, 2.84060391, 3.54532248, 0.74403676, 0.12168579, 1.29108360, 0.12000349, 0.65455177, 5.44150278, 12.27749619, 10.45289957, 1.95654869, 0.13524118, 3.82396827, 0.31255044, 1.73958695, 1.48917348, 6.17830352, 4.72301313, 5.18268863, 0.09076828, 1.82555638, 0.08546259, 1.12790128, 0.39478863, 1.69810120, 2.50113680, 0.26218952, 0.05861062, 0.29934013, 0.36996404, 0.23265235, 0.55359268, 3.64881579, 2.02365705, 0.20378379, 0.02849112, 0.38153519, 0.08851444, 0.37638048, 1.51409512, 6.09265761, 13.59420239, 0.64251691, 0.38507232, 0.67384420, 0.20171328, 1.01657884, 2.55432311, 5.04959345, 12.65532171, 1.37339728, 0.16297743, 0.65830457, 0.20081821, 2.34212786, 2.65519592, 4.60271847, 14.42841431, 0.61404735, 0.33373006, 1.61952954, 0.20445239, 1.01918855, 1.71367318, 2.73565477, 4.88628172, 1.19830951, 0.23995307, 1.79371146, 0.10530501, 1.02351290, 4.40897451, 9.49905081, 9.37883164, 1.63402313, 0.17510934, 2.88147498, 0.20539059, 2.25509082, 1.48036301, 5.38691456, 4.21155324, 5.01258303, 0.19591153, 2.02167280, 0.11638010, 1.98069390, 0.57433016, 2.00913110, 3.63831225, 0.33962887, 0.20308284, 0.39905907, 0.46129308, 0.29367857, 0.69204747, 2.43350004, 2.24865281, 0.16404503, 0.11647715, 0.52166148, 0.04277982, 0.48455401, 1.23137302, 4.23807090, 11.94627878, 0.39999727, 0.23969425, 0.29627750, 0.14492514, 1.20180350, 2.62172262, 4.84203529, 12.69336739, 1.23926685, 0.28333679, 1.02518441, 0.24187261, 2.28643968, 3.42665620, 5.63192529, 19.61644098, 0.48511477, 0.52967394, 2.41232041, 0.37996074, 1.65937613)
+
+  model_matrix <- model.matrix(~ cond + clust)
+  offset_matrix <- add_vector_to_each_row(matrix(0, nrow = 1, ncol = length(y)), log(sf))
+  Y <- matrix(y, nrow = 1)
+  disp_init <- estimate_dispersions_roughly(Y, model_matrix, offset_matrix = offset_matrix)
+  beta_init <- estimate_betas_roughly(Y, model_matrix, offset_matrix = offset_matrix)
+  beta_res <- estimate_betas_fisher_scoring(Y, model_matrix = model_matrix, offset_matrix = offset_matrix,
+                                                        dispersions = disp_init, beta_mat_init = beta_init)
+  beta_res
+  expect_lt(beta_res$deviances, 100)
+  expect_true(all(calculate_mu(beta_res$Beta, model_matrix, offset_matrix) < 1e5))
+  # betaRes <- fitBeta_fisher_scoring(Y, model_matrix, exp(offset_matrix), thetas = disp_init, beta_matSEXP = beta_init,
+  #                                   ridge_penalty = 1e-6, tolerance = 1e-8, max_iter =  1000)
+  # betaRes
+})
+
+
 test_that("Groupwise beta estimation works", {
 
   mat <- matrix(1:32, nrow = 8, ncol = 4)
@@ -255,10 +281,10 @@ test_that("Fisher scoring and diagonal fisher scoring give consistent results", 
   beta_mat_init <- estimate_betas_roughly(Y = data$Y, model_matrix = data$X, offset_matrix = offset_matrix)
   res1 <- fitBeta_fisher_scoring(Y = data$Y, model_matrix = data$X, exp_offset_matrix = exp(offset_matrix),
                                  thetas = data$overdispersion, beta_matSEXP = beta_mat_init, ridge_penalty = 0,
-                                 tolerance = 1e-8, max_iter =  100)
+                                 tolerance = 1e-8, max_rel_mu_change = 1e5, max_iter =  100)
   res2 <- fitBeta_diagonal_fisher_scoring(Y = data$Y, model_matrix = data$X, exp_offset_matrix = exp(offset_matrix),
                                  thetas = data$overdispersion, beta_matSEXP = beta_mat_init,
-                                 tolerance = 1e-8, max_iter =  100)
+                                 tolerance = 1e-8, max_rel_mu_change = 1e5, max_iter =  100)
   expect_equal(res1, res2  )
 
   set.seed(1)
@@ -273,10 +299,10 @@ test_that("Fisher scoring and diagonal fisher scoring give consistent results", 
   beta_mat_init <- estimate_betas_roughly(Y = data$Y, model_matrix = new_model_matrix, offset_matrix = offset_matrix)
   res1 <- fitBeta_fisher_scoring(Y = data$Y, model_matrix = new_model_matrix, exp_offset_matrix = exp(offset_matrix),
                                  thetas = data$overdispersion, beta_matSEXP = beta_mat_init, ridge_penalty = 0,
-                                 tolerance = 1e-8, max_iter =  100)
+                                 tolerance = 1e-8, max_rel_mu_change = 1e5, max_iter =  100)
   res2 <- fitBeta_diagonal_fisher_scoring(Y = data$Y, model_matrix = new_model_matrix, exp_offset_matrix = exp(offset_matrix),
                                           thetas = data$overdispersion, beta_matSEXP = beta_mat_init,
-                                          tolerance = 1e-8, max_iter =  1000)
+                                          tolerance = 1e-8, max_rel_mu_change = 1e5, max_iter =  1000)
   expect_gt(cor(c(res1$beta_mat), c(res2$beta_mat)), 0.99)
   expect_gt(res2$iter, res1$iter)
 })
@@ -291,10 +317,10 @@ test_that("Fisher scoring and ridge penalized fisher scoring give consistent res
   beta_mat_init <- estimate_betas_roughly(Y = data$Y, model_matrix = data$X, offset_matrix = offset_matrix)
   res1 <- fitBeta_fisher_scoring(Y = data$Y, model_matrix = data$X, exp_offset_matrix = exp(offset_matrix),
                                  thetas = data$overdispersion, beta_matSEXP = beta_mat_init, ridge_penalty = 0,
-                                 tolerance = 1e-8, max_iter =  100)
+                                 tolerance = 1e-8, max_rel_mu_change = 1e5, max_iter =  100)
   res2 <- fitBeta_fisher_scoring(Y = data$Y, model_matrix = data$X, exp_offset_matrix = exp(offset_matrix),
                                  thetas = data$overdispersion, beta_matSEXP = beta_mat_init, ridge_penalty = 1e-6,
-                                 tolerance = 1e-8, max_iter =  100)
+                                 tolerance = 1e-8, max_rel_mu_change = 1e5, max_iter =  100)
   expect_equal(res1, res2)
 
   set.seed(1)
@@ -309,13 +335,13 @@ test_that("Fisher scoring and ridge penalized fisher scoring give consistent res
   beta_mat_init <- estimate_betas_roughly(Y = data$Y[,1:size,drop=FALSE], model_matrix = new_model_matrix, offset_matrix = offset_matrix[,1:size,drop=FALSE])
   res1 <- fitBeta_fisher_scoring(Y = data$Y[,1:size,drop=FALSE], model_matrix = new_model_matrix, exp_offset_matrix = exp(offset_matrix)[,1:size,drop=FALSE],
                                  thetas = data$overdispersion, beta_matSEXP = beta_mat_init, ridge_penalty = 0,
-                                 tolerance = 1e-8, max_iter =  100)
+                                 tolerance = 1e-8, max_rel_mu_change = 1e5, max_iter =  100)
   res2 <- fitBeta_fisher_scoring(Y = data$Y[,1:size,drop=FALSE], model_matrix = new_model_matrix, exp_offset_matrix = exp(offset_matrix)[,1:size,drop=FALSE],
                                  thetas = data$overdispersion, beta_matSEXP = beta_mat_init, ridge_penalty = 1e-30,
-                                 tolerance = 1e-8, max_iter =  100)
+                                 tolerance = 1e-8, max_rel_mu_change = 1e5, max_iter =  100)
   res3 <- fitBeta_fisher_scoring(Y = data$Y[,1:size,drop=FALSE], model_matrix = new_model_matrix, exp_offset_matrix = exp(offset_matrix)[,1:size,drop=FALSE],
                                  thetas = data$overdispersion, beta_matSEXP = beta_mat_init, ridge_penalty = 50,
-                                 tolerance = 1e-8, max_iter =  100)
+                                 tolerance = 1e-8, max_rel_mu_change = 1e5, max_iter =  100)
   expect_equal(res1, res2)
   expect_lt(res3$beta_mat[6], res1$beta_mat[6])  # The age column is much smaller
 })

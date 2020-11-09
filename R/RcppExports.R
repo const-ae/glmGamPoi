@@ -9,12 +9,12 @@ get_row_groups <- function(matrix, n_groups, tolerance = 1e-10) {
     .Call(`_glmGamPoi_get_row_groups`, matrix, n_groups, tolerance)
 }
 
-fitBeta_fisher_scoring <- function(Y, model_matrix, exp_offset_matrix, thetas, beta_matSEXP, ridge_penalty, tolerance, max_iter) {
-    .Call(`_glmGamPoi_fitBeta_fisher_scoring`, Y, model_matrix, exp_offset_matrix, thetas, beta_matSEXP, ridge_penalty, tolerance, max_iter)
+fitBeta_fisher_scoring <- function(Y, model_matrix, exp_offset_matrix, thetas, beta_matSEXP, ridge_penalty, tolerance, max_rel_mu_change, max_iter) {
+    .Call(`_glmGamPoi_fitBeta_fisher_scoring`, Y, model_matrix, exp_offset_matrix, thetas, beta_matSEXP, ridge_penalty, tolerance, max_rel_mu_change, max_iter)
 }
 
-fitBeta_diagonal_fisher_scoring <- function(Y, model_matrix, exp_offset_matrix, thetas, beta_matSEXP, tolerance, max_iter) {
-    .Call(`_glmGamPoi_fitBeta_diagonal_fisher_scoring`, Y, model_matrix, exp_offset_matrix, thetas, beta_matSEXP, tolerance, max_iter)
+fitBeta_diagonal_fisher_scoring <- function(Y, model_matrix, exp_offset_matrix, thetas, beta_matSEXP, tolerance, max_rel_mu_change, max_iter) {
+    .Call(`_glmGamPoi_fitBeta_diagonal_fisher_scoring`, Y, model_matrix, exp_offset_matrix, thetas, beta_matSEXP, tolerance, max_rel_mu_change, max_iter)
 }
 
 fitBeta_one_group <- function(Y, offset_matrix, thetas, beta_start_values, tolerance, maxIter) {

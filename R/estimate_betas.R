@@ -32,7 +32,7 @@ estimate_betas_fisher_scoring <- function(Y, model_matrix, offset_matrix,
 
 
   betaRes <- fitBeta_fisher_scoring(Y, model_matrix, exp(offset_matrix), dispersions, beta_mat_init,
-                                    ridge_penalty = 1e-6, tolerance = 1e-8, max_iter =  1000)
+                                    ridge_penalty = 1e-6, tolerance = 1e-8, max_rel_mu_change = 1e5, max_iter =  1000)
 
   list(Beta = betaRes$beta_mat, iterations = betaRes$iter, deviances = betaRes$deviance)
 }
