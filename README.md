@@ -196,10 +196,10 @@ bench::mark(
 #> # A tibble: 4 x 6
 #>   expression               min   median `itr/sec` mem_alloc `gc/sec`
 #>   <bch:expr>          <bch:tm> <bch:tm>     <dbl> <bch:byt>    <dbl>
-#> 1 glmGamPoi_in_memory    1.14s    1.17s    0.824   523.16MB    3.29 
-#> 2 glmGamPoi_on_disk      4.22s    4.41s    0.225   851.75MB    1.20 
-#> 3 DESeq2                20.13s   20.28s    0.0493    1.16GB    0.362
-#> 4 edgeR                  5.49s     5.6s    0.179     1.19GB    0.894
+#> 1 glmGamPoi_in_memory    1.15s    1.19s    0.834   523.55MB    3.06 
+#> 2 glmGamPoi_on_disk      3.61s    3.65s    0.259   852.14MB    1.47 
+#> 3 DESeq2                19.79s   20.11s    0.0495    1.16GB    0.330
+#> 4 edgeR                  5.36s    5.38s    0.186     1.19GB    1.36
 ```
 
 On this dataset, `glmGamPoi` is more than 5 times faster than `edgeR`
@@ -348,7 +348,7 @@ sessionInfo()
 #>  [1] TENxPBMCData_1.6.0          HDF5Array_1.16.1           
 #>  [3] rhdf5_2.32.0                SingleCellExperiment_1.10.1
 #>  [5] DelayedMatrixStats_1.10.1   SummarizedExperiment_1.18.1
-#>  [7] DelayedArray_0.14.0         matrixStats_0.56.0         
+#>  [7] DelayedArray_0.14.0         matrixStats_0.57.0-9000    
 #>  [9] Biobase_2.48.0              GenomicRanges_1.40.0       
 #> [11] GenomeInfoDb_1.24.0         IRanges_2.22.1             
 #> [13] S4Vectors_0.26.0            BiocGenerics_0.34.0        
@@ -365,18 +365,18 @@ sessionInfo()
 #> [15] cli_2.0.2                     scales_1.1.0                 
 #> [17] bench_1.1.1                   genefilter_1.70.0            
 #> [19] rappdirs_0.3.1                stringr_1.4.0                
-#> [21] digest_0.6.25                 rmarkdown_2.1                
+#> [21] digest_0.6.26                 rmarkdown_2.5                
 #> [23] XVector_0.28.0                pkgconfig_2.0.3              
-#> [25] htmltools_0.4.0               dbplyr_1.4.3                 
+#> [25] htmltools_0.5.0               dbplyr_1.4.3                 
 #> [27] fastmap_1.0.1                 limma_3.44.1                 
-#> [29] rlang_0.4.6                   RSQLite_2.2.0                
+#> [29] rlang_0.4.8                   RSQLite_2.2.0                
 #> [31] shiny_1.4.0.2                 generics_0.0.2               
 #> [33] BiocParallel_1.22.0           dplyr_1.0.0                  
 #> [35] RCurl_1.98-1.2                magrittr_1.5                 
 #> [37] GenomeInfoDbData_1.2.3        Matrix_1.2-18                
 #> [39] fansi_0.4.1                   Rcpp_1.0.4.6                 
 #> [41] munsell_0.5.0                 Rhdf5lib_1.10.0              
-#> [43] lifecycle_0.2.0               stringi_1.4.6                
+#> [43] lifecycle_0.2.0               stringi_1.5.3                
 #> [45] yaml_2.2.1                    edgeR_3.27.8                 
 #> [47] zlibbioc_1.34.0               BiocFileCache_1.12.0         
 #> [49] AnnotationHub_2.20.0          grid_4.0.0                   
@@ -385,14 +385,14 @@ sessionInfo()
 #> [55] lattice_0.20-41               profmem_0.5.0                
 #> [57] beachmat_2.4.0                splines_4.0.0                
 #> [59] annotate_1.66.0               locfit_1.5-9.4               
-#> [61] knitr_1.28                    pillar_1.4.4                 
+#> [61] knitr_1.30                    pillar_1.4.4                 
 #> [63] geneplotter_1.66.0            XML_3.99-0.3                 
-#> [65] glue_1.4.0                    BiocVersion_3.11.1           
+#> [65] glue_1.4.2                    BiocVersion_3.11.1           
 #> [67] evaluate_0.14                 BiocManager_1.30.10          
 #> [69] vctrs_0.3.1                   httpuv_1.5.2                 
 #> [71] gtable_0.3.0                  purrr_0.3.4                  
 #> [73] assertthat_0.2.1              ggplot2_3.3.0                
-#> [75] xfun_0.13                     mime_0.9                     
+#> [75] xfun_0.18                     mime_0.9                     
 #> [77] xtable_1.8-4                  later_1.0.0                  
 #> [79] survival_3.1-12               tibble_3.0.1                 
 #> [81] AnnotationDbi_1.50.0          memoise_1.1.0                
