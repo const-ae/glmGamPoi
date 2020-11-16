@@ -190,57 +190,117 @@ The method scales linearly, with the number of rows and columns in the dataset. 
 
 ## Differential expression analysis
 
-`glmGamPoi` provides an interface to do quasi-likelihood ratio testing to identify differentially expressed genes:
+`glmGamPoi` provides an interface to do quasi-likelihood ratio testing to identify differentially expressed genes. To demonstrate this feature, we will use the data from [Kang _et al._ (2018)](https://www.ncbi.nlm.nih.gov/pubmed/29227470) provided by the `MuscData` package. This is a single cell dataset of 8 Lupus patients for which 10x droplet-based scRNA-seq was performed before and after treatment with interferon beta. The `SingleCellExperiment` object conveniently provides the patient id (`ind`), treatment status (`stim`) and cell type (`cell`):
 
 ```{r}
-# Create random categorical assignment to demonstrate DE
-group <- sample(c("Group1", "Group2"), size = ncol(pbmcs_subset), replace = TRUE)
-
-# Fit model with group vector as design
-fit <- glm_gp(pbmcs_subset, design = group)
-# Compare against model without group 
-res <- test_de(fit, reduced_design = ~ 1)
-# Look at first 6 genes
-head(res)
+sce <- muscData::Kang18_8vs8()
+colData(sce)
 ```
 
-The p-values agree well with the ones that `edgeR` is calculating. This is because `glmGamPoi` uses the same framework of quasi-likelihood ratio tests that was invented by `edgeR` and is described in [Lund et al. (2012)](https://doi.org/10.1515/1544-6115.1826).
-
-```{r fig.height=3, fig.width=3, warning=FALSE, message=FALSE}
-model_matrix <- model.matrix(~ group, data = data.frame(group = group))
-edgeR_data <- edgeR::DGEList(pbmcs_subset)
-edgeR_data <- edgeR::calcNormFactors(edgeR_data)
-edgeR_data <- edgeR::estimateDisp(edgeR_data, design = model_matrix)
-edgeR_fit <- edgeR::glmQLFit(edgeR_data, design = model_matrix)
-edgeR_test <- edgeR::glmQLFTest(edgeR_fit, coef = 2)
-edgeR_res <- edgeR::topTags(edgeR_test, sort.by = "none", n = nrow(pbmcs_subset))
-```
-
-
-```{r fig.height=4, fig.width=3, warning=FALSE, message=FALSE, echo = FALSE}
-par(cex.main = 2, cex.lab = 1.5)
-plot(res$pval, edgeR_res$table$PValue, pch = 16, log = "xy",
-     main = "p-values", xlab = "glmGamPoi", ylab = "edgeR")
-abline(0,1)
-```
-
-
-#### Pseudobulk
-
-Be very careful how you interpret the p-values of a single cell experiment. Cells that come from one individual are not independent replicates. That means that you cannot turn your RNA-seq experiment with 3 treated and 3 control samples into a 3000 vs 3000 experiment by measuring 1000 cells per sample. The actual unit of replication are still the 3 samples in each condition. 
-
-Nonetheless, single cell data is valuable because it allows you to compare the effect of a treatment on specific cell types. The simplest way to do such a test is called pseudobulk. This means that the data is subset to the cells of a specific cell type. Then the counts of cells from the same sample are combined to form a "pseudobulk" sample. The `test_de()` function of glmGamPoi supports this feature directly through the `pseudobulk_by` and `subset_to` parameters:
+For demonstration purpose, I will work on a subset of the genes and cells:
 
 ```{r}
-# say we have cell type labels for each cell and know from which sample they come originally
-sample_labels <- rep(paste0("sample_", 1:6), length = ncol(pbmcs_subset))
-cell_type_labels <- sample(c("T-cells", "B-cells", "Macrophages"), ncol(pbmcs_subset), replace = TRUE)
-
-test_de(fit, contrast = Group1 - Group2,
-        pseudobulk_by = sample_labels, 
-        subset_to = cell_type_labels == "T-cells",
-        n_max = 4, sort_by = pval, decreasing = FALSE)
+set.seed(1)
+# Take highly expressed genes and proper cells:
+sce_subset <- sce[rowSums(counts(sce)) > 100, 
+                  sample(which(sce$multiplets == "singlet" & 
+                              ! is.na(sce$cell) &
+                              sce$cell %in% c("CD4 T cells", "B cells", "NK cells")), 
+                         1000)]
+# Convert counts to dense matrix
+counts(sce_subset) <- as.matrix(counts(sce_subset))
+# Remove empty levels because glm_gp() will complain otherwise
+sce_subset$cell <- droplevels(sce_subset$cell)
 ```
+
+We will identify which genes in CD4 positive T-cells are changed most by the treatment. We will fit a full model including the interaction term `stim:cell`. The interaction term will help us identify cell type specific responses to the treatment:
+
+```{r}
+fit <- glm_gp(sce_subset, design = ~ cell + stim +  stim:cell - 1,
+              reference_level = "NK cells")
+summary(fit)
+```
+
+
+To see how the coefficient of our model are called, we look at the `colnames(fit$Beta)`:
+
+```{r}
+colnames(fit$Beta)
+```
+
+
+In our example, we want to find the genes that change specifically in T cells. Finding cell type specific responses to a treatment is a big advantage of single cell data over bulk data. To get a proper estimate of the uncertainty (cells from the same donor are **not** independent replicates), we create a pseudobulk for each sample:
+
+```{r}
+# The contrast argument specifies what we want to compare
+# We test the expression difference of stimulated and control T-cells
+#
+# There is no sample label in the colData, so we create it on the fly
+# (paste0(stim, "-", ind)) to aggregate the counts by sample
+de_res <- test_de(fit, contrast = `stimstim` + `cellCD4 T cells:stimstim`, 
+                  pseudobulk_by = paste0(stim, "-", ind)) 
+
+# The large `lfc` values come from groups were nearly all counts are 0
+# Setting them to Inf makes the plots look nicer
+de_res$lfc = ifelse(abs(de_res$lfc) > 20, sign(de_res$lfc) * Inf, de_res$lfc)
+
+# Most different genes
+head(de_res[order(de_res$pval), ])
+```
+
+The test is successful and we identify interesting genes that are differentially expressed in interferon-stimulated T cells:  _IFI6_, _IFIT3_, and _IRF7_ literally stand for _Interferon Induced/Regulated Protein_.
+
+To get a more complete overview of the results, we can make a volcano plot that compares the log2-fold change (LFC) vs the logarithmized p-values.
+
+```{r}
+library(ggplot2)
+ggplot(de_res, aes(x = lfc, y = -log10(pval))) +
+  geom_point(size = 0.6, aes(color = adj_pval < 0.1)) +
+  ggtitle("Volcano Plot", "Genes that change most through\ninterferon-beta treatment in T cells")
+```
+
+
+Another important task in single cell data analysis is the identification of marker genes for cell clusters. For this we can also use our Gamma-Poisson fit. 
+
+Let's assume we want to find genes that differ between T cells and the B cells. We can directly compare the corresponding coefficients and find genes that differ in the control condition:
+
+```{r}
+marker_genes <- test_de(fit, `cellCD4 T cells` - `cellB cells`, sort_by = pval)
+head(marker_genes)
+```
+
+If we want find genes that differ in the stimulated condition, we just include the additional coefficients in the contrast:
+
+```{r}
+marker_genes2 <- test_de(fit, (`cellCD4 T cells` + `cellCD4 T cells:stimstim`) - 
+                               (`cellB cells` + `cellB cells:stimstim`), 
+                        sort_by = pval)
+
+head(marker_genes2)
+```
+
+Unsurprisingly, we identify many genes related to the human leukocyte antigen (HLA) system that is important for antigen presenting cells like B-cells, but are not expressed by T helper cells. The plot below shows the expression differences.
+
+A note of caution: applying `test_de()` to single cell data without the pseudobulk gives overly optimistic p-values. This is due to the fact that cells from the same sample are not independent replicates! It can still be fine to use the method for identifying marker genes, as long as one is aware of the difficulties interpreting the results.
+
+```{r}
+# Create a data.frame with the expression values, gene names, and cell types
+tmp <- data.frame(gene = rep(marker_genes$name[1:6], times = ncol(sce_subset)),
+                  expression = c(counts(sce_subset)[marker_genes$name[1:6], ]),
+                  celltype = rep(sce_subset$cell, each = 6))
+
+ggplot(tmp, aes(x = celltype, y = expression)) +
+  geom_jitter(height = 0.1) +
+  stat_summary(geom = "crossbar", fun = "mean", color = "red") +
+  facet_wrap(~ gene, scales = "free_y") +
+  ggtitle("Marker genes of B vs. T cells")
+```
+
+
+
+
+
+
 
 
 # Session Info
@@ -248,8 +308,6 @@ test_de(fit, contrast = Group1 - Group2,
 ```{r}
 sessionInfo()
 ```
-
-
 
 
 

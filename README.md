@@ -196,10 +196,10 @@ bench::mark(
 #> # A tibble: 4 x 6
 #>   expression               min   median `itr/sec` mem_alloc `gc/sec`
 #>   <bch:expr>          <bch:tm> <bch:tm>     <dbl> <bch:byt>    <dbl>
-#> 1 glmGamPoi_in_memory    1.15s    1.19s    0.834   523.55MB    3.06 
-#> 2 glmGamPoi_on_disk      3.61s    3.65s    0.259   852.14MB    1.47 
-#> 3 DESeq2                19.79s   20.11s    0.0495    1.16GB    0.330
-#> 4 edgeR                  5.36s    5.38s    0.186     1.19GB    1.36
+#> 1 glmGamPoi_in_memory    1.28s    1.29s    0.767   523.55MB    3.07 
+#> 2 glmGamPoi_on_disk      3.82s    4.36s    0.227   852.14MB    1.44 
+#> 3 DESeq2                20.98s   21.38s    0.0465    1.16GB    0.372
+#> 4 edgeR                  5.69s     5.7s    0.175     1.19GB    1.29
 ```
 
 On this dataset, `glmGamPoi` is more than 5 times faster than `edgeR`
@@ -254,76 +254,232 @@ over 4 minutes. Fitting the `pbmc68k` (17x the size) takes \~73 minutes
 ## Differential expression analysis
 
 `glmGamPoi` provides an interface to do quasi-likelihood ratio testing
-to identify differentially expressed genes:
+to identify differentially expressed genes. To demonstrate this feature,
+we will use the data from [Kang *et al.*
+(2018)](https://www.ncbi.nlm.nih.gov/pubmed/29227470) provided by the
+`MuscData` package. This is a single cell dataset of 8 Lupus patients
+for which 10x droplet-based scRNA-seq was performed before and after
+treatment with interferon beta. The `SingleCellExperiment` object
+conveniently provides the patient id (`ind`), treatment status (`stim`)
+and cell type (`cell`):
 
 ``` r
-# Create random categorical assignment to demonstrate DE
-group <- sample(c("Group1", "Group2"), size = ncol(pbmcs_subset), replace = TRUE)
-
-# Fit model with group vector as design
-fit <- glm_gp(pbmcs_subset, design = group)
-# Compare against model without group 
-res <- test_de(fit, reduced_design = ~ 1)
-# Look at first 6 genes
-head(res)
-#>              name      pval  adj_pval f_statistic df1      df2 lfc
-#> 1 ENSG00000126457 0.2385897 0.8863222 1.389282668   1 4420.177  NA
-#> 2 ENSG00000109832 0.6491580 0.9275674 0.206991593   1 4420.177  NA
-#> 3 ENSG00000237339 0.4375426 0.9053288 0.602828041   1 4420.177  NA
-#> 4 ENSG00000075234 0.3118470 0.8877735 1.023070971   1 4420.177  NA
-#> 5 ENSG00000161057 0.9429562 0.9870834 0.005120673   1 4420.177  NA
-#> 6 ENSG00000151366 0.5245737 0.9225491 0.404956209   1 4420.177  NA
+sce <- muscData::Kang18_8vs8()
+#> snapshotDate(): 2020-04-27
+#> snapshotDate(): 2020-04-27
+#> see ?muscData and browseVignettes('muscData') for documentation
+#> loading from cache
+colData(sce)
+#> DataFrame with 29065 rows and 5 columns
+#>                        ind     stim   cluster            cell multiplets
+#>                  <integer> <factor> <integer>        <factor>   <factor>
+#> AAACATACAATGCC-1       107     ctrl         5 CD4 T cells        doublet
+#> AAACATACATTTCC-1      1016     ctrl         9 CD14+ Monocytes    singlet
+#> AAACATACCAGAAA-1      1256     ctrl         9 CD14+ Monocytes    singlet
+#> AAACATACCAGCTA-1      1256     ctrl         9 CD14+ Monocytes    doublet
+#> AAACATACCATGCA-1      1488     ctrl         3 CD4 T cells        singlet
+#> ...                    ...      ...       ...             ...        ...
+#> TTTGCATGCTAAGC-1       107     stim         6     CD4 T cells    singlet
+#> TTTGCATGGGACGA-1      1488     stim         6     CD4 T cells    singlet
+#> TTTGCATGGTGAGG-1      1488     stim         6     CD4 T cells    ambs   
+#> TTTGCATGGTTTGG-1      1244     stim         6     CD4 T cells    ambs   
+#> TTTGCATGTCTTAC-1      1016     stim         5     CD4 T cells    singlet
 ```
 
-The p-values agree well with the ones that `edgeR` is calculating. This
-is because `glmGamPoi` uses the same framework of quasi-likelihood ratio
-tests that was invented by `edgeR` and is described in [Lund et
-al. (2012)](https://doi.org/10.1515/1544-6115.1826).
+For demonstration purpose, I will work on a subset of the genes and
+cells:
 
 ``` r
-model_matrix <- model.matrix(~ group, data = data.frame(group = group))
-edgeR_data <- edgeR::DGEList(pbmcs_subset)
-edgeR_data <- edgeR::calcNormFactors(edgeR_data)
-edgeR_data <- edgeR::estimateDisp(edgeR_data, design = model_matrix)
-edgeR_fit <- edgeR::glmQLFit(edgeR_data, design = model_matrix)
-edgeR_test <- edgeR::glmQLFTest(edgeR_fit, coef = 2)
-edgeR_res <- edgeR::topTags(edgeR_test, sort.by = "none", n = nrow(pbmcs_subset))
+set.seed(1)
+# Take highly expressed genes and proper cells:
+sce_subset <- sce[rowSums(counts(sce)) > 100, 
+                  sample(which(sce$multiplets == "singlet" & 
+                              ! is.na(sce$cell) &
+                              sce$cell %in% c("CD4 T cells", "B cells", "NK cells")), 
+                         1000)]
+# Convert counts to dense matrix
+counts(sce_subset) <- as.matrix(counts(sce_subset))
+# Remove empty levels because glm_gp() will complain otherwise
+sce_subset$cell <- droplevels(sce_subset$cell)
 ```
 
-![](man/figures/README-unnamed-chunk-11-1.png)<!-- -->
-
-#### Pseudobulk
-
-Be very careful how you interpret the p-values of a single cell
-experiment. Cells that come from one individual are not independent
-replicates. That means that you cannot turn your RNA-seq experiment with
-3 treated and 3 control samples into a 3000 vs 3000 experiment by
-measuring 1000 cells per sample. The actual unit of replication are
-still the 3 samples in each condition.
-
-Nonetheless, single cell data is valuable because it allows you to
-compare the effect of a treatment on specific cell types. The simplest
-way to do such a test is called pseudobulk. This means that the data is
-subset to the cells of a specific cell type. Then the counts of cells
-from the same sample are combined to form a “pseudobulk” sample. The
-`test_de()` function of glmGamPoi supports this feature directly through
-the `pseudobulk_by` and `subset_to` parameters:
+We will identify which genes in CD4 positive T-cells are changed most by
+the treatment. We will fit a full model including the interaction term
+`stim:cell`. The interaction term will help us identify cell type
+specific responses to the treatment:
 
 ``` r
-# say we have cell type labels for each cell and know from which sample they come originally
-sample_labels <- rep(paste0("sample_", 1:6), length = ncol(pbmcs_subset))
-cell_type_labels <- sample(c("T-cells", "B-cells", "Macrophages"), ncol(pbmcs_subset), replace = TRUE)
-
-test_de(fit, contrast = Group1 - Group2,
-        pseudobulk_by = sample_labels, 
-        subset_to = cell_type_labels == "T-cells",
-        n_max = 4, sort_by = pval, decreasing = FALSE)
-#>                name       pval adj_pval f_statistic df1     df2        lfc
-#> 218 ENSG00000158411 0.03539352        1    5.609945   1 12.0646  -15.89212
-#> 96  ENSG00000105610 0.04160948        1    5.195969   1 12.0646 1156.23142
-#> 110 ENSG00000134539 0.04802063        1    4.840090   1 12.0646   10.43825
-#> 107 ENSG00000162642 0.06805301        1    4.015867   1 12.0646  -16.94800
+fit <- glm_gp(sce_subset, design = ~ cell + stim +  stim:cell - 1,
+              reference_level = "NK cells")
+summary(fit)
+#> glmGamPoiFit object:
+#> The data had 9727 rows and 1000 columns.
+#> A model with 6 coefficient was fitted.
+#> The design formula is: Y~cell + stim + stim:cell - 1
+#> 
+#> Beta:
+#>                    Min   1st Qu. Median 3rd Qu.  Max
+#>    cellNK cells -1e+08 -1.00e+08  -3.74   -2.65 4.44
+#>     cellB cells -1e+08 -1.00e+08  -3.88   -2.94 4.47
+#> cellCD4 T cells -1e+08 -5.13e+00  -4.20   -3.05 4.50
+#> ...
+#> 
+#> deviance:
+#>  Min 1st Qu. Median 3rd Qu.  Max
+#>    0    61.9    114     251 5706
+#> 
+#> overdispersion:
+#>  Min 1st Qu. Median 3rd Qu.  Max
+#>    0       0  0.528    4.01 2762
+#> 
+#> Shrunken quasi-likelihood overdispersion:
+#>    Min 1st Qu. Median 3rd Qu. Max
+#>  0.188   0.994      1    1.07 363
+#> 
+#> size_factors:
+#>    Min 1st Qu. Median 3rd Qu.  Max
+#>  0.489   0.815   1.01     1.2 5.97
+#> 
+#> Mu:
+#>  Min 1st Qu. Median 3rd Qu. Max
+#>    0 0.00364  0.016  0.0498 537
 ```
+
+To see how the coefficient of our model are called, we look at the
+`colnames(fit$Beta)`:
+
+``` r
+colnames(fit$Beta)
+#> [1] "cellNK cells"             "cellB cells"             
+#> [3] "cellCD4 T cells"          "stimstim"                
+#> [5] "cellB cells:stimstim"     "cellCD4 T cells:stimstim"
+```
+
+In our example, we want to find the genes that change specifically in T
+cells. Finding cell type specific responses to a treatment is a big
+advantage of single cell data over bulk data. To get a proper estimate
+of the uncertainty (cells from the same donor are **not** independent
+replicates), we create a pseudobulk for each sample:
+
+``` r
+# The contrast argument specifies what we want to compare
+# We test the expression difference of stimulated and control T-cells
+#
+# There is no sample label in the colData, so we create it on the fly
+# (paste0(stim, "-", ind)) to aggregate the counts by sample
+de_res <- test_de(fit, contrast = `stimstim` + `cellCD4 T cells:stimstim`, 
+                  pseudobulk_by = paste0(stim, "-", ind)) 
+
+# The large `lfc` values come from groups were nearly all counts are 0
+# Setting them to Inf makes the plots look nicer
+de_res$lfc = ifelse(abs(de_res$lfc) > 20, sign(de_res$lfc) * Inf, de_res$lfc)
+
+# Most different genes
+head(de_res[order(de_res$pval), ])
+#>       name         pval     adj_pval f_statistic df1      df2        lfc
+#> 189   IFI6 1.192350e-07 0.0008470376    37.58943   1 52.03273   6.118008
+#> 6691 PSME2 1.741621e-07 0.0008470376    36.32494   1 52.03273   3.519394
+#> 5181 IFIT3 1.511251e-06 0.0048999779    29.46707   1 52.03273   7.872549
+#> 9689   MX1 5.424514e-06 0.0131910618    25.68213   1 52.03273   5.037912
+#> 5356  IRF7 1.095526e-05 0.0213123592    23.68273   1 52.03273   4.670868
+#> 2321   IGJ 1.490883e-05 0.0241697017    22.82425   1 52.03273 -12.445271
+```
+
+The test is successful and we identify interesting genes that are
+differentially expressed in interferon-stimulated T cells: *IFI6*,
+*IFIT3*, and *IRF7* literally stand for *Interferon Induced/Regulated
+Protein*.
+
+To get a more complete overview of the results, we can make a volcano
+plot that compares the log2-fold change (LFC) vs the logarithmized
+p-values.
+
+``` r
+library(ggplot2)
+ggplot(de_res, aes(x = lfc, y = -log10(pval))) +
+  geom_point(size = 0.6, aes(color = adj_pval < 0.1)) +
+  ggtitle("Volcano Plot", "Genes that change most through\ninterferon-beta treatment in T cells")
+```
+
+![](man/figures/README-unnamed-chunk-14-1.png)<!-- -->
+
+Another important task in single cell data analysis is the
+identification of marker genes for cell clusters. For this we can also
+use our Gamma-Poisson fit.
+
+Let’s assume we want to find genes that differ between T cells and the B
+cells. We can directly compare the corresponding coefficients and find
+genes that differ in the control condition:
+
+``` r
+marker_genes <- test_de(fit, `cellCD4 T cells` - `cellB cells`, sort_by = pval)
+head(marker_genes)
+#>                          name          pval      adj_pval f_statistic df1
+#> 2873                     CD74 9.414538e-198 9.157522e-194   1411.8278   1
+#> 3150  HLA-DRA_ENSG00000204287 7.389637e-180 3.593950e-176   1228.0745   1
+#> 3152 HLA-DRB1_ENSG00000196126 1.921033e-121 6.228630e-118    717.8697   1
+#> 9116    CD79A_ENSG00000105369  2.307338e-74  5.610869e-71    390.5803   1
+#> 3166 HLA-DPA1_ENSG00000231389  3.226069e-70  6.275995e-67    364.8244   1
+#> 3167 HLA-DPB1_ENSG00000223865  2.257490e-64  3.659768e-61    329.2877   1
+#>           df2       lfc
+#> 2873 1070.895 -5.052300
+#> 3150 1070.895 -7.143245
+#> 3152 1070.895 -6.993047
+#> 9116 1070.895 -7.282279
+#> 3166 1070.895 -5.004210
+#> 3167 1070.895 -4.257008
+```
+
+If we want find genes that differ in the stimulated condition, we just
+include the additional coefficients in the contrast:
+
+``` r
+marker_genes2 <- test_de(fit, (`cellCD4 T cells` + `cellCD4 T cells:stimstim`) - 
+                               (`cellB cells` + `cellB cells:stimstim`), 
+                        sort_by = pval)
+
+head(marker_genes2)
+#>                          name          pval      adj_pval f_statistic df1
+#> 2873                     CD74 8.764650e-187 8.525375e-183   1297.5198   1
+#> 3150  HLA-DRA_ENSG00000204287 5.304332e-175 2.579762e-171   1180.6034   1
+#> 3152 HLA-DRB1_ENSG00000196126 2.668295e-109 8.651501e-106    626.9933   1
+#> 3166 HLA-DPA1_ENSG00000231389  2.972347e-85  7.228005e-82    460.4820   1
+#> 3167 HLA-DPB1_ENSG00000223865  1.871362e-71  3.640548e-68    372.4584   1
+#> 9116    CD79A_ENSG00000105369  1.327524e-58  2.152138e-55    295.0837   1
+#>           df2           lfc
+#> 2873 1070.895 -4.753566e+00
+#> 3150 1070.895 -6.635859e+00
+#> 3152 1070.895 -5.969909e+00
+#> 3166 1070.895 -5.207105e+00
+#> 3167 1070.895 -5.086061e+00
+#> 9116 1070.895 -1.442695e+08
+```
+
+Unsurprisingly, we identify many genes related to the human leukocyte
+antigen (HLA) system that is important for antigen presenting cells like
+B-cells, but are not expressed by T helper cells. The plot below shows
+the expression differences.
+
+A note of caution: applying `test_de()` to single cell data without the
+pseudobulk gives overly optimistic p-values. This is due to the fact
+that cells from the same sample are not independent replicates\! It can
+still be fine to use the method for identifying marker genes, as long as
+one is aware of the difficulties interpreting the results.
+
+``` r
+# Create a data.frame with the expression values, gene names, and cell types
+tmp <- data.frame(gene = rep(marker_genes$name[1:6], times = ncol(sce_subset)),
+                  expression = c(counts(sce_subset)[marker_genes$name[1:6], ]),
+                  celltype = rep(sce_subset$cell, each = 6))
+
+ggplot(tmp, aes(x = celltype, y = expression)) +
+  geom_jitter(height = 0.1) +
+  stat_summary(geom = "crossbar", fun = "mean", color = "red") +
+  facet_wrap(~ gene, scales = "free_y") +
+  ggtitle("Marker genes of B vs. T cells")
+```
+
+![](man/figures/README-unnamed-chunk-17-1.png)<!-- -->
 
 # Session Info
 
@@ -345,57 +501,59 @@ sessionInfo()
 #> [8] methods   base     
 #> 
 #> other attached packages:
-#>  [1] TENxPBMCData_1.6.0          HDF5Array_1.16.1           
-#>  [3] rhdf5_2.32.0                SingleCellExperiment_1.10.1
-#>  [5] DelayedMatrixStats_1.10.1   SummarizedExperiment_1.18.1
-#>  [7] DelayedArray_0.14.0         matrixStats_0.57.0-9000    
-#>  [9] Biobase_2.48.0              GenomicRanges_1.40.0       
-#> [11] GenomeInfoDb_1.24.0         IRanges_2.22.1             
-#> [13] S4Vectors_0.26.0            BiocGenerics_0.34.0        
-#> [15] glmGamPoi_1.1.13           
+#>  [1] ggplot2_3.3.0               muscData_1.2.0             
+#>  [3] ExperimentHub_1.14.0        AnnotationHub_2.20.0       
+#>  [5] BiocFileCache_1.12.0        dbplyr_1.4.3               
+#>  [7] TENxPBMCData_1.6.0          HDF5Array_1.16.1           
+#>  [9] rhdf5_2.32.0                SingleCellExperiment_1.10.1
+#> [11] DelayedMatrixStats_1.10.1   SummarizedExperiment_1.18.1
+#> [13] DelayedArray_0.14.0         matrixStats_0.57.0-9000    
+#> [15] Biobase_2.48.0              GenomicRanges_1.40.0       
+#> [17] GenomeInfoDb_1.24.0         IRanges_2.22.1             
+#> [19] S4Vectors_0.26.0            BiocGenerics_0.34.0        
+#> [21] glmGamPoi_1.3.2            
 #> 
 #> loaded via a namespace (and not attached):
 #>  [1] bitops_1.0-6                  bit64_0.9-7                  
 #>  [3] RColorBrewer_1.1-2            httr_1.4.1                   
 #>  [5] tools_4.0.0                   utf8_1.1.4                   
 #>  [7] R6_2.4.1                      DBI_1.1.0                    
-#>  [9] colorspace_1.4-1              tidyselect_1.1.0             
-#> [11] DESeq2_1.29.10                bit_1.1-15.2                 
-#> [13] curl_4.3                      compiler_4.0.0               
-#> [15] cli_2.0.2                     scales_1.1.0                 
-#> [17] bench_1.1.1                   genefilter_1.70.0            
-#> [19] rappdirs_0.3.1                stringr_1.4.0                
-#> [21] digest_0.6.26                 rmarkdown_2.5                
-#> [23] XVector_0.28.0                pkgconfig_2.0.3              
-#> [25] htmltools_0.5.0               dbplyr_1.4.3                 
-#> [27] fastmap_1.0.1                 limma_3.44.1                 
-#> [29] rlang_0.4.8                   RSQLite_2.2.0                
-#> [31] shiny_1.4.0.2                 generics_0.0.2               
-#> [33] BiocParallel_1.22.0           dplyr_1.0.0                  
-#> [35] RCurl_1.98-1.2                magrittr_1.5                 
-#> [37] GenomeInfoDbData_1.2.3        Matrix_1.2-18                
-#> [39] fansi_0.4.1                   Rcpp_1.0.4.6                 
-#> [41] munsell_0.5.0                 Rhdf5lib_1.10.0              
-#> [43] lifecycle_0.2.0               stringi_1.5.3                
-#> [45] yaml_2.2.1                    edgeR_3.27.8                 
-#> [47] zlibbioc_1.34.0               BiocFileCache_1.12.0         
-#> [49] AnnotationHub_2.20.0          grid_4.0.0                   
+#>  [9] colorspace_1.4-1              withr_2.3.0                  
+#> [11] tidyselect_1.1.0              DESeq2_1.29.10               
+#> [13] bit_1.1-15.2                  curl_4.3                     
+#> [15] compiler_4.0.0                cli_2.0.2                    
+#> [17] labeling_0.3                  scales_1.1.0                 
+#> [19] bench_1.1.1                   genefilter_1.70.0            
+#> [21] rappdirs_0.3.1                stringr_1.4.0                
+#> [23] digest_0.6.26                 rmarkdown_2.5                
+#> [25] XVector_0.28.0                pkgconfig_2.0.3              
+#> [27] htmltools_0.5.0               fastmap_1.0.1                
+#> [29] limma_3.44.1                  rlang_0.4.8                  
+#> [31] RSQLite_2.2.0                 shiny_1.4.0.2                
+#> [33] farver_2.0.3                  generics_0.0.2               
+#> [35] BiocParallel_1.22.0           dplyr_1.0.0                  
+#> [37] RCurl_1.98-1.2                magrittr_1.5                 
+#> [39] GenomeInfoDbData_1.2.3        Matrix_1.2-18                
+#> [41] fansi_0.4.1                   Rcpp_1.0.4.6                 
+#> [43] munsell_0.5.0                 Rhdf5lib_1.10.0              
+#> [45] lifecycle_0.2.0               stringi_1.5.3                
+#> [47] yaml_2.2.1                    edgeR_3.27.8                 
+#> [49] zlibbioc_1.34.0               grid_4.0.0                   
 #> [51] blob_1.2.1                    promises_1.1.0               
-#> [53] ExperimentHub_1.14.0          crayon_1.3.4                 
-#> [55] lattice_0.20-41               profmem_0.5.0                
-#> [57] beachmat_2.4.0                splines_4.0.0                
-#> [59] annotate_1.66.0               locfit_1.5-9.4               
-#> [61] knitr_1.30                    pillar_1.4.4                 
-#> [63] geneplotter_1.66.0            XML_3.99-0.3                 
-#> [65] glue_1.4.2                    BiocVersion_3.11.1           
-#> [67] evaluate_0.14                 BiocManager_1.30.10          
-#> [69] vctrs_0.3.1                   httpuv_1.5.2                 
-#> [71] gtable_0.3.0                  purrr_0.3.4                  
-#> [73] assertthat_0.2.1              ggplot2_3.3.0                
-#> [75] xfun_0.18                     mime_0.9                     
-#> [77] xtable_1.8-4                  later_1.0.0                  
-#> [79] survival_3.1-12               tibble_3.0.1                 
-#> [81] AnnotationDbi_1.50.0          memoise_1.1.0                
-#> [83] ellipsis_0.3.0                interactiveDisplayBase_1.26.3
-#> [85] BiocStyle_2.16.0
+#> [53] crayon_1.3.4                  lattice_0.20-41              
+#> [55] profmem_0.5.0                 beachmat_2.4.0               
+#> [57] splines_4.0.0                 annotate_1.66.0              
+#> [59] locfit_1.5-9.4                knitr_1.30                   
+#> [61] pillar_1.4.4                  geneplotter_1.66.0           
+#> [63] XML_3.99-0.3                  glue_1.4.2                   
+#> [65] BiocVersion_3.11.1            evaluate_0.14                
+#> [67] BiocManager_1.30.10           vctrs_0.3.1                  
+#> [69] httpuv_1.5.2                  gtable_0.3.0                 
+#> [71] purrr_0.3.4                   assertthat_0.2.1             
+#> [73] xfun_0.18                     mime_0.9                     
+#> [75] xtable_1.8-4                  later_1.0.0                  
+#> [77] survival_3.1-12               tibble_3.0.1                 
+#> [79] AnnotationDbi_1.50.0          memoise_1.1.0                
+#> [81] ellipsis_0.3.0                interactiveDisplayBase_1.26.3
+#> [83] BiocStyle_2.16.0
 ```

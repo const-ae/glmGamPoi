@@ -28,6 +28,7 @@ Suggests:
     rmarkdown,
     BiocStyle,
     TENxPBMCData,
+    muscData,
     scran
 LinkingTo: 
     Rcpp,
