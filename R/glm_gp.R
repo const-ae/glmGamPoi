@@ -342,8 +342,8 @@ handle_design_parameter <- function(design, data, col_data, reference_level){
                 "specify a `model_matrix`, a `character vector`, or a `formula`."))
   }
 
-
-  if(nrow(model_matrix) != ncol(data)) stop("Number of rows in col_data does not match number of columns of data")
+  if(nrow(model_matrix) != ncol(data)) stop("Number of rows in col_data does not match number of columns of data.\n",
+                                            "Were there maybe 'NA's in the colData?")
   if(! is.null(rownames(model_matrix)) &&
      ! all(rownames(model_matrix) == as.character(seq_len(nrow(model_matrix)))) && # That's the default rownames
      ! is.null(colnames(data))){
