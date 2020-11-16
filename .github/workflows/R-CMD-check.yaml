@@ -38,6 +38,8 @@ jobs:
         if: ${{ runner.os == 'Linux'  }}
         run: |
           sudo apt-get install libcurl4-openssl-dev
+
+      - name: Install Mac system libraries
         if: ${{ matrix.config.os == 'macOS-latest' }}
         run: |
           brew install openssl
