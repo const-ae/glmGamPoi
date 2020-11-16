@@ -21,13 +21,11 @@ jobs:
       fail-fast: false
       matrix:
         config:
-          - { os: windows-latest, r: 'release', bioc: '3.11'}
-          - { os: macOS-latest, r: 'release', bioc: '3.11'}
-          - { os: macOS-latest, r: 'release', bioc: 'devel'}
-          - { os: ubuntu-16.04, r: 'release', bioc: '3.11', cran: "https://demo.rstudiopm.com/all/__linux__/xenial/latest"}
-          - { os: ubuntu-latest, r: 'release', image: 'bioconductor/bioconductor_docker:devel'}
-          - { os: ubuntu-latest, r: 'release', image: 'bioconductor/bioconductor_docker:RELEASE_3_11'}
-          - { os: ubuntu-latest, r: 'release', image: 'bioconductor/bioconductor_docker:RELEASE_3_10'}
+        - { os: windows-latest, r: '4.0'}
+        - { os: macOS-latest, r: '4.0'}
+        - { os: macOS-latest, r: 'devel'}
+        - { os: ubuntu-16.04, r: '4.0', cran: "https://packagemanager.rstudio.com/all/__linux__/xenial/latest"}
+        - { os: ubuntu-20.04, r: 'devel', cran: "https://packagemanager.rstudio.com/all/__linux__/focal/latest"}
 
     env:
       R_REMOTES_NO_ERRORS_FROM_WARNINGS: true
@@ -36,59 +34,43 @@ jobs:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
 
     steps:
-      - name: Check out repo
-        uses: actions/checkout@v2
+      - name: Install system libraries
+        if: ${{ runner.os == 'Linux'  }}
+        run: |
+          sudo apt-get install libcurl4-openssl-dev
+        if: ${{ matrix.config.os == 'macOS-latest' }}
+        run: |
+          brew install openssl
 
-      - name: Set up R
-        uses: r-lib/actions/setup-r@master
-        if: matrix.config.image == null
+      - uses: actions/checkout@v2
+
+      - uses: r-lib/actions/setup-r@master
         with:
           r-version: ${{ matrix.config.r }}
 
-      - name: Set up pandoc
-        uses: r-lib/actions/setup-pandoc@master
-        if: matrix.config.image == null
+      - uses: r-lib/actions/setup-pandoc@master
 
       - name: Install remotes
         run: |
           install.packages('remotes')
-        shell: Rscript {0}
-
-      - name: Set BiocManager version
-        if: matrix.config.image == null
-        run: |
-          install.packages('BiocManager')
-          BiocManager::install(version = "${{ matrix.config.bioc }}", ask = FALSE)
-        shell: Rscript {0}
-
-      - name: Query dependencies
-        run: |
-          saveRDS(remotes::dev_package_deps(dependencies = TRUE, repos = c(getOption('repos'), BiocManager::repositories())), 'depends.Rds', version = 2)
+          saveRDS(remotes::dev_package_deps(dependencies = TRUE), ".github/depends.Rds", version = 2)
         shell: Rscript {0}
 
       - name: Cache R packages
-        if: runner.os != 'Windows' && matrix.config.image == null
+        if: runner.os != 'Windows'
         uses: actions/cache@v1
         with:
           path: ${{ env.R_LIBS_USER }}
-          key: ${{ runner.os }}-r-${{ matrix.config.r }}-bioc-${{ matrix.config.bioc }}-${{ hashFiles('depends.Rds') }}
-          restore-keys: ${{ runner.os }}-r-${{ matrix.config.r }}-bioc-${{ matrix.config.bioc }}-
+          key: ${{ matrix.config.os }}-r-${{ matrix.config.r }}-1-${{ hashFiles('.github/depends.Rds') }}
+          restore-keys: ${{ matrix.config.os }}-r-${{ matrix.config.r }}-1-
 
-      - name: Install system dependencies
-        if: runner.os == 'Linux'
-        env:
-          RHUB_PLATFORM: linux-x86_64-ubuntu-gcc
-        run: |
-          Rscript -e "remotes::install_github('r-hub/sysreqs')"
-          sysreqs=$(Rscript -e "cat(sysreqs::sysreq_commands('DESCRIPTION'))")
-          sudo -s eval "$sysreqs"
-          sudo apt-get update && sudo apt-get -y install libcurl4-openssl-dev
       - name: Install dependencies
         run: |
-          local_deps <- remotes::local_package_deps(dependencies = TRUE)
-          deps <- remotes::dev_package_deps(dependencies = TRUE, repos = BiocManager::repositories())
-          BiocManager::install(local_deps[local_deps %in% deps$package[deps$diff != 0]], Ncpu = 2L)
-          remotes::install_cran('rcmdcheck', Ncpu = 2L)
+          install.packages(c('BiocManager', 'rcmdcheck', 'covr'))
+          BiocManager::install(ask = FALSE, update = TRUE)
+          toInstall <- remotes::dev_package_deps(dependencies = TRUE)[,'package']
+          toInstall <- setdiff(toInstall, installed.packages()[,'Package'])
+          if(length(toInstall)) { BiocManager::install(toInstall, ask = FALSE) }
         shell: Rscript {0}
 
       - name: Session info
