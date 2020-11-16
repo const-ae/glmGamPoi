@@ -242,7 +242,7 @@ test_de_q <- function(fit,
   lr <- fit_alt$deviances - fit$deviances
   df_test <- ncol(fit$model_matrix) - ncol(fit_alt$model_matrix)
   df_test <- ifelse(df_test == 0, NA, df_test)
-  df_fit <- fit$overdispersion_shrinkage_list$ql_df0 + (ncol(data) - ncol(fit_alt$model_matrix))
+  df_fit <- fit$overdispersion_shrinkage_list$ql_df0 + (ncol(data) - ncol(fit$model_matrix))
   f_stat <- lr / df_test / fit$overdispersion_shrinkage_list$ql_disp_shrunken
   pval <- pf(f_stat, df_test, df_fit, lower.tail = FALSE, log.p = FALSE)
   adj_pval <- p.adjust(pval, method = pval_adjust_method)
