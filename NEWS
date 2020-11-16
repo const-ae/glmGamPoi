@@ -1,6 +1,8 @@
 Changes in development version
 + Make sure that Fisher scoring does not converge to unrealistically
 large values of mu
++ Fix minor bug in test_de() concerning the calculation of the degree
+of freedom
 
 
 Version 1.2 (2020-11-09)
