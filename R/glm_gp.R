@@ -361,7 +361,7 @@ handle_design_parameter <- function(design, data, col_data, reference_level){
   if(ncol(model_matrix) >= ncol(data)){
     stop("The model_matrix:\n", format_matrix(head(model_matrix)), "\nhas more columns (", ncol(model_matrix),
          ") than the there are samples in the data matrix\n",
-         format_matrix(head(data[,seq_len(min(5, ncol(data))),drop=FALSE])),
+         format_matrix(head(data[,seq_len(min(5, ncol(data))),drop=FALSE], n = 3)),
          "\nwhich has ", ncol(data), " columns. ",
          "Too few replicates / too many coefficients to fit model.")
   }
@@ -371,10 +371,10 @@ handle_design_parameter <- function(design, data, col_data, reference_level){
   if(qr_mm$rank < ncol(model_matrix) && n_samples > 0){
     is_zero_column <- DelayedMatrixStats::colCounts(model_matrix, value = 0) == nrow(model_matrix)
     if(any(is_zero_column)){
-      stop("The model matrix:\n", format_matrix(head(model_matrix)), "\nseems degenerate ('matrix_rank(model_matrix) < ncol(model_matrix)'). ",
+      stop("The model matrix:\n", format_matrix(head(model_matrix, n = 3)), "\nseems degenerate ('matrix_rank(model_matrix) < ncol(model_matrix)'). ",
            "Column ", paste0(which(is_zero_column), collapse = ", "), " contains only zeros.")
     }else{
-      stop("The model matrix:\n", format_matrix(head(model_matrix)), "\nseems degenerate ('matrix_rank(model_matrix) < ncol(model_matrix)'). ",
+      stop("The model matrix:\n", format_matrix(head(model_matrix, n = 3)), "\nseems degenerate ('matrix_rank(model_matrix) < ncol(model_matrix)'). ",
            "Some columns are perfectly collinear. Did you maybe include the same coefficient twice?")
     }
   }
