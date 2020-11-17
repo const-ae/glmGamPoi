@@ -3,6 +3,8 @@ Changes in development version
 large values of mu
 + Fix minor bug in test_de() concerning the calculation of the degree
 of freedom
++ Improve vignette/Readme: add section on differential expression
+analysis with Kang et al. (2018) as example data
 
 
 Version 1.2 (2020-11-09)
