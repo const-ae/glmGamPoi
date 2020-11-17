@@ -196,10 +196,10 @@ bench::mark(
 #> # A tibble: 4 x 6
 #>   expression               min   median `itr/sec` mem_alloc `gc/sec`
 #>   <bch:expr>          <bch:tm> <bch:tm>     <dbl> <bch:byt>    <dbl>
-#> 1 glmGamPoi_in_memory    1.28s    1.29s    0.767   523.55MB    3.07 
-#> 2 glmGamPoi_on_disk      3.82s    4.36s    0.227   852.14MB    1.44 
-#> 3 DESeq2                20.98s   21.38s    0.0465    1.16GB    0.372
-#> 4 edgeR                  5.69s     5.7s    0.175     1.19GB    1.29
+#> 1 glmGamPoi_in_memory    1.27s    1.38s    0.650   523.55MB    2.17 
+#> 2 glmGamPoi_on_disk      4.78s    4.84s    0.205   852.14MB    1.02 
+#> 3 DESeq2                 22.4s    22.4s    0.0445    1.16GB    0.386
+#> 4 edgeR                  6.11s    6.16s    0.162     1.19GB    0.918
 ```
 
 On this dataset, `glmGamPoi` is more than 5 times faster than `edgeR`
@@ -366,13 +366,13 @@ replicates), we create a pseudobulk for each sample:
 # We test the expression difference of stimulated and control T-cells
 #
 # There is no sample label in the colData, so we create it on the fly
-# (paste0(stim, "-", ind)) to aggregate the counts by sample
+# from `stim` and `ind` columns in colData(fit$data).
 de_res <- test_de(fit, contrast = `stimstim` + `cellCD4 T cells:stimstim`, 
                   pseudobulk_by = paste0(stim, "-", ind)) 
 
 # The large `lfc` values come from groups were nearly all counts are 0
 # Setting them to Inf makes the plots look nicer
-de_res$lfc = ifelse(abs(de_res$lfc) > 20, sign(de_res$lfc) * Inf, de_res$lfc)
+de_res$lfc <- ifelse(abs(de_res$lfc) > 20, sign(de_res$lfc) * Inf, de_res$lfc)
 
 # Most different genes
 head(de_res[order(de_res$pval), ])
@@ -398,7 +398,7 @@ p-values.
 library(ggplot2)
 ggplot(de_res, aes(x = lfc, y = -log10(pval))) +
   geom_point(size = 0.6, aes(color = adj_pval < 0.1)) +
-  ggtitle("Volcano Plot", "Genes that change most through\ninterferon-beta treatment in T cells")
+  ggtitle("Volcano Plot", "Genes that change most through interferon-beta treatment in T cells")
 ```
 
 ![](man/figures/README-unnamed-chunk-14-1.png)<!-- -->
@@ -455,10 +455,10 @@ head(marker_genes2)
 #> 9116 1070.895 -1.442695e+08
 ```
 
-Unsurprisingly, we identify many genes related to the human leukocyte
-antigen (HLA) system that is important for antigen presenting cells like
-B-cells, but are not expressed by T helper cells. The plot below shows
-the expression differences.
+We identify many genes related to the human leukocyte antigen (HLA)
+system that is important for antigen presenting cells like B-cells, but
+are not expressed by T helper cells. The plot below shows the expression
+differences.
 
 A note of caution: applying `test_de()` to single cell data without the
 pseudobulk gives overly optimistic p-values. This is due to the fact
@@ -555,5 +555,5 @@ sessionInfo()
 #> [77] survival_3.1-12               tibble_3.0.1                 
 #> [79] AnnotationDbi_1.50.0          memoise_1.1.0                
 #> [81] ellipsis_0.3.0                interactiveDisplayBase_1.26.3
-#> [83] BiocStyle_2.16.0
+#> [83] BiocStyle_2.18.0
 ```

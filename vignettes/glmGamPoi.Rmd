@@ -236,13 +236,13 @@ In our example, we want to find the genes that change specifically in T cells. F
 # We test the expression difference of stimulated and control T-cells
 #
 # There is no sample label in the colData, so we create it on the fly
-# (paste0(stim, "-", ind)) to aggregate the counts by sample
+# from `stim` and `ind` columns in colData(fit$data).
 de_res <- test_de(fit, contrast = `stimstim` + `cellCD4 T cells:stimstim`, 
                   pseudobulk_by = paste0(stim, "-", ind)) 
 
 # The large `lfc` values come from groups were nearly all counts are 0
 # Setting them to Inf makes the plots look nicer
-de_res$lfc = ifelse(abs(de_res$lfc) > 20, sign(de_res$lfc) * Inf, de_res$lfc)
+de_res$lfc <- ifelse(abs(de_res$lfc) > 20, sign(de_res$lfc) * Inf, de_res$lfc)
 
 # Most different genes
 head(de_res[order(de_res$pval), ])
@@ -256,7 +256,7 @@ To get a more complete overview of the results, we can make a volcano plot that 
 library(ggplot2)
 ggplot(de_res, aes(x = lfc, y = -log10(pval))) +
   geom_point(size = 0.6, aes(color = adj_pval < 0.1)) +
-  ggtitle("Volcano Plot", "Genes that change most through\ninterferon-beta treatment in T cells")
+  ggtitle("Volcano Plot", "Genes that change most through interferon-beta treatment in T cells")
 ```
 
 
@@ -279,7 +279,7 @@ marker_genes2 <- test_de(fit, (`cellCD4 T cells` + `cellCD4 T cells:stimstim`) -
 head(marker_genes2)
 ```
 
-Unsurprisingly, we identify many genes related to the human leukocyte antigen (HLA) system that is important for antigen presenting cells like B-cells, but are not expressed by T helper cells. The plot below shows the expression differences.
+We identify many genes related to the human leukocyte antigen (HLA) system that is important for antigen presenting cells like B-cells, but are not expressed by T helper cells. The plot below shows the expression differences.
 
 A note of caution: applying `test_de()` to single cell data without the pseudobulk gives overly optimistic p-values. This is due to the fact that cells from the same sample are not independent replicates! It can still be fine to use the method for identifying marker genes, as long as one is aware of the difficulties interpreting the results.
 
