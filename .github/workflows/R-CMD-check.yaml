@@ -23,7 +23,6 @@ jobs:
         config:
         - { os: windows-latest, r: '4.0'}
         - { os: macOS-latest, r: '4.0'}
-        - { os: macOS-latest, r: 'devel'}
         - { os: ubuntu-16.04, r: '4.0', cran: "https://packagemanager.rstudio.com/all/__linux__/xenial/latest"}
         - { os: ubuntu-20.04, r: 'devel', cran: "https://packagemanager.rstudio.com/all/__linux__/focal/latest"}
 
@@ -38,11 +37,6 @@ jobs:
         if: ${{ runner.os == 'Linux'  }}
         run: |
           sudo apt-get install libcurl4-openssl-dev libglpk-dev
-
-      - name: Install Mac system libraries
-        if: ${{ matrix.config.os == 'macOS-latest' }}
-        run: |
-          brew install openssl curl
 
       - uses: actions/checkout@v2
 
