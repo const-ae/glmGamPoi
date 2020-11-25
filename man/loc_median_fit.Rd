@@ -30,7 +30,8 @@ This function fits y based on x through a (weighted) median using
 the \code{npoints/2} neighborhood.
 }
 \details{
-This function is low-level and should usually not be called by the user.
+This function is low-level implementation detail and should usually not be
+called by the user.
 }
 \examples{
   x <- runif(n = 1000, max = 4)
