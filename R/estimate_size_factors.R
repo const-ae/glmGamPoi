@@ -73,6 +73,10 @@ combine_size_factors_and_offset <- function(offset, size_factors, Y, verbose = F
   if(is.matrix(offset)){
     stopifnot(dim(offset) == c(n_genes, n_samples))
     offset_matrix <- offset
+  }else if(is(offset, "HDF5Matrix")){
+    stopifnot(dim(offset) == c(n_genes, n_samples))
+    stopifnot(make_offset_hdf5_mat)
+    offset_matrix <- offset
   }else{
     stopifnot(length(offset) == 1 || length(offset) == n_samples)
     if(make_offset_hdf5_mat){
