@@ -159,7 +159,8 @@ glm_gp_impl <- function(Y, model_matrix,
        overdispersions = disp_est,
        overdispersion_shrinkage_list = dispersion_shrinkage,
        deviances = beta_res$deviances,
-       Mu = Mu, size_factors = size_factors)
+       Mu = Mu, size_factors = size_factors,
+       Offset = offset_matrix)
 }
 
 

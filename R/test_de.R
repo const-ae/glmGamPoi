@@ -226,7 +226,8 @@ test_de_q <- function(fit,
   data <- fit$data
   do_on_disk <- is_on_disk.glmGamPoi(fit)
   fit_alt <- glm_gp(data, design = reduced_design,
-                    size_factors = fit$size_factors,
+                    size_factors = FALSE, # size factors are already in offset
+                    offset = fit$Offset,
                     overdispersion = disp_trend,
                     overdispersion_shrinkage = FALSE,
                     on_disk = do_on_disk)

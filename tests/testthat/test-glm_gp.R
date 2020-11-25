@@ -149,18 +149,21 @@ test_that("glm_gp can handle on_disk parameter", {
   fit_in_memory <- glm_gp(Y, design = ~ fav_food + city + age, col_data = data, on_disk = FALSE)
   fit_on_disk <- glm_gp(Y, design = ~ fav_food + city + age, col_data = data, on_disk = TRUE)
 
-  expect_equal(fit_in_memory[!names(fit_in_memory) %in% c("Mu", "data")], fit_on_disk[!names(fit_on_disk) %in% c("Mu", "data")])
+  expect_equal(fit_in_memory[!names(fit_in_memory) %in% c("Mu", "data", "Offset")], fit_on_disk[!names(fit_on_disk) %in% c("Mu", "data", "Offset")])
   expect_equal(c(fit_in_memory$Mu), c(fit_on_disk$Mu))
   expect_s4_class(fit_on_disk$Mu, "DelayedArray")
   expect_equal(c(assay(fit_in_memory$data)), c(assay(fit_on_disk$data)))
   expect_equal(class(fit_in_memory$data), class(fit_on_disk$data))
   expect_s4_class(assay(fit_on_disk$data), "DelayedArray")
+  expect_equal(c(fit_in_memory$Offset), c(fit_on_disk$Offset))
+  expect_s4_class(fit_on_disk$Offset, "DelayedArray")
 
 
   fit_on_disk2 <- glm_gp(Y_hdf5, design = ~ fav_food + city + age, col_data = data)
-  expect_equal(fit_on_disk[!names(fit_in_memory) %in% c("Mu", "data")], fit_on_disk2[!names(fit_on_disk2) %in% c("Mu", "data")])
+  expect_equal(fit_on_disk[!names(fit_in_memory) %in% c("Mu", "data", "Offset")], fit_on_disk2[!names(fit_on_disk2) %in% c("Mu", "data", "Offset")])
   expect_s4_class(fit_on_disk2$Mu, "DelayedArray")
   expect_s4_class(assay(fit_on_disk2$data), "DelayedArray")
+  expect_s4_class(fit_on_disk2$Offset, "DelayedArray")
 
   fit_in_memory2 <- glm_gp(Y_hdf5, design = ~ fav_food + city + age, col_data = data, on_disk = FALSE)
   expect_equal(fit_in_memory, fit_in_memory2)

@@ -133,6 +133,9 @@
 #'   \item{`size_factors`}{a vector with length `ncol(data)`. The size factors are the inferred
 #'   correction factors for different sizes of each sample. They are also sometimes called the
 #'   exposure factor.}
+#'   \item{`Offset`}{a matrix with the same dimensions as `dim(data)`. If the calculation happened on
+#'   disk, than `Offset` is a `HDF5Matrix`. It contains the `log(size_factors) + offset` from the
+#'   function call.}
 #'   \item{`data`}{a `SummarizedExperiment` that contains the input counts and the `col_data`}
 #'   \item{`model_matrix`}{a matrix with dimensions `ncol(data) x n_coefficients`. It is build based
 #'   on the `design` argument.}
@@ -248,6 +251,8 @@ glm_gp <- function(data,
   rownames(res$Beta) <- rownames(data)
   rownames(res$Mu) <- rownames(data)
   colnames(res$Mu) <- colnames(data)
+  rownames(res$Offset) <- rownames(data)
+  colnames(res$Offset) <- colnames(data)
   names(res$overdispersions) <- rownames(data)
   names(res$deviances) <- rownames(data)
   names(res$size_factors) <- colnames(data)

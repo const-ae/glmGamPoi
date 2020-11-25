@@ -131,4 +131,21 @@ test_that("Pseudo bulk produces same results as making it manually", {
 
 
 
+test_that("offset is correctly propagated in test_de()", {
+  Y <- matrix(rnbinom(n = 30 * 10, mu = 4, size = 0.3), nrow = 30, ncol  =10)
+  annot <- data.frame(group = sample(c("A", "B"), size = 10, replace = TRUE),
+                      cont1 = rnorm(10), cont2 = rnorm(10, mean = 30))
+  design <- model.matrix(~ group + cont1 + cont2, data = annot)
+  reduced_des <- model.matrix(~ group + cont1, data = annot)
 
+  fit1 <- glm_gp(Y, design = design)
+  offset <- matrix(log(fit1$size_factors), byrow = TRUE, nrow = nrow(Y), ncol = ncol(Y))
+  fit2 <- glm_gp(Y, design = design, offset = offset, size_factors = FALSE)
+
+  expect_equal(fit1[-6], fit2[-6])
+
+  res1 <- test_de(fit1, reduced_design = reduced_des)
+  res2 <- test_de(fit2, reduced_design = reduced_des)
+
+  expect_equal(res1, res2)
+})
