@@ -1,0 +1,17 @@
+citHeader("To cite glmGamPoi in publications use:")
+
+citEntry(
+  entry    = "Article",
+  title    = "glmGamPoi: Fitting Gamma-Poisson Generalized Linear Models on Single Cell Count Data",
+  author   = c(person("Constantin", "Ahlmann-Eltze"),
+               person("Wolfgang", "Huber")),
+  journal  = "Bioinformatics",
+  year     = 2020,
+  url      = "https://doi.org/10.1093/bioinformatics/btaa1009",
+  doi      = "10.1093/bioinformatics/btaa1009",
+  textVersion = paste(
+    "Constantin Ahlmann-Eltze and Wolfgang Huber (2020);",
+    "glmGamPoi: Fitting Gamma-Poisson Generalized Linear Models on Single Cell Count Data.",
+    "Bioinformatics"
+  )
+)
