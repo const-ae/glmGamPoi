@@ -6,7 +6,7 @@ delayed_matrix_apply_block <- function(Y, Mu, overdispersion, FUN){
     DelayedArray::close(res_sink)
   }, add = TRUE)
 
-  res_grid <- DelayedArray::blockGrid(res_sink)
+  res_grid <- DelayedArray::defaultAutoGrid(res_sink)
 
   for (coord1 in seq_len(ncol(res_grid))) {
     for(coord2 in seq_len(nrow(res_grid))){
@@ -29,7 +29,7 @@ delayed_matrix_multiply <- function(x, y){
     DelayedArray::close(res_sink)
   }, add = TRUE)
 
-  res_grid <- DelayedArray::blockGrid(res_sink)
+  res_grid <- DelayedArray::defaultAutoGrid(res_sink)
 
   row_ticks <- cumsum(vapply(seq_len(dim(res_grid)[1]), function(idx){
     dim(res_grid[[idx, 1L]])[1]
