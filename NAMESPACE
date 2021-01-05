@@ -3,6 +3,7 @@
 S3method(as.list,glmGamPoi)
 S3method(format,glmGamPoi)
 S3method(format,summary.glmGamPoi)
+S3method(predict,glmGamPoi)
 S3method(print,glmGamPoi)
 S3method(print,summary.glmGamPoi)
 S3method(residuals,glmGamPoi)
