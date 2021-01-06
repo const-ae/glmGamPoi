@@ -2,14 +2,48 @@
 #' @export
 predict.glmGamPoi <- function(object, newdata = NULL,
                               type = c("link", "response"),
-                              se.fit = FALSE, ...){
+                              se.fit = FALSE,
+                              offset = mean(object$Offset),
+                              on_disk = NULL,...){
 
   type <- match.arg(type, c("link", "response"))
   if(is.null(newdata)){
     # Easy, just return mu
     Mu <- object$Mu
+    design_matrix <- object$model_matrix
   }else{
     # Do something with newdata
+    if(is.matrix(newdata)){
+      design_matrix <- newdata
+    }else  if((is.vector(newdata) || is.factor(newdata))){
+      cf <- attr(object$design_formula, "constructed_from")
+      if(is.null(cf) || cf != "vector"){
+        stop("Original model was constructed from a ", cf, ". Please, ",
+             "provide 'newdata' as a dataframe and not as a vector.",
+             call. = FALSE)
+      }
+      newdata <- data.frame(x_ = newdata, stringsAsFactors = FALSE)
+      design_matrix <- make_model_matrix_for_predict(object, newdata)
+    }else if(is.data.frame(newdata)){
+      cf <- attr(object$design_formula, "constructed_from")
+      if(is.null(cf) || cf != "formula"){
+        stop("The original model was constructed from a ", cf, ". Please, ",
+             "provide 'newdata' as a vector and not as a data.frame.",
+             call. = FALSE)
+      }
+      design_matrix <- make_model_matrix_for_predict(object, newdata)
+    }else{
+      stop("Don't know how to handle newdata of class ",
+           paste0(class(newdata), collapse = ", "), ". Please provide ",
+           "a 'data.frame' if the original model was constructed from a 'formula' ",
+           "or a 'vector' if the original model was constructed from a 'vector'.",
+           call. = FALSE)
+    }
+
+    offset_matrix <- handle_offset_param_for_predict(offset, nrow = nrow(object$Beta),
+                                    ncol = nrow(design_matrix), on_disk = on_disk)
+
+    Mu <- calculate_mu(object$Beta, design_matrix, offset_matrix)
 
   }
 
@@ -21,8 +55,7 @@ predict.glmGamPoi <- function(object, newdata = NULL,
 
 
   if(se.fit){
-    design <- object$model_matrix
-    p_idxs <- seq_len(ncol(design))
+    p_idxs <- seq_len(ncol(object$model_matrix))
     # This could be adapted to the quasi-GamPoi value
     scale <- 1
     se_fit <- t(vapply(seq_len(nrow(fit)), function(gene_idx){
@@ -30,8 +63,8 @@ predict.glmGamPoi <- function(object, newdata = NULL,
       mu <- Mu[gene_idx, ]
       weights <- mu / (1 + mu * disp)
       weighted_Design <-  object$model_matrix * sqrt(weights)
-      R <- qr.R(qr(weighted_Design))[p_idxs, p_idxs]
-      XRinv <- design %*% qr.solve(R)
+      R <- qr.R(qr(weighted_Design))[p_idxs, p_idxs, drop=FALSE]
+      XRinv <- design_matrix %*% qr.solve(R)
       sqrt(matrixStats::rowSums2(XRinv^2))
     }, FUN.VALUE = rep(0.0, ncol(fit))))
 
@@ -42,6 +75,70 @@ predict.glmGamPoi <- function(object, newdata = NULL,
   }else{
     fit
   }
+}
+
+
+
+make_model_matrix_for_predict <- function(object, newdata){
+  stopifnot("glmGamPoi" %in% class(object))
+  form <- object$design_formula
+  if(is.null(form)){
+    stop("predict.glmGamPoi was called with 'newdata' that is not a matrix. ",
+         "However, the original model was constructed directly from a matrix, so there is ",
+         "no formula to convert the newdata to an appropriate design matrix.",
+         call. = FALSE)
+  }
+  if(! inherits(form, "terms") ||
+      is.null(attr(form, "constructed_from", exact = TRUE))){
+    stop("object$design_formula must be a terms object and have ",
+         " a 'constructed_from' attribute.")
+  }
+  if(is.null(attr(object$model_matrix, "contrasts", exact = TRUE))){
+    stop("object$model_matrix must have ",
+         " a 'contrasts' attribute.")
+  }
+
+  form <- delete.response(form)
+  mf <- model.frame(form, newdata, xlev = attr(form, "xlevels"))
+  mm <- model.matrix(form, mf, constrasts.arg = attr(object$model_matrix, "contrasts", exact = TRUE))
+
+  mm
+}
+
+
+
+handle_offset_param_for_predict <- function(offset, nrow, ncol, on_disk){
+  if(is.numeric(offset)){
+    stopifnot(length(offset) == 1 || length(offset) == ncol)
+    offset <- matrix(offset, nrow = nrow, ncol = ncol, byrow = TRUE)
+  }
+  # Check that offset is correctly sized
+  stopifnot(nrow(offset) == nrow && ncol(offset) == ncol)
+
+  if(is.matrix(offset)){
+    if(is.null(on_disk) || isFALSE(on_disk)){
+      offset_mat <- offset
+    }else if(isTRUE(on_disk)){
+      offset_mat <- HDF5Array::writeHDF5Array(offset)
+    }else{
+      stop("Illegal argument type for on_disk. Can only handle 'NULL', 'TRUE', or 'FALSE'")
+    }
+  }else if(is(offset, "DelayedArray")){
+    if(is.null(on_disk) || isTRUE(on_disk)){
+      offset_mat <- offset
+    }else if(isFALSE(on_disk)){
+      warning("offset was provided as a DelayedArray, but 'on_disk = FALSE'. ",
+              "I will thus realize the full matrix in memory.")
+      offset_mat <- as.matrix(offset)
+    }else{
+      stop("Illegal argument type for on_disk. Can only handle 'NULL', 'TRUE', or 'FALSE'")
+    }
+  }else{
+    stop("Cannot handle offset of class '", class(data), "'.",
+         "It must be either a scalar/numeric vector or dense matrix ",
+         "object (i.e., a base matrix or DelayedArray).")
+  }
+  offset_mat
 }
 
 

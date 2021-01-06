@@ -337,11 +337,16 @@ handle_design_parameter <- function(design, data, col_data, reference_level){
              "the number of samples: ", n_samples)
       }
     }
-    model_matrix <- convert_chr_vec_to_model_matrix(design, reference_level)
-    design_formula <- NULL
+    tmp <- convert_chr_vec_to_model_matrix(design, reference_level)
+    model_matrix <- tmp$model_matrix
+    design_formula <- tmp$formula
+    attr(design_formula, "constructed_from") <- "vector"
   }else if(inherits(design,"formula")){
-    model_matrix <- convert_formula_to_model_matrix(design, col_data, reference_level)
-    design_formula <- design
+    col_data <- relevel_columns_to_reference_level(col_data, reference_level)
+    tmp <- convert_formula_to_model_matrix(design, col_data)
+    model_matrix <- tmp$model_matrix
+    design_formula <- tmp$formula
+    attr(design_formula, "constructed_from") <- "formula"
   }else{
     stop(paste0("design argment of class ", class(design), " is not supported. Please ",
                 "specify a `model_matrix`, a `character vector`, or a `formula`."))
@@ -411,44 +416,7 @@ validate_model_matrix <- function(matrix, data){
 }
 
 
-
-convert_chr_vec_to_model_matrix <- function(design, reference_level){
-  if(! is.factor(design)){
-    design_fct <- as.factor(design)
-  }else{
-    design_fct <- design
-  }
-
-  if(length(levels(design_fct)) == 1){
-    # All entries are identical build an intercept only model
-    mm <- matrix(1, nrow=length(design_fct), ncol=1)
-    colnames(mm) <- levels(design_fct)
-  }else if(is.null(reference_level)){
-    helper_df <- data.frame(x_ = design_fct)
-    mm <- stats::model.matrix.default(~ x_ - 1, helper_df)
-    colnames(mm) <- sub("^x_", "", colnames(mm))
-  }else{
-    design_fct <- stats::relevel(design_fct, ref = reference_level)
-    helper_df <- data.frame(x_ = design_fct)
-    mm <- stats::model.matrix.default(~ x_ + 1, helper_df)
-    colnames(mm)[-1] <- paste0(sub("^x_", "", colnames(mm)[-1]), "_vs_", reference_level)
-  }
-  colnames(mm)[colnames(mm) == "(Intercept)"] <- "Intercept"
-  mm
-}
-
-extract_data_from_formula <- function(formula, col_data, encl = parent.frame()){
-  if(length(formula) < 3){
-    stop("The formula does not have a left hand side. Please call this function like this:\n",
-         "'glm_gp(data = mat, design = ~ a + b + c, ...)'", call. = FALSE)
-  }
-  data <- eval(formula[[2]], envir = col_data, enclos = encl)
-  formula[[2]] <- NULL
-  list(data = data, design = formula)
-}
-
-
-convert_formula_to_model_matrix <- function(formula, col_data, reference_level=NULL){
+relevel_columns_to_reference_level <- function(col_data, reference_level = NULL){
   if(! is.null(reference_level)){
     has_ref_level <- vapply(col_data, function(x){
       any(!is.na(x) & x == reference_level)
@@ -463,21 +431,72 @@ convert_formula_to_model_matrix <- function(formula, col_data, reference_level=N
       stats::relevel(col, ref = reference_level)
     })
   }
+  col_data
+}
+
+
+convert_chr_vec_to_model_matrix <- function(design, reference_level){
+  if(! is.factor(design)){
+    design_fct <- as.factor(design)
+  }else{
+    design_fct <- design
+  }
+
+  if(length(levels(design_fct)) == 1){
+    # All entries are identical build an intercept only model
+    mm <- matrix(1, nrow=length(design_fct), ncol=1)
+    formula <- NULL
+    colnames(mm) <- levels(design_fct)
+  }else if(is.null(reference_level)){
+    helper_df <- data.frame(x_ = design_fct)
+    tmp <- convert_formula_to_model_matrix(~ x_ - 1, col_data = helper_df)
+    mm <- tmp$model_matrix
+    formula <- tmp$formula
+    colnames(mm) <- sub("^x_", "", colnames(mm))
+  }else{
+    design_fct <- stats::relevel(design_fct, ref = reference_level)
+    helper_df <- data.frame(x_ = design_fct)
+    tmp <- convert_formula_to_model_matrix(~ x_ + 1, col_data = helper_df)
+    mm <- tmp$model_matrix
+    formula <- tmp$formula
+    colnames(mm)[-1] <- paste0(sub("^x_", "", colnames(mm)[-1]), "_vs_", reference_level)
+  }
+  colnames(mm)[colnames(mm) == "(Intercept)"] <- "Intercept"
+  list(formula = formula, model_matrix = mm)
+}
+
+convert_formula_to_model_matrix <- function(formula, col_data){
   tryCatch({
-    mm <- stats::model.matrix.default(formula, col_data)
+    mf <- model.frame(formula, data = col_data, drop.unused.levels = TRUE)
+    terms <- attr(mf, "terms")
+    attr(terms, "xlevels") <- stats::.getXlevels(terms, mf)
+    mm <- stats::model.matrix.default(terms, mf)
   }, error = function(e){
     # Try to extract text from error message
     match <- regmatches(e$message, regexec("object '(.+)' not found", e$message))[[1]]
     if(length(match) == 2){
-      stop("Object '", match[2], "' not found. Allowed variables are:\n",
-           paste0(colnames(col_data), collapse = ", "))
+      stop("Error while parsing the formula (", formula, ").\n",
+           "Variable '", match[2], "' not found in col_data or global environment. Possible variables are:\n",
+           paste0(colnames(col_data), collapse = ", "), call. = FALSE)
     }else{
       stop(e$message)
     }
   })
 
+  # Otherwise every copy of the model stores the whole global environment!
+  attr(terms, ".Environment") <- c()
   colnames(mm)[colnames(mm) == "(Intercept)"] <- "Intercept"
-  mm
+  list(formula = terms, model_matrix = mm)
+}
+
+extract_data_from_formula <- function(formula, col_data, encl = parent.frame()){
+  if(length(formula) < 3){
+    stop("The formula does not have a left hand side. Please call this function like this:\n",
+         "'glm_gp(data = mat, design = ~ a + b + c, ...)'", call. = FALSE)
+  }
+  data <- eval(formula[[2]], envir = col_data, enclos = encl)
+  formula[[2]] <- NULL
+  list(data = data, design = formula)
 }
 
 
