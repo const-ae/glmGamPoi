@@ -60,7 +60,7 @@ predict.glmGamPoi <- function(object, newdata = NULL,
     scale <- 1
     se_fit <- t(vapply(seq_len(nrow(fit)), function(gene_idx){
       disp <- object$overdispersions[gene_idx]
-      mu <- Mu[gene_idx, ]
+      mu <- object$Mu[gene_idx, ]
       weights <- mu / (1 + mu * disp)
       weighted_Design <-  object$model_matrix * sqrt(weights)
       R <- qr.R(qr(weighted_Design))[p_idxs, p_idxs, drop=FALSE]

@@ -80,14 +80,19 @@ test_that("predict works for new data", {
                lapply(predict(fit_glmGamPoi, newdata = new_data, type = "response", se.fit = TRUE), drop),
                tolerance = 1e-5)
 
+  new_data <- df[1:10,,drop=FALSE]
+  expect_equal(predict(fit_glm, newdata = new_data, se.fit = TRUE),
+               lapply(predict(fit_glmGamPoi, newdata = new_data, se.fit = TRUE), drop),
+               tolerance = 1e-5)
+  expect_equal(predict(fit_glm, newdata = new_data, type = "link", se.fit = TRUE),
+               lapply(predict(fit_glmGamPoi, newdata = new_data, type = "link", se.fit = TRUE), drop),
+               tolerance = 1e-5)
+  expect_equal(predict(fit_glm, newdata = new_data, type = "response", se.fit = TRUE),
+               lapply(predict(fit_glmGamPoi, newdata = new_data, type = "response", se.fit = TRUE), drop),
+               tolerance = 1e-5)
+
 })
 
 
 
 
-df <- data.frame(group = sample(LETTERS[1:3], size = 100, replace = TRUE),
-                 group2 = sample(LETTERS[1:3], size = 100, replace = TRUE),
-                 cont = rnorm(100))
-mf <- model.frame(~ group + group2 + cont + group:group2, dat = df)
-attr(mf, "terms")
-str(mf)
