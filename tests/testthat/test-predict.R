@@ -134,3 +134,50 @@ test_that("predict provides helpful error messages", {
 
 })
 
+
+
+test_that("predict can handle hdf5 arrays", {
+
+  Y <- matrix(rnbinom(n = 100 * 5, mu = 5, size  = 1/0.8), nrow = 5, ncol = 100)
+  Y_hdf5 <- HDF5Array::writeHDF5Array(Y)
+
+  col_df <- data.frame(cont = rnorm(100),
+                       cont2 = rnorm(100))
+
+  fit_in_memory <- glm_gp(Y, design = ~ cont + cont2, col_data = col_df)
+  fit_on_disk <- glm_gp(Y_hdf5, design = ~ cont + cont2, col_data = col_df)
+
+  expect_equal(fit_in_memory[!names(fit_in_memory) %in% c("Mu", "data", "Offset")], fit_on_disk[!names(fit_on_disk) %in% c("Mu", "data", "Offset")])
+  expect_equal(c(fit_in_memory$Mu), c(fit_on_disk$Mu))
+  expect_s4_class(fit_on_disk$Mu, "DelayedArray")
+  expect_equal(c(assay(fit_in_memory$data)), c(assay(fit_on_disk$data)))
+  expect_equal(class(fit_in_memory$data), class(fit_on_disk$data))
+  expect_s4_class(assay(fit_on_disk$data), "DelayedArray")
+  expect_equal(c(fit_in_memory$Offset), c(fit_on_disk$Offset))
+  expect_s4_class(fit_on_disk$Offset, "DelayedArray")
+
+  new_data <- data.frame(cont = c(4, 6, 9), cont2 = c(3, 5, 9))
+  pred_in_memory <- predict(fit_in_memory, newdata = new_data)
+  pred_in_memory2 <- predict(fit_on_disk, newdata = new_data)
+  pred_on_disk <- predict(fit_on_disk, newdata = new_data, on_disk = TRUE)
+
+  expect_equal(pred_in_memory, pred_in_memory2)
+  expect_s4_class(pred_on_disk, "DelayedArray")
+  expect_equal(pred_in_memory, as.matrix(pred_on_disk))
+
+
+
+  pred_in_memory <- predict(fit_in_memory, newdata = new_data, se.fit = TRUE)
+  pred_in_memory2 <- predict(fit_on_disk, newdata = new_data, se.fit = TRUE)
+  pred_on_disk <- predict(fit_on_disk, newdata = new_data, se.fit = TRUE, on_disk = TRUE)
+
+  expect_equal(pred_in_memory, pred_in_memory2)
+  expect_s4_class(pred_on_disk$fit, "DelayedArray")
+  expect_s4_class(pred_on_disk$se.fit, "DelayedArray")
+  expect_equal(pred_in_memory[1:2], lapply(pred_on_disk[1:2], as.matrix))
+
+
+})
+
+
+

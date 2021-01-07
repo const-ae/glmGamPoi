@@ -65,7 +65,12 @@ predict.glmGamPoi <- function(object, newdata = NULL,
     p_idxs <- seq_len(ncol(object$model_matrix))
     # This could be adapted to the quasi-GamPoi value
     scale <- 1
-    se_fit <- t(vapply(seq_len(nrow(fit)), function(gene_idx){
+    wrtm <- if( is(fit, "DelayedMatrix") && is(DelayedArray::seed(fit), "HDF5ArraySeed")){
+      write_rows_to_hdf5_matrix
+    }else{
+      write_rows_to_matrix
+    }
+    se_fit <- wrtm(nrow(fit), ncol(fit), function(gene_idx){
       disp <- object$overdispersions[gene_idx]
       mu <- object$Mu[gene_idx, ]
       weights <- mu / (1 + mu * disp)
@@ -73,7 +78,7 @@ predict.glmGamPoi <- function(object, newdata = NULL,
       R <- qr.R(qr(weighted_Design))[p_idxs, p_idxs, drop=FALSE]
       XRinv <- design_matrix %*% qr.solve(R)
       sqrt(matrixStats::rowSums2(XRinv^2))
-    }, FUN.VALUE = rep(0.0, ncol(fit))))
+    })
 
     if(type == "response"){
       se_fit <- se_fit * Mu
@@ -167,5 +172,34 @@ handle_offset_param_for_predict <- function(offset, nrow, ncol, on_disk){
   }
   offset_mat
 }
+
+
+
+write_rows_to_matrix <- function(nrow, ncol, FUN, ...){
+  res <- matrix(nrow = nrow, ncol = ncol)
+  for(idx in seq_len(nrow)){
+    res[idx, ] <- FUN(idx, ...)
+  }
+  res
+}
+
+write_rows_to_hdf5_matrix <- function(nrow, ncol, FUN, ...){
+  res_sink <- HDF5Array::HDF5RealizationSink(c(nrow, ncol))
+  on.exit({
+    DelayedArray::close(res_sink)
+  }, add = TRUE)
+  row_grid <- DelayedArray::rowAutoGrid(res_sink)
+  for(row_block_idx in seq_len(nrow(row_grid))){
+    row_block <- row_grid[[row_block_idx]]
+    mat <- matrix(NA, nrow = nrow(row_block), ncol = ncol)
+    off <- IRanges::start(row_block)[1]
+    for(idx in seq_len(nrow(row_block))){
+        mat[idx, ] <- FUN(idx - 1 + off, ...)
+    }
+    DelayedArray::write_block(res_sink, row_block, mat)
+  }
+  as(res_sink, "DelayedArray")
+}
+
 
 
