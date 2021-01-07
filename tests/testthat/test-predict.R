@@ -74,4 +74,44 @@ test_that("predict works for new data", {
 
 
 
+test_that("predict works with vector design", {
+  set.seed(1)
+  y <- rnbinom(n = 100, mu = 15, size  = 1/0.8)
+  group <- sample(LETTERS[1:3], size = 100, replace = TRUE)
 
+  fit_glmGamPoi <- glm_gp(y, design = group)
+  pred <- predict(fit_glmGamPoi, newdata = c("A", "A", "B"))
+  expect_equal(drop(pred), unname(fit_glmGamPoi$Beta[c(1, 1, 2)]))
+  form <- fit_glmGamPoi$design_formula
+  expect_equal(attr(form, "xlevels"), list(x_ = LETTERS[1:3]))
+
+  fit_glmGamPoi <- glm_gp(y, design = group, reference_level = "B")
+  pred <- predict(fit_glmGamPoi, newdata = c("A", "A", "B"))
+  expect_equal(drop(pred), unname(fit_glmGamPoi$Beta[1] + c(fit_glmGamPoi$Beta[c(2,2)], 0)))
+  form <- fit_glmGamPoi$design_formula
+  expect_equal(attr(form, "xlevels"), list(x_ = c("B", "A", "C")))
+
+  int_group <- pmin(rpois(n = 100, lambda = 1), 4) - 2
+  fit_glmGamPoi <- glm_gp(y, design = int_group)
+  pred <- predict(fit_glmGamPoi, newdata = 0)
+  expect_equal(drop(pred), unname(fit_glmGamPoi$Beta[3]))
+  form <- fit_glmGamPoi$design_formula
+  expect_equal(attr(form, "xlevels"), list(x_ = as.character(-2:2)))
+
+
+
+  fit_glmGamPoi <- glm_gp(y, design = group)
+  group2 <- factor(c("C"), levels = c("C", "asdf"))
+  pred <- predict(fit_glmGamPoi, newdata = group2[1])
+  expect_equal(predict(fit_glmGamPoi, newdata = "C"),  predict(fit_glmGamPoi, newdata = group2[1]))
+  expect_equal(drop(pred), unname(fit_glmGamPoi$Beta[3]))
+
+
+  group3 <- factor(group, c("C", "A", "B", "D"))
+  # No error although "D" is not in data!
+  fit_glmGamPoi <- glm_gp(y, design = group3)
+  pred <- predict(fit_glmGamPoi, newdata = "C")
+  expect_equal(drop(pred), unname(fit_glmGamPoi$Beta[1]))
+
+
+})

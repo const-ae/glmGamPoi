@@ -23,6 +23,9 @@ predict.glmGamPoi <- function(object, newdata = NULL,
              "provide 'newdata' as a dataframe and not as a vector.",
              call. = FALSE)
       }
+      if(is.numeric(newdata)){
+        newdata <- as.character(newdata)
+      }
       mu_colnames <- names(newdata)
       newdata <- data.frame(x_ = newdata, stringsAsFactors = FALSE)
       design_matrix <- make_model_matrix_for_predict(object, newdata)
