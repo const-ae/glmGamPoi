@@ -101,10 +101,6 @@ make_model_matrix_for_predict <- function(object, newdata){
     stop("object$design_formula must be a terms object and have ",
          " a 'constructed_from' attribute.")
   }
-  if(is.null(attr(object$model_matrix, "contrasts", exact = TRUE))){
-    stop("object$model_matrix must have ",
-         " a 'contrasts' attribute.")
-  }
 
   form <- delete.response(form)
   tryCatch({
