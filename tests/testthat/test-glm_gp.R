@@ -234,7 +234,8 @@ test_that("glm_gp can handle design parameter of type vector", {
   colnames(design_mat) <- c("a", "b", "c")
   fit_vec <- glm_gp(Y, design = sample_assignment)
   fit_mat <- glm_gp(Y, design = design_mat)
-  expect_equal(fit_vec, fit_mat)
+  # Ignore design_formula
+  expect_equal(fit_vec[-10], fit_mat[-10])
 
 
   sample_assignment <- sample(c("a", "b", "c"), size = 50, replace = TRUE)

@@ -113,6 +113,14 @@ test_that("predict works with vector design", {
   expect_equal(drop(pred), unname(fit_glmGamPoi$Beta[1]))
 
 
+
+  group4 <- rep("A", 100)
+  fit_glmGamPoi <- glm_gp(y, design = group4)
+  # Maybe this should throw an error because C and G are not in training
+  pred <- predict(fit_glmGamPoi, newdata = c("C", "G"))
+  expect_equal(drop(pred), unname(fit_glmGamPoi$Beta[c(1,1)]))
+
+
 })
 
 test_that("predict provides helpful error messages", {
