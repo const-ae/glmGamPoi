@@ -15,6 +15,7 @@ predict.glmGamPoi <- function(object, newdata = NULL,
     # Do something with newdata
     if(is.matrix(newdata)){
       design_matrix <- newdata
+      mu_colnames <- rownames(newdata)
     }else  if((is.vector(newdata) || is.factor(newdata))){
       cf <- attr(object$design_formula, "constructed_from")
       if(is.null(cf) || cf != "vector"){
@@ -22,6 +23,7 @@ predict.glmGamPoi <- function(object, newdata = NULL,
              "provide 'newdata' as a dataframe and not as a vector.",
              call. = FALSE)
       }
+      mu_colnames <- names(newdata)
       newdata <- data.frame(x_ = newdata, stringsAsFactors = FALSE)
       design_matrix <- make_model_matrix_for_predict(object, newdata)
     }else if(is.data.frame(newdata)){
@@ -32,6 +34,7 @@ predict.glmGamPoi <- function(object, newdata = NULL,
              call. = FALSE)
       }
       design_matrix <- make_model_matrix_for_predict(object, newdata)
+      mu_colnames <- rownames(newdata)
     }else{
       stop("Don't know how to handle newdata of class ",
            paste0(class(newdata), collapse = ", "), ". Please provide ",
@@ -44,7 +47,8 @@ predict.glmGamPoi <- function(object, newdata = NULL,
                                     ncol = nrow(design_matrix), on_disk = on_disk)
 
     Mu <- calculate_mu(object$Beta, design_matrix, offset_matrix)
-
+    rownames(Mu) <- rownames(object$Beta)
+    colnames(Mu) <- mu_colnames
   }
 
   if(type == "response"){
@@ -71,6 +75,7 @@ predict.glmGamPoi <- function(object, newdata = NULL,
     if(type == "response"){
       se_fit <- se_fit * Mu
     }
+    dimnames(se_fit) <- dimnames(fit)
     list(fit = fit, se.fit = se_fit, residual.scale = scale)
   }else{
     fit

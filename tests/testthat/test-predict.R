@@ -27,28 +27,6 @@ test_that("predict works for simple cases", {
 })
 
 
-test_that("handle_formula works", {
-
-  df <- data.frame(letters = sample(LETTERS[1:3], size = 100, replace = TRUE),
-                   factor = as.factor(sample(letters[1:3], size = 100, replace = TRUE)),
-                   cont = rnorm(100))
-
-  handle_design_parameter(~ letters + factor + cont, data = matrix(nrow = 5, ncol = 100), col_data = df, reference_level = NULL)
-
-  convert_chr_vec_to_model_matrix(df$letters, NULL)
-
-  # debugonce(model.frame.default)
-  # form <- ~ letters + factor + I(cont * 5)
-  # form <- ~ letters*factor
-  # model.frame(form, data = df)
-  # formula.tools::get.vars(form)
-  # te <- terms.formula(form, data = df)
-  # attr(te, "term.labels")[attr(te, "order") == 1]
-  # head(model.frame(form, df))
-  #
-  # str(te)
-  # attr(te, ".Evironment") <- c()
-})
 
 
 test_that("predict works for new data", {
@@ -70,24 +48,25 @@ test_that("predict works for new data", {
   new_data <- data.frame(group = "B", cont = 3)
 
   # Compare predict()
-  expect_equal(predict(fit_glm, newdata = new_data, se.fit = TRUE),
-               lapply(predict(fit_glmGamPoi, newdata = new_data, se.fit = TRUE), drop),
+  # The unname stuff is necessary, because predict.glm is inconsistent with its results...
+  expect_equal(lapply(predict(fit_glm, newdata = new_data, se.fit = TRUE), unname),
+               lapply(predict(fit_glmGamPoi, newdata = new_data, se.fit = TRUE), function(t)unname(drop(t))),
                tolerance = 1e-5)
-  expect_equal(predict(fit_glm, newdata = new_data, type = "link", se.fit = TRUE),
-               lapply(predict(fit_glmGamPoi, newdata = new_data, type = "link", se.fit = TRUE), drop),
+  expect_equal(lapply(predict(fit_glm, newdata = new_data, type = "link", se.fit = TRUE), unname),
+               lapply(predict(fit_glmGamPoi, newdata = new_data, type = "link", se.fit = TRUE), function(t) unname(drop(t))),
                tolerance = 1e-5)
-  expect_equal(predict(fit_glm, newdata = new_data, type = "response", se.fit = TRUE),
-               lapply(predict(fit_glmGamPoi, newdata = new_data, type = "response", se.fit = TRUE), drop),
+  expect_equal(lapply(predict(fit_glm, newdata = new_data, type = "response", se.fit = TRUE), unname),
+               lapply(predict(fit_glmGamPoi, newdata = new_data, type = "response", se.fit = TRUE), function(t)unname(drop(t))),
                tolerance = 1e-5)
 
   new_data <- df[1:10,,drop=FALSE]
-  expect_equal(predict(fit_glm, newdata = new_data, se.fit = TRUE),
+  expect_equal(lapply(predict(fit_glm, newdata = new_data, se.fit = TRUE), identity),
                lapply(predict(fit_glmGamPoi, newdata = new_data, se.fit = TRUE), drop),
                tolerance = 1e-5)
-  expect_equal(predict(fit_glm, newdata = new_data, type = "link", se.fit = TRUE),
+  expect_equal(lapply(predict(fit_glm, newdata = new_data, type = "link", se.fit = TRUE), identity),
                lapply(predict(fit_glmGamPoi, newdata = new_data, type = "link", se.fit = TRUE), drop),
                tolerance = 1e-5)
-  expect_equal(predict(fit_glm, newdata = new_data, type = "response", se.fit = TRUE),
+  expect_equal(lapply(predict(fit_glm, newdata = new_data, type = "response", se.fit = TRUE), identity),
                lapply(predict(fit_glmGamPoi, newdata = new_data, type = "response", se.fit = TRUE), drop),
                tolerance = 1e-5)
 
