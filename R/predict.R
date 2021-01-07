@@ -107,7 +107,30 @@ make_model_matrix_for_predict <- function(object, newdata){
   }
 
   form <- delete.response(form)
-  mf <- model.frame(form, newdata, xlev = attr(form, "xlevels"))
+  tryCatch({
+    mf <- model.frame(form, newdata, xlev = attr(form, "xlevels"))
+  }, error = function(e){
+    match_new_factor <- regmatches(e$message, regexec("factor (.+) has new levels (.+)", e$message))[[1]]
+    match_obj_not_found <- regmatches(e$message, regexec("object '(.+)' not found", e$message))[[1]]
+    if(length(match_new_factor) == 3){
+      if(match_new_factor[2] == "x_"){
+        stop("while constructing design matrix from 'newdata'.\n",
+             "'newdata' contained values (", match_new_factor[3], ") which were not in the training data.\n",
+             "The training data contained values:\n",
+             paste0(attr(form, "xlevels")[["x_"]], collapse = ", "), call. = FALSE)
+      }else{
+        stop("while constructing design matrix from 'newdata'\n",
+             "Column '", match_new_factor[2], "' of the 'newdata' contained values (", match_new_factor[3], ") which were not in the training data.\n",
+             "The training data contained values:\n",
+             paste0(attr(form, "xlevels")[[match_new_factor[2]]], collapse = ", "), call. = FALSE)
+      }
+    }else if(length(match_obj_not_found) == 2){
+      stop("while constructing design matrix from 'newdata'\n",
+           "The column '", match_obj_not_found[2],"' was absent from 'newdata'", call. = FALSE)
+    }else{
+      stop(e$message)
+    }
+  })
   mm <- model.matrix(form, mf, constrasts.arg = attr(object$model_matrix, "contrasts", exact = TRUE))
 
   mm

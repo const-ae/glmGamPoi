@@ -91,13 +91,12 @@ test_that("predict works with vector design", {
   form <- fit_glmGamPoi$design_formula
   expect_equal(attr(form, "xlevels"), list(x_ = c("B", "A", "C")))
 
-  int_group <- pmin(rpois(n = 100, lambda = 1), 4) - 2
+  int_group <- pmin(rpois(n = 100, lambda = 2), 4) - 2
   fit_glmGamPoi <- glm_gp(y, design = int_group)
   pred <- predict(fit_glmGamPoi, newdata = 0)
   expect_equal(drop(pred), unname(fit_glmGamPoi$Beta[3]))
   form <- fit_glmGamPoi$design_formula
   expect_equal(attr(form, "xlevels"), list(x_ = as.character(-2:2)))
-
 
 
   fit_glmGamPoi <- glm_gp(y, design = group)
@@ -115,3 +114,23 @@ test_that("predict works with vector design", {
 
 
 })
+
+test_that("predict provides helpful error messages", {
+  set.seed(2)
+  y <- rnbinom(n = 100, mu = 15, size  = 1/0.8)
+  group <- sample(LETTERS[1:3], size = 100, replace = TRUE)
+
+  fit_glmGamPoi <- glm_gp(y, design = group)
+  expect_error(predict(fit_glmGamPoi, newdata =  c("A", "B", "F")))
+
+
+  fit_glmGamPoi <- glm_gp(y, design = ~ group)
+  expect_error(predict(fit_glmGamPoi, newdata = data.frame(group = c("A", "B", "F", "G"))))
+
+  cont <- rnorm(100)
+  fit_glmGamPoi <- glm_gp(y, design = ~ group + cont)
+  expect_error(predict(fit_glmGamPoi, newdata = data.frame(groups = c("A", "B", "F"))))
+
+
+})
+
