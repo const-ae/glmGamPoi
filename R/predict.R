@@ -72,9 +72,8 @@ predict.glmGamPoi <- function(object, newdata = NULL,
     }
     # This could be made more efficient by batching the reads
     # of object$Mu
-    se_fit <- wrtm(nrow(fit), ncol(fit), function(gene_idx){
+    se_fit <- wrtm(nrow(fit), ncol(fit), object$Mu, function(gene_idx, mu){
       disp <- object$overdispersions[gene_idx]
-      mu <- object$Mu[gene_idx, ]
       weights <- mu / (1 + mu * disp)
       weighted_Design <-  object$model_matrix * sqrt(weights)
       tryCatch({
@@ -183,28 +182,59 @@ handle_offset_param_for_predict <- function(offset, nrow, ncol, on_disk){
 
 
 
-write_rows_to_matrix <- function(nrow, ncol, FUN, ...){
+write_rows_to_matrix <- function(nrow, ncol, Mu, FUN, ...){
   res <- matrix(nrow = nrow, ncol = ncol)
   for(idx in seq_len(nrow)){
-    res[idx, ] <- FUN(idx, ...)
+    res[idx, ] <- FUN(idx, Mu[idx, ], ...)
   }
   res
 }
 
-write_rows_to_hdf5_matrix <- function(nrow, ncol, FUN, ...){
+write_rows_to_hdf5_matrix <- function(nrow, ncol, Mu, FUN, ...){
   res_sink <- HDF5Array::HDF5RealizationSink(c(nrow, ncol))
   on.exit({
     DelayedArray::close(res_sink)
   }, add = TRUE)
-  row_grid <- DelayedArray::rowAutoGrid(res_sink)
-  for(row_block_idx in seq_len(nrow(row_grid))){
-    row_block <- row_grid[[row_block_idx]]
-    mat <- matrix(NA, nrow = nrow(row_block), ncol = ncol)
-    off <- IRanges::start(row_block)[1]
-    for(idx in seq_len(nrow(row_block))){
-        mat[idx, ] <- FUN(idx - 1 + off, ...)
+  stopifnot(nrow(Mu) == nrow)
+  res_grid <- DelayedArray::rowAutoGrid(res_sink)
+  mu_grid <- DelayedArray::rowAutoGrid(Mu)
+
+  res_block_counter <- 1L
+  mu_block_counter <- 1L
+  res_block <- res_grid[[res_block_counter]]
+  mu_block <- mu_grid[[mu_block_counter]]
+  res_block_end <- BiocGenerics::end(res_block)[1]
+  mu_block_end <- BiocGenerics::end(mu_block)[1]
+  Res_subset <- matrix(NA, nrow = BiocGenerics::width(res_block)[1], ncol = ncol)
+  Mu_subset <- DelayedArray::read_block(Mu, mu_block)
+  Res_subset_idx <- 1L
+  Mu_subset_idx <- 1L
+  for(gene_idx in seq_len(nrow)){
+    if(gene_idx > res_block_end){
+      # Increment res_block
+      Res_subset_idx <- 1L
+      res_block_counter <- res_block_counter + 1L
+      res_block <- res_grid[[res_block_counter]]
+      res_block_end <- BiocGenerics::end(res_block)[1]
+      Res_subset <- matrix(NA, nrow = BiocGenerics::width(res_block)[1], ncol = ncol)
     }
-    DelayedArray::write_block(res_sink, row_block, mat)
+    if(gene_idx > mu_block_end){
+      # Increment res_block
+      Mu_subset_idx <- 1L
+      mu_block_counter <- mu_block_counter + 1L
+      mu_block <- mu_grid[[mu_block_counter]]
+      mu_block_end <- BiocGenerics::end(mu_block)[1]
+      Mu_subset <- DelayedArray::read_block(Mu, mu_block)
+    }
+
+    # Call FUN
+    Res_subset[Res_subset_idx, ] <- FUN(gene_idx, Mu_subset[Mu_subset_idx, ], ...)
+
+    Res_subset_idx <- Res_subset_idx + 1L
+    Mu_subset_idx <- Mu_subset_idx + 1L
+    if(gene_idx == res_block_end){
+      DelayedArray::write_block(res_sink, res_block, Res_subset)
+    }
   }
   as(res_sink, "DelayedArray")
 }
