@@ -1,4 +1,91 @@
 
+#' Predict 'link' or 'response' values for Gamma-Poisson GLMs
+#'
+#' Predict `mu` (i.e., `type = "response"`) or `log(mu)` (i.e., `type = "link"`)
+#' from a 'glmGamPoi' fit (created by `glm_gp(...)`) with the corresponding
+#' estimate of the standard error. If `newdata` is `NULL`, `mu` is returned
+#' for the original input data.
+#'
+#' @param object a `glmGamPoi` fit object (produced by `glm_gp()`).
+#' @param newdata a specification of the new data for which the
+#'   expression for each gene is predicted. `newdata` should be a
+#'   \describe{
+#'     \item{data.frame}{if the original fit was specified with
+#'       a `formula`, provide a `data.frame` with one column for
+#'       each variable in the formula.
+#'       For example, if `glm_gp(se, design = ~ age + batch + treatment)`,
+#'       then the data.frame needs a `age`, `batch`, and `treatment` column that
+#'       contain the same data types as the original fit.}
+#'    \item{vector}{if the original fit was specified using a vector, you
+#'       need to again provide a vector with the same format.}
+#'    \item{matrix}{if `newdata` is a matrix, it is applied directly
+#'      as `Mu <- exp(object$Beta %*% t(newdata) + object$offset_matrix)`.
+#'      So make sure, that it is constructed correctly.}
+#'    \item{NULL}{if `newdata` is `NULL`, the predicted values for the original
+#'      input data are returned.}
+#'   }
+#' @param type either 'link' or 'response'. The default is 'link', which returns the predicted values
+#'   before the link function (`exp()`) is applied. Thus, the values can be
+#'   positive and negative numbers. However, often the predicted values are easier to interpret
+#'   **after** the link function is applied (i.e., type = "response"), because then the
+#'   values are on the same scale as the original counts.
+#' @param offset count models (in particular for sequencing experiments) usually have a sample
+#'   specific size factor (`offset = log(size factor)`). It defines how big we expect the predicted
+#'   results are. If `newdata` is `NULL`, the `offset` is ignored, because the `predict()` returns
+#'   a result based on the pre-calculated `object$Mu`. If `newdata` is not `NULL`, by default the
+#'   `offset` is `mean(object$Offset)`, which puts the in the same size as the average sample.
+#' @param on_disk a boolean that indicates if the results are `HDF5Matrix`'s from the `HDF5Array`
+#'   package. If `newdata` is `NULL`, `on_disk` is ignored. Otherwise, if `on_disk = NULL`,
+#'   the result is calculated on disk depending if `offset` is stored on disk.
+#' @param verbose a boolean that indicates if information about the individual steps are
+#'   printed while predicting. Default: `FALSE`.
+#'
+#' @details
+#'   For `se.fit = TRUE`, the function sticks very close to the behavior of `stats::predict.glm()` for
+#'   fits from `MASS::glm.nb()`.
+#'
+#' @seealso [stats::predict.lm()] and [stats::predict.glm()]
+#'
+#' @examples
+#'
+#'  set.seed(1)
+#'  # The simplest example
+#'  y <- rnbinom(n = 10, mu = 3, size = 1/2.4)
+#'  fit <- glm_gp(y, size_factors = FALSE)
+#'  predict(fit, type = "response")
+#'  predict(fit, type = "link", se.fit = TRUE)
+#'
+#'
+#'  # Fitting a whole matrix
+#'  model_matrix <- cbind(1, rnorm(5))
+#'  true_Beta <- cbind(rnorm(n = 30), rnorm(n = 30, mean = 3))
+#'  sf <- exp(rnorm(n = 5, mean = 0.7))
+#'  model_matrix
+#'  Y <- matrix(rnbinom(n = 30 * 5, mu = sf * exp(true_Beta %*% t(model_matrix)), size = 1/2.4),
+#'              nrow = 30, ncol = 5)
+#'  fit <- glm_gp(Y, design = model_matrix, size_factors = sf, verbose = TRUE)
+#'
+#'  head(predict(fit, type = "response"))
+#'  pred <- predict(fit, type = "link", se.fit = TRUE, verbose = TRUE)
+#'  head(pred$fit)
+#'  head(pred$se.fit)
+#'
+#'
+#'  # Fitting a model with covariates
+#'  data <- data.frame(fav_food = sample(c("apple", "banana", "cherry"), size = 50, replace = TRUE),
+#'                     city = sample(c("heidelberg", "paris", "new york"), size = 50, replace = TRUE),
+#'                     age = rnorm(n = 50, mean = 40, sd = 15))
+#'  Y <- matrix(rnbinom(n = 4 * 50, mu = 3, size = 1/3.1), nrow = 4, ncol = 50)
+#'  fit <- glm_gp(Y, design = ~ fav_food + city + age, col_data = data)
+#'  predict(fit)[, 1:3]
+#'
+#'  nd <- data.frame(fav_food = "banana", city = "paris", age = 29)
+#'  predict(fit, newdata = nd)
+#'
+#'  nd <- data.frame(fav_food = "banana", city = "paris", age = 29:40)
+#'  predict(fit, newdata = nd, se.fit = TRUE, type = "response")
+#'
+#'
 #' @export
 predict.glmGamPoi <- function(object, newdata = NULL,
                               type = c("link", "response"),
