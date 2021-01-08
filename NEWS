@@ -1,4 +1,6 @@
 Changes in development version
++ New predict() function. Also supports estimating the standard error
+of the mean estimate.
 + Make sure that Fisher scoring does not converge to unrealistically
 large values of mu
 + Fix minor bug in test_de() concerning the calculation of the degree
