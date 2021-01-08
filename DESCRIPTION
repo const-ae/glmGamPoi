@@ -41,6 +41,7 @@ Imports:
     DelayedArray,
     HDF5Array,
     SummarizedExperiment,
+    BiocGenerics,
     methods,
     stats,
     utils,

@@ -8,4 +8,5 @@ NULL
 #' @importFrom methods as is canCoerce
 #' @importFrom utils head
 #' @importFrom SummarizedExperiment assay
+#' @importFrom BiocGenerics end width
 NULL

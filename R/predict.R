@@ -29,6 +29,8 @@
 #'   positive and negative numbers. However, often the predicted values are easier to interpret
 #'   **after** the link function is applied (i.e., type = "response"), because then the
 #'   values are on the same scale as the original counts.
+#' @param se.fit boolean that indicates if in addition to the mean the standard error of the
+#'   mean is returned.
 #' @param offset count models (in particular for sequencing experiments) usually have a sample
 #'   specific size factor (`offset = log(size factor)`). It defines how big we expect the predicted
 #'   results are. If `newdata` is `NULL`, the `offset` is ignored, because the `predict()` returns
@@ -39,10 +41,23 @@
 #'   the result is calculated on disk depending if `offset` is stored on disk.
 #' @param verbose a boolean that indicates if information about the individual steps are
 #'   printed while predicting. Default: `FALSE`.
+#' @param ... currently ignored.
 #'
 #' @details
 #'   For `se.fit = TRUE`, the function sticks very close to the behavior of `stats::predict.glm()` for
 #'   fits from `MASS::glm.nb()`.
+#'
+#' @return
+#'   If `se.fit == FALSE`, a matrix with dimensions `nrow(object$data) x nrow(newdata)`. \cr
+#'   If `se.fit == TRUE`, a list with three entries
+#'   \describe{
+#'     \item{fit}{the predicted values as a matrix with dimensions `nrow(object$data) x nrow(newdata)`.
+#'       This is what would be returned if `se.fit == FALSE`.}
+#'     \item{se.fit}{the associated standard errors for each `fit`. Also a matrix with
+#'        dimensions `nrow(object$data) x nrow(newdata)`.}
+#'     \item{residual.scale}{Currently fixed to 1. In the future, this might become the values from
+#'        `object$overdispersion_shrinkage_list$ql_disp_shrunken`.}
+#'   }
 #'
 #' @seealso [stats::predict.lm()] and [stats::predict.glm()]
 #'
@@ -91,7 +106,8 @@ predict.glmGamPoi <- function(object, newdata = NULL,
                               type = c("link", "response"),
                               se.fit = FALSE,
                               offset = mean(object$Offset),
-                              on_disk = NULL, verbose = FALSE){
+                              on_disk = NULL, verbose = FALSE,
+                              ...){
 
   type <- match.arg(type, c("link", "response"))
   if(is.null(newdata)){
@@ -267,7 +283,7 @@ handle_offset_param_for_predict <- function(offset, nrow, ncol, on_disk){
       stop("Illegal argument type for on_disk. Can only handle 'NULL', 'TRUE', or 'FALSE'")
     }
   }else{
-    stop("Cannot handle offset of class '", class(data), "'.",
+    stop("Cannot handle offset of class '", class(offset), "'.",
          "It must be either a scalar/numeric vector or dense matrix ",
          "object (i.e., a base matrix or DelayedArray).")
   }

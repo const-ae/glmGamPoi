@@ -11,7 +11,8 @@
   se.fit = FALSE,
   offset = mean(object$Offset),
   on_disk = NULL,
-  verbose = FALSE
+  verbose = FALSE,
+  ...
 )
 }
 \arguments{
@@ -41,6 +42,9 @@ positive and negative numbers. However, often the predicted values are easier to
 \strong{after} the link function is applied (i.e., type = "response"), because then the
 values are on the same scale as the original counts.}
 
+\item{se.fit}{boolean that indicates if in addition to the mean the standard error of the
+mean is returned.}
+
 \item{offset}{count models (in particular for sequencing experiments) usually have a sample
 specific size factor (\verb{offset = log(size factor)}). It defines how big we expect the predicted
 results are. If \code{newdata} is \code{NULL}, the \code{offset} is ignored, because the \code{predict()} returns
@@ -53,6 +57,20 @@ the result is calculated on disk depending if \code{offset} is stored on disk.}
 
 \item{verbose}{a boolean that indicates if information about the individual steps are
 printed while predicting. Default: \code{FALSE}.}
+
+\item{...}{currently ignored.}
+}
+\value{
+If \code{se.fit == FALSE}, a matrix with dimensions \verb{nrow(object$data) x nrow(newdata)}. \cr
+If \code{se.fit == TRUE}, a list with three entries
+\describe{
+\item{fit}{the predicted values as a matrix with dimensions \verb{nrow(object$data) x nrow(newdata)}.
+This is what would be returned if \code{se.fit == FALSE}.}
+\item{se.fit}{the associated standard errors for each \code{fit}. Also a matrix with
+dimensions \verb{nrow(object$data) x nrow(newdata)}.}
+\item{residual.scale}{Currently fixed to 1. In the future, this might become the values from
+\code{object$overdispersion_shrinkage_list$ql_disp_shrunken}.}
+}
 }
 \description{
 Predict \code{mu} (i.e., \code{type = "response"}) or \code{log(mu)} (i.e., \code{type = "link"})
