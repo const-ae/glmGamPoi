@@ -4,16 +4,18 @@ predict.glmGamPoi <- function(object, newdata = NULL,
                               type = c("link", "response"),
                               se.fit = FALSE,
                               offset = mean(object$Offset),
-                              on_disk = NULL){
+                              on_disk = NULL, verbose = FALSE){
 
   type <- match.arg(type, c("link", "response"))
   if(is.null(newdata)){
     # Easy, just return mu
+    if(verbose) message("'newdata' is NULL, use 'Mu = object$Mu'")
     Mu <- object$Mu
     design_matrix <- object$model_matrix
   }else{
     # Do something with newdata
     if(is.matrix(newdata)){
+      if(verbose) message("'newdata' is a matrix, set 'design_matrix = newdata'")
       design_matrix <- newdata
       mu_colnames <- rownames(newdata)
     }else  if((is.vector(newdata) || is.factor(newdata))){
@@ -26,6 +28,7 @@ predict.glmGamPoi <- function(object, newdata = NULL,
       if(is.numeric(newdata)){
         newdata <- as.character(newdata)
       }
+      if(verbose) message("'newdata' is a vector, construct 'design_matrix' from 'newdata' and 'object$design_formula'")
       mu_colnames <- names(newdata)
       newdata <- data.frame(x_ = newdata, stringsAsFactors = FALSE)
       design_matrix <- make_model_matrix_for_predict(object, newdata)
@@ -36,6 +39,7 @@ predict.glmGamPoi <- function(object, newdata = NULL,
              "provide 'newdata' as a vector and not as a data.frame.",
              call. = FALSE)
       }
+      if(verbose) message("'newdata' is a data.frame, construct 'design_matrix' from 'newdata' and 'object$design_formula'")
       design_matrix <- make_model_matrix_for_predict(object, newdata)
       mu_colnames <- rownames(newdata)
     }else{
@@ -48,20 +52,23 @@ predict.glmGamPoi <- function(object, newdata = NULL,
 
     offset_matrix <- handle_offset_param_for_predict(offset, nrow = nrow(object$Beta),
                                     ncol = nrow(design_matrix), on_disk = on_disk)
-
+    if(verbose) message("Calculate 'Mu = exp(object$Beta %*% t(design_matrix) + Offset)'")
     Mu <- calculate_mu(object$Beta, design_matrix, offset_matrix)
     rownames(Mu) <- rownames(object$Beta)
     colnames(Mu) <- mu_colnames
   }
 
   if(type == "response"){
+    if(verbose) message("'type = \"response\"', return Mu")
     fit <- Mu
   }else if(type == "link"){
+    if(verbose) message("'type = \"link\"', return 'fit = log(Mu)'")
     fit <- log(Mu)
   }
 
 
   if(se.fit){
+    if(verbose) message("'se.fit' is TRUE, calculate the standard error for each Mu estimate")
     p_idxs <- seq_len(ncol(object$model_matrix))
     # This could (should?) be adapted to the quasi-GamPoi value
     scale <- 1
