@@ -4,7 +4,7 @@ predict.glmGamPoi <- function(object, newdata = NULL,
                               type = c("link", "response"),
                               se.fit = FALSE,
                               offset = mean(object$Offset),
-                              on_disk = NULL,...){
+                              on_disk = NULL){
 
   type <- match.arg(type, c("link", "response"))
   if(is.null(newdata)){
