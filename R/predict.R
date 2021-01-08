@@ -63,21 +63,29 @@ predict.glmGamPoi <- function(object, newdata = NULL,
 
   if(se.fit){
     p_idxs <- seq_len(ncol(object$model_matrix))
-    # This could be adapted to the quasi-GamPoi value
+    # This could (should?) be adapted to the quasi-GamPoi value
     scale <- 1
     wrtm <- if( is(fit, "DelayedMatrix") && is(DelayedArray::seed(fit), "HDF5ArraySeed")){
       write_rows_to_hdf5_matrix
     }else{
       write_rows_to_matrix
     }
+    # This could be made more efficient by batching the reads
+    # of object$Mu
     se_fit <- wrtm(nrow(fit), ncol(fit), function(gene_idx){
       disp <- object$overdispersions[gene_idx]
       mu <- object$Mu[gene_idx, ]
       weights <- mu / (1 + mu * disp)
       weighted_Design <-  object$model_matrix * sqrt(weights)
-      R <- qr.R(qr(weighted_Design))[p_idxs, p_idxs, drop=FALSE]
-      XRinv <- design_matrix %*% qr.solve(R)
-      sqrt(matrixStats::rowSums2(XRinv^2))
+      tryCatch({
+        R <- qr.R(qr(weighted_Design))[p_idxs, p_idxs, drop=FALSE]
+        XRinv <- design_matrix %*% qr.solve(R)
+        sqrt(matrixStats::rowSums2(XRinv^2))
+      }, error = function(err){
+        # For example R is singular
+        # This can happen if all mu == 0
+        rep(NA_real_, nrow(design_matrix))
+      })
     })
 
     if(type == "response"){

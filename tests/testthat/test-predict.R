@@ -189,3 +189,22 @@ test_that("predict can handle hdf5 arrays", {
 
 
 
+test_that("predict can handle ill-formed weighted design", {
+
+  y <- rep(0, 50)
+  cont <- rnorm(n = 50, mean = 100)
+  fit <- glm_gp(y ~ cont)
+  pred <- predict(fit, se.fit = TRUE, type = "response")
+  expect_true(all(pred$fit < 1e-7))
+  expect_true(all(pred$se.fit < 1e-5))
+
+  group <- sample(LETTERS[1:5], 50, replace = TRUE)
+  fit <- glm_gp(y ~ group)
+  pred <- predict(fit, se.fit = TRUE, type = "response")
+  expect_true(all(pred$fit == 0))
+  expect_true(all(is.na(pred$se.fit)))
+
+})
+
+
+
