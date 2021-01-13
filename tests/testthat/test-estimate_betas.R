@@ -298,7 +298,7 @@ test_that("Fisher scoring and diagonal fisher scoring give consistent results", 
   new_model_matrix <- model.matrix(~ . - 1, df)
   beta_mat_init <- estimate_betas_roughly(Y = data$Y, model_matrix = new_model_matrix, offset_matrix = offset_matrix)
   res1 <- fitBeta_fisher_scoring(Y = data$Y, model_matrix = new_model_matrix, exp_offset_matrix = exp(offset_matrix),
-                                 thetas = data$overdispersion, beta_matSEXP = beta_mat_init, ridge_penalty = 0,
+                                 thetas = data$overdispersion, beta_matSEXP = beta_mat_init, ridge_penalty = rep(0, ncol(new_model_matrix)),
                                  tolerance = 1e-8, max_rel_mu_change = 1e5, max_iter =  100)
   res2 <- fitBeta_diagonal_fisher_scoring(Y = data$Y, model_matrix = new_model_matrix, exp_offset_matrix = exp(offset_matrix),
                                           thetas = data$overdispersion, beta_matSEXP = beta_mat_init,
@@ -334,13 +334,13 @@ test_that("Fisher scoring and ridge penalized fisher scoring give consistent res
   new_model_matrix <- model.matrix(~ . - 1, df)
   beta_mat_init <- estimate_betas_roughly(Y = data$Y[,1:size,drop=FALSE], model_matrix = new_model_matrix, offset_matrix = offset_matrix[,1:size,drop=FALSE])
   res1 <- fitBeta_fisher_scoring(Y = data$Y[,1:size,drop=FALSE], model_matrix = new_model_matrix, exp_offset_matrix = exp(offset_matrix)[,1:size,drop=FALSE],
-                                 thetas = data$overdispersion, beta_matSEXP = beta_mat_init, ridge_penalty = 0,
+                                 thetas = data$overdispersion, beta_matSEXP = beta_mat_init, ridge_penalty = rep(0, ncol(new_model_matrix)),
                                  tolerance = 1e-8, max_rel_mu_change = 1e5, max_iter =  100)
   res2 <- fitBeta_fisher_scoring(Y = data$Y[,1:size,drop=FALSE], model_matrix = new_model_matrix, exp_offset_matrix = exp(offset_matrix)[,1:size,drop=FALSE],
-                                 thetas = data$overdispersion, beta_matSEXP = beta_mat_init, ridge_penalty = 1e-30,
+                                 thetas = data$overdispersion, beta_matSEXP = beta_mat_init, ridge_penalty = rep(1e-30, ncol(new_model_matrix)),
                                  tolerance = 1e-8, max_rel_mu_change = 1e5, max_iter =  100)
   res3 <- fitBeta_fisher_scoring(Y = data$Y[,1:size,drop=FALSE], model_matrix = new_model_matrix, exp_offset_matrix = exp(offset_matrix)[,1:size,drop=FALSE],
-                                 thetas = data$overdispersion, beta_matSEXP = beta_mat_init, ridge_penalty = 50,
+                                 thetas = data$overdispersion, beta_matSEXP = beta_mat_init, ridge_penalty = rep(50, ncol(new_model_matrix)),
                                  tolerance = 1e-8, max_rel_mu_change = 1e5, max_iter =  100)
   expect_equal(res1, res2)
   expect_lt(res3$beta_mat[6], res1$beta_mat[6])  # The age column is much smaller
@@ -459,6 +459,23 @@ test_that("glm_gp_impl works with Delayed Input", {
   expect_equal(res$Mu, as.matrix(res2$Mu))
   expect_equal(res$size_factors, res2$size_factors)
 })
+
+
+
+test_that("ridge penalization works as expected", {
+
+  y <- rpois(n = 10, lambda = 3)
+  cont <- rnorm(n = 10)
+
+  # Ridge penalty shouldn't affect Intercept by default
+  fit_1 <- glm_gp(y ~ cont, overdispersion = 0, overdispersion_shrinkage = FALSE)
+  fit_2 <- glm_gp(y ~ cont, ridge_penalty = 40000,
+                  overdispersion = 0, overdispersion_shrinkage = FALSE)
+
+  fit_1$Beta
+  fit_2$Beta
+})
+
 
 
 

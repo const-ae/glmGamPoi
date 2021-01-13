@@ -33,8 +33,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // fitBeta_fisher_scoring
-List fitBeta_fisher_scoring(RObject Y, const arma::mat& model_matrix, RObject exp_offset_matrix, NumericVector thetas, SEXP beta_matSEXP, double ridge_penalty, double tolerance, double max_rel_mu_change, int max_iter);
-RcppExport SEXP _glmGamPoi_fitBeta_fisher_scoring(SEXP YSEXP, SEXP model_matrixSEXP, SEXP exp_offset_matrixSEXP, SEXP thetasSEXP, SEXP beta_matSEXPSEXP, SEXP ridge_penaltySEXP, SEXP toleranceSEXP, SEXP max_rel_mu_changeSEXP, SEXP max_iterSEXP) {
+List fitBeta_fisher_scoring(RObject Y, const arma::mat& model_matrix, RObject exp_offset_matrix, NumericVector thetas, SEXP beta_matSEXP, Nullable<NumericVector> ridge_penalty_nl, double tolerance, double max_rel_mu_change, int max_iter);
+RcppExport SEXP _glmGamPoi_fitBeta_fisher_scoring(SEXP YSEXP, SEXP model_matrixSEXP, SEXP exp_offset_matrixSEXP, SEXP thetasSEXP, SEXP beta_matSEXPSEXP, SEXP ridge_penalty_nlSEXP, SEXP toleranceSEXP, SEXP max_rel_mu_changeSEXP, SEXP max_iterSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -43,11 +43,11 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< RObject >::type exp_offset_matrix(exp_offset_matrixSEXP);
     Rcpp::traits::input_parameter< NumericVector >::type thetas(thetasSEXP);
     Rcpp::traits::input_parameter< SEXP >::type beta_matSEXP(beta_matSEXPSEXP);
-    Rcpp::traits::input_parameter< double >::type ridge_penalty(ridge_penaltySEXP);
+    Rcpp::traits::input_parameter< Nullable<NumericVector> >::type ridge_penalty_nl(ridge_penalty_nlSEXP);
     Rcpp::traits::input_parameter< double >::type tolerance(toleranceSEXP);
     Rcpp::traits::input_parameter< double >::type max_rel_mu_change(max_rel_mu_changeSEXP);
     Rcpp::traits::input_parameter< int >::type max_iter(max_iterSEXP);
-    rcpp_result_gen = Rcpp::wrap(fitBeta_fisher_scoring(Y, model_matrix, exp_offset_matrix, thetas, beta_matSEXP, ridge_penalty, tolerance, max_rel_mu_change, max_iter));
+    rcpp_result_gen = Rcpp::wrap(fitBeta_fisher_scoring(Y, model_matrix, exp_offset_matrix, thetas, beta_matSEXP, ridge_penalty_nl, tolerance, max_rel_mu_change, max_iter));
     return rcpp_result_gen;
 END_RCPP
 }

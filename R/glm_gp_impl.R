@@ -23,6 +23,7 @@ glm_gp_impl <- function(Y, model_matrix,
                         size_factors = c("normed_sum", "deconvolution", "poscounts"),
                         overdispersion = TRUE,
                         overdispersion_shrinkage = TRUE,
+                        ridge_penalty = 0,
                         do_cox_reid_adjustment = TRUE,
                         subsample = FALSE,
                         verbose = FALSE){
@@ -79,7 +80,7 @@ glm_gp_impl <- function(Y, model_matrix,
     beta_init <- estimate_betas_roughly(Y, model_matrix, offset_matrix = offset_matrix)
     if(verbose){ message("Estimate beta") }
     beta_res <- estimate_betas_fisher_scoring(Y, model_matrix = model_matrix, offset_matrix = offset_matrix,
-                                              dispersions = disp_init, beta_mat_init = beta_init)
+                                              dispersions = disp_init, beta_mat_init = beta_init, ridge_penalty = ridge_penalty)
   }
   Beta <- beta_res$Beta
 
@@ -122,7 +123,7 @@ glm_gp_impl <- function(Y, model_matrix,
                                        groups = groups, model_matrix = model_matrix)
     }else{
       beta_res <- estimate_betas_fisher_scoring(Y, model_matrix = model_matrix, offset_matrix = offset_matrix,
-                                            dispersions = disp_latest, beta_mat_init = Beta)
+                                            dispersions = disp_latest, beta_mat_init = Beta, ridge_penalty = ridge_penalty)
     }
     Beta <- beta_res$Beta
 
@@ -142,7 +143,7 @@ glm_gp_impl <- function(Y, model_matrix,
                                        groups = groups, model_matrix = model_matrix)
     }else{
       beta_res <- estimate_betas_fisher_scoring(Y, model_matrix = model_matrix, offset_matrix = offset_matrix,
-                                            dispersions = disp_latest, beta_mat_init = Beta)
+                                            dispersions = disp_latest, beta_mat_init = Beta, ridge_penalty = ridge_penalty)
     }
     Beta <- beta_res$Beta
     # Calculate corresponding predictions

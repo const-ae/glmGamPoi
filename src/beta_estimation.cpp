@@ -149,17 +149,27 @@ double decrease_deviance(/*In-Out Parameter*/ arma::vec& beta_hat,
 //
 template<class NumericType, class BMNumericType>
 List fitBeta_fisher_scoring_impl(RObject Y, const arma::mat& model_matrix, RObject exp_offset_matrix,
-                                 NumericVector thetas, SEXP beta_matSEXP, double ridge_penalty,
+                                 NumericVector thetas, SEXP beta_matSEXP, Nullable<NumericVector> ridge_penalty_nl,
                                  double tolerance, double max_rel_mu_change, int max_iter, bool use_diagonal_approx) {
   auto Y_bm = beachmat::create_matrix<BMNumericType>(Y);
   auto exp_offsets_bm = beachmat::create_numeric_matrix(exp_offset_matrix);
   int n_samples = Y_bm->get_ncol();
   int n_genes = Y_bm->get_nrow();
+
+  // the ridge penalty
+  bool apply_ridge_penalty = ridge_penalty_nl.isNotNull();
+  arma::vec ridge_penalty;
+  if(apply_ridge_penalty){
+    NumericVector tmp = ridge_penalty_nl.get();
+    ridge_penalty = arma::vec(tmp.cbegin(), tmp.length());
+    if(model_matrix.n_cols != ridge_penalty.n_rows){
+      stop("Number of columns in model_matrix does not match the length of ridge_penalty");
+    }
+  }
   // The result
   arma::mat beta_mat = as<arma::mat>(beta_matSEXP);
+
   // deviance, convergence and tolerance
-
-
   NumericVector iterations(n_genes);
   NumericVector deviance(n_genes);
   for (int gene_idx = 0; gene_idx < n_genes; gene_idx++) {
@@ -181,10 +191,10 @@ List fitBeta_fisher_scoring_impl(RObject Y, const arma::mat& model_matrix, RObje
       if(use_diagonal_approx){
         step = fisher_scoring_diagonal_step(model_matrix, counts, mu_hat, thetas(gene_idx) * mu_hat);
       }else{
-        if(ridge_penalty == 0){
-          step = fisher_scoring_qr_step(model_matrix, counts, mu_hat, thetas(gene_idx) * mu_hat);
-        }else{
+        if(apply_ridge_penalty){
           step = fisher_scoring_qr_ridge_step(model_matrix, counts, mu_hat, thetas(gene_idx) * mu_hat, ridge_penalty);
+        }else{
+          step = fisher_scoring_qr_step(model_matrix, counts, mu_hat, thetas(gene_idx) * mu_hat);
         }
       }
 
@@ -216,19 +226,19 @@ List fitBeta_fisher_scoring_impl(RObject Y, const arma::mat& model_matrix, RObje
 
 // [[Rcpp::export]]
 List fitBeta_fisher_scoring(RObject Y, const arma::mat& model_matrix, RObject exp_offset_matrix,
-                                  NumericVector thetas, SEXP beta_matSEXP, double ridge_penalty,
+                                  NumericVector thetas, SEXP beta_matSEXP, Nullable<NumericVector> ridge_penalty_nl,
                                   double tolerance, double max_rel_mu_change, int max_iter) {
   auto mattype=beachmat::find_sexp_type(Y);
   if (mattype==INTSXP) {
     return fitBeta_fisher_scoring_impl<int, beachmat::integer_matrix>(Y, model_matrix, exp_offset_matrix,
                                                                       thetas,  beta_matSEXP,
-                                                                      /*ridge_penalty=*/ ridge_penalty,
+                                                                      /*ridge_penalty=*/ ridge_penalty_nl,
                                                                       tolerance, max_rel_mu_change, max_iter,
                                                                       /*use_diagonal_approx=*/ false);
   } else if (mattype==REALSXP) {
     return fitBeta_fisher_scoring_impl<double, beachmat::numeric_matrix>(Y, model_matrix, exp_offset_matrix,
                                                                          thetas,  beta_matSEXP,
-                                                                         /*ridge_penalty=*/ ridge_penalty,
+                                                                         /*ridge_penalty=*/ ridge_penalty_nl,
                                                                          tolerance, max_rel_mu_change, max_iter,
                                                                          /*use_diagonal_approx=*/ false);
   } else {
@@ -246,13 +256,13 @@ List fitBeta_diagonal_fisher_scoring(RObject Y, const arma::mat& model_matrix, R
   if (mattype==INTSXP) {
     return fitBeta_fisher_scoring_impl<int, beachmat::integer_matrix>(Y, model_matrix, exp_offset_matrix,
                                                                       thetas,  beta_matSEXP,
-                                                                      /*ridge_penalty=*/ 0,
+                                                                      /*ridge_penalty=*/ R_NilValue,
                                                                       tolerance, max_rel_mu_change, max_iter,
                                                                       /*use_diagonal_approx=*/ true);
   } else if (mattype==REALSXP) {
     return fitBeta_fisher_scoring_impl<double, beachmat::numeric_matrix>(Y, model_matrix, exp_offset_matrix,
                                                                          thetas,  beta_matSEXP,
-                                                                         /*ridge_penalty=*/ 0,
+                                                                         /*ridge_penalty=*/ R_NilValue,
                                                                          tolerance, max_rel_mu_change, max_iter,
                                                                          /*use_diagonal_approx=*/ true);
   } else {

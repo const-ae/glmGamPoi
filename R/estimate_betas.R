@@ -23,16 +23,20 @@ estimate_betas_roughly <- function(Y, model_matrix, offset_matrix, pseudo_count 
 #'
 #' @keywords internal
 estimate_betas_fisher_scoring <- function(Y, model_matrix, offset_matrix,
-                                          dispersions, beta_mat_init){
+                                          dispersions, beta_mat_init, ridge_penalty = 0){
   stopifnot(nrow(model_matrix) == ncol(Y))
   stopifnot(nrow(beta_mat_init) == nrow(Y))
   stopifnot(ncol(beta_mat_init) == ncol(model_matrix))
   stopifnot(length(dispersions) == nrow(Y))
   stopifnot(dim(offset_matrix) == dim(Y))
 
+  if(! is.null(ridge_penalty)){
+    ridge_penalty <- pmax(ridge_penalty, 1e-6)
+    ridge_penalty <- rep_len(ridge_penalty, ncol(model_matrix))
+  }
 
   betaRes <- fitBeta_fisher_scoring(Y, model_matrix, exp(offset_matrix), dispersions, beta_mat_init,
-                                    ridge_penalty = 1e-6, tolerance = 1e-8, max_rel_mu_change = 1e5, max_iter =  1000)
+                                    ridge_penalty = ridge_penalty, tolerance = 1e-8, max_rel_mu_change = 1e5, max_iter =  1000)
 
   list(Beta = betaRes$beta_mat, iterations = betaRes$iter, deviances = betaRes$deviance)
 }
