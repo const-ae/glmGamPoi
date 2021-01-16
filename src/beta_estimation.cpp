@@ -192,7 +192,7 @@ List fitBeta_fisher_scoring_impl(RObject Y, const arma::mat& model_matrix, RObje
         step = fisher_scoring_diagonal_step(model_matrix, counts, mu_hat, thetas(gene_idx) * mu_hat);
       }else{
         if(apply_ridge_penalty){
-          step = fisher_scoring_qr_ridge_step(model_matrix, counts, mu_hat, thetas(gene_idx) * mu_hat, ridge_penalty);
+          step = fisher_scoring_qr_ridge_step(model_matrix, counts, mu_hat, thetas(gene_idx) * mu_hat, ridge_penalty, beta_hat);
         }else{
           step = fisher_scoring_qr_step(model_matrix, counts, mu_hat, thetas(gene_idx) * mu_hat);
         }

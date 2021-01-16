@@ -23,27 +23,49 @@ arma::vec fisher_scoring_qr_step(const arma::mat& model_matrix, const arma::Col<
 }
 
 
+/**
+ * Ridge ression penalizes large values of beta:
+ *    \Sum (y - X b)^2 + lambda * \Sum b^2
+ *
+ * Finding the optimal b that balances those two errors can be expressed using the normal equations
+ *    b = (X^t X + diag(lambda))^-1 X^t y
+ *
+ * However, this function does not compute b directly, but the step s to go from b^{(r)}
+ * to b^{(r+1)} = b^{(r)} + s.
+ * We find s by solving
+ *   argmin { y' - (X' b^{r} + X' s) },
+ * where y' = [y 0]^t and X' = [X diag(lambda)]^t.
+ * We can rearrange the equation above for a given b
+ *   argmin { [y-(Xb) 0-lambda*b] - X' s}.
+ *
+ * For numerically stability we apply X' = Q R and solve
+ *   Q^t [y-(Xb) 0-lambda*b] = R s
+ *
+ * For the actual implementation below, we need to keep the weighting with the w = mu / (1 + mu * theta)
+ * in mind. However, for clarity, I skipped w in the above derivation.
+ */
 template<class NumericType>
 arma::vec fisher_scoring_qr_ridge_step(const arma::mat& model_matrix, const arma::Col<NumericType>& counts, const arma::colvec& mu,
-                                       const arma::colvec& theta_times_mu, const arma::colvec& ridge_penalty){
+                                       const arma::colvec& theta_times_mu, const arma::colvec& ridge_penalty, const arma::colvec& beta){
   // The QR decomposition of the model_matrix
   arma::mat q, r;
   int p = model_matrix.n_cols;
   arma::vec w_vec = (mu/(1.0 + theta_times_mu));
   arma::vec w_sqrt_vec = sqrt(w_vec);
   // Add rows for Ridge Regularization (see https://math.stackexchange.com/a/299508/492945)
-  arma::vec extended_w_sqrt_vec = arma::join_cols(w_sqrt_vec, arma::ones(p));
   arma::mat ridge_helper = arma::zeros(p, p);
   ridge_helper.diag() = sqrt(ridge_penalty);
   arma::mat extended_model_matrix = arma::join_cols(model_matrix, ridge_helper);
+
+  arma::vec extended_w_sqrt_vec = arma::join_cols(w_sqrt_vec, arma::ones(p));
+  arma::vec extended_working_resid =  arma::join_cols((counts - mu) / mu, -sqrt(ridge_penalty) % beta);
   // prepare matrices
   arma::mat weighted_extended_model_matrix = extended_model_matrix.each_col() % extended_w_sqrt_vec;
   qr_econ(q, r, weighted_extended_model_matrix);
-  // The last p rows of q are not needed because y' is zero anyway for them
-  q.shed_rows(q.n_rows - p, q.n_rows - 1);
+
   // Not actually quite the score vec, but related
   // See Dunn&Smyth GLM Book eq. 6.16
-  arma::vec score_vec = (q.each_col() % w_sqrt_vec).t() * ((counts - mu) / mu);
+  arma::vec score_vec = (q.each_col() % extended_w_sqrt_vec).t() * extended_working_resid;
   arma::vec step = solve(arma::trimatu(r), score_vec);
   return step;
 }
