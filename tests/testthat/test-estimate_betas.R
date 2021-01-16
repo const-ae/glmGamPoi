@@ -463,13 +463,13 @@ test_that("glm_gp_impl works with Delayed Input", {
 
 
 test_that("ridge penalization works as expected", {
-
-  y <- rpois(n = 10, lambda = 3)
-  cont <- rnorm(n = 10)
+  set.seed(1)
+  cont <- rnorm(n = 10)^2
+  y <- rpois(n = length(cont), lambda = exp(3 + cont))
 
   # Ridge penalty shouldn't affect Intercept by default
   fit_1 <- glm_gp(y ~ cont, overdispersion = 0, overdispersion_shrinkage = FALSE)
-  fit_2 <- glm_gp(y ~ cont, ridge_penalty = 40000,
+  fit_2 <- glm_gp(y ~ cont, ridge_penalty = 1000,
                   overdispersion = 0, overdispersion_shrinkage = FALSE)
 
   fit_1$Beta

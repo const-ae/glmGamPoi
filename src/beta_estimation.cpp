@@ -147,7 +147,7 @@ double decrease_deviance_plus_ridge(/*In-Out Parameter*/ arma::vec& beta_hat,
   beta_hat = beta_hat + step;
   const arma::vec mu_old = mu_hat;
   while(true){
-    double pen_sum = sum(beta_hat % ridge_penalty);
+    double pen_sum = sum(pow(beta_hat % sqrt(ridge_penalty), 2));
     mu_hat = calculate_mu(model_matrix, beta_hat, exp_off);
     dev = compute_gp_deviance_sum(counts, mu_hat, theta) + pen_sum;
     double conv_test = fabs(dev - dev_old)/(fabs(dev) + 0.1);
@@ -223,7 +223,12 @@ List fitBeta_fisher_scoring_impl(RObject Y, const arma::mat& model_matrix, RObje
     arma::vec beta_hat = beta_mat.row(gene_idx).t();
     arma::vec mu_hat = calculate_mu(model_matrix, beta_hat, exp_off);
     // Init deviance
-    double dev_old = compute_gp_deviance_sum(counts, mu_hat, thetas(gene_idx));
+    double dev_old = 0;
+    if(apply_ridge_penalty){
+      dev_old = compute_gp_deviance_sum(counts, mu_hat, thetas(gene_idx)) + sum(pow(beta_hat % sqrt(ridge_penalty), 2));
+    }else{
+      dev_old = compute_gp_deviance_sum(counts, mu_hat, thetas(gene_idx));
+    }
     for (int t = 0; t < max_iter; t++) {
       iterations(gene_idx)++;
       // Find good direction to optimize beta
