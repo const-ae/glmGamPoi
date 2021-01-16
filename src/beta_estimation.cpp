@@ -126,7 +126,6 @@ double decrease_deviance(/*In-Out Parameter*/ arma::vec& beta_hat,
     }
     line_iter++;
   }
-  // Rcout << "Speeding factor: " << speeding_factor << "\n";
   return dev;
 }
 
@@ -165,7 +164,6 @@ double decrease_deviance_plus_ridge(/*In-Out Parameter*/ arma::vec& beta_hat,
     }
     line_iter++;
   }
-  Rcout << "Speeding factor: " << speeding_factor << "\n";
   return dev;
 }
 
