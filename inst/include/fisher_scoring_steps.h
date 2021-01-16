@@ -54,11 +54,11 @@ arma::vec fisher_scoring_qr_ridge_step(const arma::mat& model_matrix, const arma
   arma::vec w_sqrt_vec = sqrt(w_vec);
   // Add rows for Ridge Regularization (see https://math.stackexchange.com/a/299508/492945)
   arma::mat ridge_helper = arma::zeros(p, p);
-  ridge_helper.diag() = sqrt(ridge_penalty);
+  ridge_helper.diag() = sqrt(model_matrix.n_rows) * sqrt(ridge_penalty);
   arma::mat extended_model_matrix = arma::join_cols(model_matrix, ridge_helper);
 
   arma::vec extended_w_sqrt_vec = arma::join_cols(w_sqrt_vec, arma::ones(p));
-  arma::vec extended_working_resid =  arma::join_cols((counts - mu) / mu, -sqrt(ridge_penalty) % beta);
+  arma::vec extended_working_resid =  arma::join_cols((counts - mu) / mu, -sqrt(model_matrix.n_rows) * sqrt(ridge_penalty) % beta);
   // prepare matrices
   arma::mat weighted_extended_model_matrix = extended_model_matrix.each_col() % extended_w_sqrt_vec;
   qr_econ(q, r, weighted_extended_model_matrix);

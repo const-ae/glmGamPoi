@@ -45,6 +45,12 @@ glm_gp_impl <- function(Y, model_matrix,
   # returns NULL if there would be more groups than columns
   # only_intercept_model <- ncol(model_matrix) == 1 && all(model_matrix == 1)
   groups <- get_groups_for_model_matrix(model_matrix)
+  if(! is.null(groups) && any(ridge_penalty > 0)){
+    if(verbose) message("The data consist of ", max(groups), " different groups. ",
+                        "However, due to the ridge_penalty it is not possible to ",
+                        "use the faster group-wise estimator")
+    groups <- NULL
+  }
 
   # If no overdispersion, make rough first estimate
   if(isTRUE(overdispersion)){
