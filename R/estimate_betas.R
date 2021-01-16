@@ -31,11 +31,11 @@ estimate_betas_fisher_scoring <- function(Y, model_matrix, offset_matrix,
   stopifnot(dim(offset_matrix) == dim(Y))
 
   if(! is.null(ridge_penalty)){
-    ridge_penalty <- pmax(ridge_penalty, 1e-6)
+    ridge_penalty <- pmax(ridge_penalty, 1e-10)
     ridge_penalty <- rep_len(ridge_penalty, ncol(model_matrix))
     intercept_position <- attr(model_matrix, "intercept_position")
     if(! is.null(intercept_position) && intercept_position != 0){
-      ridge_penalty[intercept_position] <- 1e-6
+      ridge_penalty[intercept_position] <- 1e-10
     }
   }
 

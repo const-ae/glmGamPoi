@@ -319,7 +319,7 @@ test_that("Fisher scoring and ridge penalized fisher scoring give consistent res
                                  thetas = data$overdispersion, beta_matSEXP = beta_mat_init, ridge_penalty = 0,
                                  tolerance = 1e-8, max_rel_mu_change = 1e5, max_iter =  100)
   res2 <- fitBeta_fisher_scoring(Y = data$Y, model_matrix = data$X, exp_offset_matrix = exp(offset_matrix),
-                                 thetas = data$overdispersion, beta_matSEXP = beta_mat_init, ridge_penalty = 1e-6,
+                                 thetas = data$overdispersion, beta_matSEXP = beta_mat_init, ridge_penalty = 1e-10,
                                  tolerance = 1e-8, max_rel_mu_change = 1e5, max_iter =  100)
   expect_equal(res1, res2)
 
@@ -342,7 +342,7 @@ test_that("Fisher scoring and ridge penalized fisher scoring give consistent res
   res3 <- fitBeta_fisher_scoring(Y = data$Y[,1:size,drop=FALSE], model_matrix = new_model_matrix, exp_offset_matrix = exp(offset_matrix)[,1:size,drop=FALSE],
                                  thetas = data$overdispersion, beta_matSEXP = beta_mat_init, ridge_penalty = rep(50, ncol(new_model_matrix)),
                                  tolerance = 1e-8, max_rel_mu_change = 1e5, max_iter =  100)
-  expect_equal(res1, res2)
+  expect_equal(res1, res2, tolerance = 1e-6)
   expect_lt(res3$beta_mat[6], res1$beta_mat[6])  # The age column is much smaller
 })
 
@@ -464,16 +464,37 @@ test_that("glm_gp_impl works with Delayed Input", {
 
 test_that("ridge penalization works as expected", {
   set.seed(1)
-  cont <- rnorm(n = 10)^2
-  y <- rpois(n = length(cont), lambda = exp(3 + cont))
+  X <- cbind(1, rnorm(n = 100))
+  Y <- matrix(rpois(n = nrow(X), lambda = 4), nrow = 1)
+  offset <- matrix(0, nrow = 1, ncol = nrow(X))
+  init <- matrix(c(1,1), nrow = 1)
+  # This used to return c(NA, NA) because mu got exactly zero
+  res1 <- estimate_betas_fisher_scoring(Y, X, offset, dispersions = 0, beta_mat_init = init,
+                                       ridge_penalty = 0)
+  res2 <- estimate_betas_fisher_scoring(Y, X, offset, dispersions = 0, beta_mat_init = init,
+                                       ridge_penalty = c(0, 10))
+  res1
+  res2
 
-  # Ridge penalty shouldn't affect Intercept by default
-  fit_1 <- glm_gp(y ~ cont, overdispersion = 0, overdispersion_shrinkage = FALSE)
-  fit_2 <- glm_gp(y ~ cont, ridge_penalty = 1000,
-                  overdispersion = 0, overdispersion_shrinkage = FALSE)
+  expect_lt(res2$Beta[2], res1$Beta[2])
 
-  fit_1$Beta
-  fit_2$Beta
+  # Group estimator
+  X <- cbind(rep(c(0, 1, 1), length = 100), rep(c(1, 0, 0), length = 100))
+  glm_gp(Y ~ X - 1, ridge_penalty = 10, verbose = TRUE)
+
+  res1 <- estimate_betas_fisher_scoring(Y, X, offset, dispersions = 0, beta_mat_init = init,
+                                        ridge_penalty = NULL)
+  res2 <- estimate_betas_fisher_scoring(Y, X, offset, dispersions = 0, beta_mat_init = init,
+                                        ridge_penalty = c(1, 1))
+
+  res3 <- estimate_betas_group_wise(Y, offset, dispersions = 0, beta_mat_init = init,
+                                    groups = rep(c(1,2,2), length = 100), model_matrix = X)
+
+
+  expect_equal(res1[c(1,3)], res3[c(1,3)])
+  expect_gt(res2$deviances, res1$deviances)
+  expect_lt(res2$Beta[1], res1$Beta[1])
+
 })
 
 
