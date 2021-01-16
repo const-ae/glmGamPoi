@@ -126,6 +126,46 @@ double decrease_deviance(/*In-Out Parameter*/ arma::vec& beta_hat,
     }
     line_iter++;
   }
+  // Rcout << "Speeding factor: " << speeding_factor << "\n";
+  return dev;
+}
+
+
+template<class NumericType>
+double decrease_deviance_plus_ridge(/*In-Out Parameter*/ arma::vec& beta_hat,
+                                    /*In-Out Parameter*/ arma::vec& mu_hat,
+                                    const arma::vec& step,
+                                    const arma::mat& model_matrix,
+                                    const arma::vec& ridge_penalty,
+                                    const arma::mat& exp_off,
+                                    const arma::Col<NumericType>& counts,
+                                    const double theta, const double dev_old,
+                                    const double tolerance, const double max_rel_mu_change){
+  double speeding_factor = 1.0;
+  int line_iter = 0;
+  double dev = 0;
+  beta_hat = beta_hat + step;
+  const arma::vec mu_old = mu_hat;
+  while(true){
+    double pen_sum = sum(beta_hat % ridge_penalty);
+    mu_hat = calculate_mu(model_matrix, beta_hat, exp_off);
+    dev = compute_gp_deviance_sum(counts, mu_hat, theta) + pen_sum;
+    double conv_test = fabs(dev - dev_old)/(fabs(dev) + 0.1);
+    double mu_rel_change = max(mu_hat / mu_old);
+    if((dev < dev_old && mu_rel_change < max_rel_mu_change) || conv_test < tolerance){
+      break; // while loop
+    }else if(line_iter >= 100){
+      // speeding factor is very small, something is going wrong here
+      dev = std::numeric_limits<double>::quiet_NaN();
+      break; // while loop
+    }else{
+      // Halfing the speed
+      speeding_factor = speeding_factor / 2.0;
+      beta_hat = beta_hat - step * speeding_factor;
+    }
+    line_iter++;
+  }
+  Rcout << "Speeding factor: " << speeding_factor << "\n";
   return dev;
 }
 
@@ -199,8 +239,14 @@ List fitBeta_fisher_scoring_impl(RObject Y, const arma::mat& model_matrix, RObje
       }
 
       // Find step size that actually decreases the deviance
-      double dev = decrease_deviance(beta_hat, mu_hat, step, model_matrix, exp_off, counts,
-                                     thetas(gene_idx), dev_old, tolerance, max_rel_mu_change);
+      double dev = 0;
+      if(apply_ridge_penalty){
+        dev = decrease_deviance_plus_ridge(beta_hat, mu_hat, step, model_matrix, ridge_penalty,
+                                exp_off, counts, thetas(gene_idx), dev_old, tolerance, max_rel_mu_change);
+      }else{
+        dev = decrease_deviance(beta_hat, mu_hat, step, model_matrix,
+                                exp_off, counts, thetas(gene_idx), dev_old, tolerance, max_rel_mu_change);
+      }
       double conv_test = fabs(dev - dev_old)/(fabs(dev) + 0.1);
       dev_old = dev;
       if (std::isnan(conv_test)) {
