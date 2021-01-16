@@ -251,6 +251,9 @@ glm_gp <- function(data,
   res$design_formula <- des$design_formula
   colnames(res$Beta) <- colnames(res$model_matrix)
   rownames(res$Beta) <- rownames(data)
+  if(! is.null(res$ridge_penalty)){
+    names(res$ridge_penalty) <- colnames(res$model_matrix)
+  }
   rownames(res$Mu) <- rownames(data)
   colnames(res$Mu) <- colnames(data)
   rownames(res$Offset) <- rownames(data)
@@ -421,6 +424,34 @@ handle_subsample_parameter <- function(data, subsample){
     n_subsamples <- subsample
   }
   min(n_subsamples, ncol(data))
+}
+
+
+handle_ridge_penalty_parameter <- function(ridge_penalty, model_matrix, verbose){
+  if(! is.null(ridge_penalty)){
+    ridge_penalty <- pmax(ridge_penalty, 1e-10)
+    intercept_position <- attr(model_matrix, "intercept_position")
+    if(length(ridge_penalty) == 1){
+      ridge_penalty <- rep_len(ridge_penalty, ncol(model_matrix))
+      if(! is.null(intercept_position)){
+        ridge_penalty[intercept_position != 0] <- 1e-10
+      }
+    }else if(length(ridge_penalty) == ncol(model_matrix)){
+      # Got a full length ridge_penalty, check if this conflicts with intercept
+      if(verbose && ! is.null(intercept_position) && any(ridge_penalty[intercept_position] > 1e-10)){
+        message("A ridge_penalty for each column of the design matrix was provided, including the intercept ",
+                "in column ", intercept_position, ". Are you sure this is correct?\n",
+                "To avoid this message, set the ridge_penalty[", intercept_position, "] to a value ",
+                "smaller than 1e-10.")
+      }
+      ridge_penalty
+    }else{
+      stop("The definition of the ridge penalty does not match the model_matrix. ",
+           "It must either be of length 1 or the number of columns in the design matrix.\n",
+           "If length(ridge_penalty) == 1, it is applied to all columns except the intercept.")
+    }
+  }
+  ridge_penalty
 }
 
 

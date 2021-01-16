@@ -47,7 +47,7 @@ test_that("Beta estimation can handle edge cases as input", {
   res <- estimate_betas_group_wise(Y, offset_matrix, dispersion, beta_group_init = matrix(3, nrow = 1, ncol = 1), groups = 1, model_matrix = model_matrix)
   expect_equal(res$Beta[1,1], -1e8)
   beta_mat_init <- estimate_betas_roughly(Y, model_matrix, offset_matrix)
-  res2 <- estimate_betas_fisher_scoring(Y, model_matrix, offset_matrix, dispersion, beta_mat_init)
+  res2 <- estimate_betas_fisher_scoring(Y, model_matrix, offset_matrix, dispersion, beta_mat_init, ridge_penalty = NULL)
   expect_lt(res2$Beta[1,1], -15)
 })
 
@@ -67,7 +67,7 @@ test_that("Beta estimation can handle edge case (2)", {
   disp_init <- estimate_dispersions_roughly(Y, model_matrix, offset_matrix = offset_matrix)
   beta_init <- estimate_betas_roughly(Y, model_matrix, offset_matrix = offset_matrix)
   beta_res <- estimate_betas_fisher_scoring(Y, model_matrix = model_matrix, offset_matrix = offset_matrix,
-                                                        dispersions = disp_init, beta_mat_init = beta_init)
+                                            dispersions = disp_init, beta_mat_init = beta_init, ridge_penalty = NULL)
   beta_res
   expect_lt(beta_res$deviances, 100)
   expect_true(all(calculate_mu(beta_res$Beta, model_matrix, offset_matrix) < 1e5))
@@ -114,7 +114,7 @@ test_that("Beta estimation can handle any kind of model_matrix", {
 
 
   fit <- estimate_betas_fisher_scoring(Y, model_matrix = model_matrix, offset_matrix = offset_matrix,
-                                dispersions = disp_init, beta_mat_init = beta_init)
+                                dispersions = disp_init, beta_mat_init = beta_init, ridge_penalty = NULL)
 
 
   deseq2_fit <- DESeq2:::fitBetaWrapper(ySEXP = Y, xSEXP = model_matrix, nfSEXP = exp(offset_matrix),
@@ -211,9 +211,9 @@ test_that("estimate_betas_fisher_scoring can handle DelayedArray", {
   beta_mat_init_da <- estimate_betas_roughly(mat_hdf5, model_matrix, offset_matrix_hdf5)
 
 
-  res <- estimate_betas_fisher_scoring(mat, model_matrix, offset_matrix, dispersions, beta_mat_init)
-  res2 <- estimate_betas_fisher_scoring(mat_hdf5, model_matrix, offset_matrix_hdf5, dispersions, beta_mat_init_da)
-  res3 <- estimate_betas_fisher_scoring(mat * 1.0, model_matrix, offset_matrix, dispersions, beta_mat_init)
+  res <- estimate_betas_fisher_scoring(mat, model_matrix, offset_matrix, dispersions, beta_mat_init, ridge_penalty = NULL)
+  res2 <- estimate_betas_fisher_scoring(mat_hdf5, model_matrix, offset_matrix_hdf5, dispersions, beta_mat_init_da, ridge_penalty = NULL)
+  res3 <- estimate_betas_fisher_scoring(mat * 1.0, model_matrix, offset_matrix, dispersions, beta_mat_init, ridge_penalty = NULL)
   expect_equal(res, res2)
   expect_equal(res, res3)
 })
@@ -230,7 +230,7 @@ test_that("Beta estimation works", {
   # Fit Standard Model
   beta_mat_init <- estimate_betas_roughly(Y = data$Y, model_matrix = model_matrix, offset_matrix = offset_matrix)
   my_res <- estimate_betas_fisher_scoring(Y = data$Y, model_matrix = model_matrix, offset_matrix = offset_matrix,
-                                          dispersions = data$overdispersion, beta_mat_init = beta_mat_init)
+                                          dispersions = data$overdispersion, beta_mat_init = beta_mat_init, ridge_penalty = NULL)
 
   # Fit Model for One Group
   beta_vec_init <- estimate_betas_roughly_group_wise(Y = data$Y, offset_matrix = offset_matrix, groups = 1)
@@ -393,7 +393,8 @@ test_that("glm_gp_impl can handle weird input", {
   offset <- matrix(0, nrow = 1, ncol = 5)
   init <- matrix(c(1,1), nrow = 1)
   # This used to return c(NA, NA) because mu got exactly zero
-  res <- estimate_betas_fisher_scoring(Y, X, offset, dispersions = 0, beta_mat_init = init)
+  res <- estimate_betas_fisher_scoring(Y, X, offset, dispersions = 0,
+                                       beta_mat_init = init, ridge_penalty = NULL)
   # fitBeta_diagonal_fisher_scoring(Y, X, exp(offset), 0, init, tolerance = 1e-8, max_iter =  5000000)
   expect_false(any(is.na(c(res$Beta))))
 })
@@ -405,7 +406,8 @@ test_that("glm_gp_impl can handle weird input 2", {
              c(-0.1, -0.7, 0.7, -0.03, 0.2))
   offset <- matrix(0, nrow = 1, ncol = 5)
   init <- matrix(c(3000, -141), nrow = 1)
-  res <- estimate_betas_fisher_scoring(Y, X, offset, dispersions = 0, beta_mat_init = init)
+  res <- estimate_betas_fisher_scoring(Y, X, offset, dispersions = 0,
+                                       beta_mat_init = init, ridge_penalty = NULL)
   expect_false(any(is.na(c(res$Beta))))
 })
 
@@ -470,7 +472,7 @@ test_that("ridge penalization works as expected", {
   init <- matrix(c(1,1), nrow = 1)
   # This used to return c(NA, NA) because mu got exactly zero
   res1 <- estimate_betas_fisher_scoring(Y, X, offset, dispersions = 0, beta_mat_init = init,
-                                       ridge_penalty = 0)
+                                       ridge_penalty = c(0, 0))
   res2 <- estimate_betas_fisher_scoring(Y, X, offset, dispersions = 0, beta_mat_init = init,
                                        ridge_penalty = c(0, 10))
   res1

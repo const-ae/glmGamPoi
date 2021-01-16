@@ -15,6 +15,7 @@
 #'     and sample
 #'  * `size_factors` a vector with the size factor for each
 #'    sample
+#'  * `ridge_penalty` a vector with the ridge penalty
 #'
 #' @seealso [glm_gp()] and [overdispersion_mle()]
 #' @keywords internal
@@ -35,6 +36,7 @@ glm_gp_impl <- function(Y, model_matrix,
   stopifnot(is.matrix(model_matrix) && nrow(model_matrix) == ncol(Y))
   validate_Y_matrix(Y)
   subsample <- handle_subsample_parameter(Y, subsample)
+  ridge_penalty <- handle_ridge_penalty_parameter(ridge_penalty, model_matrix, verbose = verbose)
 
   # Combine offset and size factor
   off_and_sf <- combine_size_factors_and_offset(offset, size_factors, Y, verbose = verbose)
@@ -45,7 +47,7 @@ glm_gp_impl <- function(Y, model_matrix,
   # returns NULL if there would be more groups than columns
   # only_intercept_model <- ncol(model_matrix) == 1 && all(model_matrix == 1)
   groups <- get_groups_for_model_matrix(model_matrix)
-  if(! is.null(groups) && any(ridge_penalty > 0)){
+  if(! is.null(groups) && any(ridge_penalty > 1e-10)){
     if(verbose) message("The data consist of ", max(groups), " different groups. ",
                         "However, due to the ridge_penalty it is not possible to ",
                         "use the faster group-wise estimator")
@@ -167,7 +169,8 @@ glm_gp_impl <- function(Y, model_matrix,
        overdispersion_shrinkage_list = dispersion_shrinkage,
        deviances = beta_res$deviances,
        Mu = Mu, size_factors = size_factors,
-       Offset = offset_matrix)
+       Offset = offset_matrix,
+       ridge_penalty = ridge_penalty)
 }
 
 
