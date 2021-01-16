@@ -393,7 +393,21 @@ handle_design_parameter <- function(design, data, col_data, reference_level){
 
   rownames(model_matrix) <- colnames(data)
   validate_model_matrix(model_matrix, data)
+  model_matrix <- add_attr_if_intercept(model_matrix)
   list(model_matrix = model_matrix, design_formula = design_formula)
+}
+
+add_attr_if_intercept <- function(model_matrix){
+  intercept_position <- 0
+  for(col_idx in seq_len(ncol(model_matrix))){
+    has_intercept <- all(model_matrix[,col_idx] == 1)
+    if(has_intercept){
+      intercept_position <- col_idx
+      break
+    }
+  }
+  attr(model_matrix, "intercept_position") <- intercept_position
+  model_matrix
 }
 
 
