@@ -190,8 +190,8 @@ test_de_q <- function(fit,
     size_factor_subset <- fit$size_factors[subset_to_e]
 
     fit_subset <- glm_gp(data_subset, design = model_matrix_subset, size_factors = size_factor_subset,
-                  overdispersion = fit$overdispersions, on_disk = is_on_disk.glmGamPoi(fit),
-                  verbose = verbose)
+                  overdispersion = fit$overdispersions, ridge_penalty = fit$ridge_penalty,
+                  on_disk = is_on_disk.glmGamPoi(fit), verbose = verbose)
     test_res <- test_de_q(fit_subset, contrast = contrast, reduced_design = reduced_design,
                           subset_to = NULL, pseudobulk_by = NULL,
                           pval_adjust_method = pval_adjust_method, sort_by = sort_by,
@@ -218,6 +218,7 @@ test_de_q <- function(fit,
     qrc <- qr(cntrst)
     rot <- qr.Q(qrc, complete = TRUE)[,-1,drop=FALSE]
     reduced_design <- fit$model_matrix %*% rot
+    browser()
     lfc <- fit$Beta %*% cntrst / log(2)
   }else{
     lfc <- NA
@@ -230,6 +231,7 @@ test_de_q <- function(fit,
                     offset = fit$Offset,
                     overdispersion = disp_trend,
                     overdispersion_shrinkage = FALSE,
+
                     on_disk = do_on_disk)
 
   if(ncol(fit_alt$model_matrix) >= ncol(fit$model_matrix)){

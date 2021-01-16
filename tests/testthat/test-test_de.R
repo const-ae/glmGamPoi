@@ -94,7 +94,7 @@ test_that("Pseudo bulk produces same results as making it manually", {
   annot$condition <- ifelse(annot$sample %in% c("A", "B", "C"), "ctrl", "treated")
   se <- SummarizedExperiment::SummarizedExperiment(Y, colData = annot)
 
-  fit <- glm_gp(se, design = ~ condition + cont1 + cont2 - 1)
+  fit <- glm_gp(se, design = ~ condition + cont1 + cont2 - 1, ridge_penalty = 5)
   res <- test_de(fit, reduced_design = ~ cont1 + cont2 + 1,
                  pseudobulk_by = sample)
 
@@ -107,7 +107,7 @@ test_that("Pseudo bulk produces same results as making it manually", {
   }))
 
 
-  fit2 <- glm_gp(pseudobulk_mat, design = pseudo_design_mat)
+  fit2 <- glm_gp(pseudobulk_mat, design = pseudo_design_mat, ridge_penalty = 5)
   res2 <- test_de(fit2, contrast = Coef_1 - Coef_2)
 
   # Equal except for lfc column because of contrast vs reduced_design stuff:
@@ -149,3 +149,26 @@ test_that("offset is correctly propagated in test_de()", {
 
   expect_equal(res1, res2)
 })
+
+
+test_that("ridge_penalty doesn't screw up the results", {
+
+
+  group <- sample(LETTERS[1:4], size = 100, replace = TRUE)
+  lambda <- c(A = 2, B = 4, C = 10, D = 2.5)
+  y <- rpois(n = 100, lambda = lambda[group])
+  fit1 <- glm_gp(y, group, ridge_penalty = 0)
+  res1 <- test_de(fit1, A - B)
+
+  fit2 <- glm_gp(y, group, ridge_penalty = 4, verbose = TRUE)
+  res2 <- test_de(fit2, C - D)
+
+
+  res1
+  res2
+  expect_gt(res2$f_statistic, 0)
+
+
+})
+
+
