@@ -436,10 +436,17 @@ handle_ridge_penalty_parameter <- function(ridge_penalty, model_matrix, verbose)
       if(! is.null(intercept_position)){
         ridge_penalty[intercept_position != 0] <- 1e-10
       }
+    }else if(is.matrix(ridge_penalty)){
+      if(nrow(ridge_penalty) != ncol(model_matrix) ||
+          ncol(ridge_penalty) != ncol(model_matrix)){
+        stop("'ridge_penalty' is a matrix, but its dimensions do not match ",
+             "the column of the model_matrix (", ncol(model_matrix), ").")
+      }
+
     }else if(length(ridge_penalty) == ncol(model_matrix)){
       # Got a full length ridge_penalty, check if this conflicts with intercept
       if(verbose && ! is.null(intercept_position) && any(ridge_penalty[intercept_position] > 1e-10)){
-        message("A ridge_penalty for each column of the design matrix was provided, including the intercept ",
+        message("A ridge penalty for each column of the design matrix was provided, including the intercept ",
                 "in column ", intercept_position, ". Are you sure this is correct?\n",
                 "To avoid this message, set the ridge_penalty[", intercept_position, "] to a value ",
                 "smaller than 1e-10.")

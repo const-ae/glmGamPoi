@@ -29,7 +29,13 @@ estimate_betas_fisher_scoring <- function(Y, model_matrix, offset_matrix,
   stopifnot(ncol(beta_mat_init) == ncol(model_matrix))
   stopifnot(length(dispersions) == nrow(Y))
   stopifnot(dim(offset_matrix) == dim(Y))
-  stopifnot(is.null(ridge_penalty) || length(ridge_penalty) == ncol(model_matrix))
+  stopifnot(is.null(ridge_penalty) ||
+              (is.matrix(ridge_penalty) && nrow(ridge_penalty) == ncol(model_matrix) && ncol(ridge_penalty) == ncol(model_matrix)) ||
+              length(ridge_penalty) == ncol(model_matrix))
+
+  if(! is.null(ridge_penalty) && ! is.matrix(ridge_penalty)){
+    ridge_penalty <- diag(ridge_penalty, nrow = length(ridge_penalty))
+  }
 
   betaRes <- fitBeta_fisher_scoring(Y, model_matrix, exp(offset_matrix), dispersions, beta_mat_init,
                                     ridge_penalty = ridge_penalty, tolerance = 1e-8, max_rel_mu_change = 1e5, max_iter =  1000)
