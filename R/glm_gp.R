@@ -60,6 +60,17 @@
 #'   the overdispersion varies based on the mean expression level (lower expression level => higher
 #'   dispersion). If `overdispersion_shrinkage = TRUE`, a median trend of dispersion and expression level is
 #'   fit and used to estimate the variances of a quasi Gamma Poisson model (Lund et al. 2012). Default: `TRUE`.
+#' @param ridge_penalty to avoid overfitting, we can penalize fits with large coefficient estimates. Instead
+#'   of directly minimizing the deviance per gene (\eqn{Sum dev(y_i, X_i b)}), we will minimize
+#'   \eqn{1/N Sum dev(y_i, X_i b) + Sum (penalty_p * b_p)^2}.\cr
+#'   `ridge_penalty` can be
+#'   \itemize{
+#'     \item a scalar in which case all parameters except the intercept is penalized.
+#'     \item a vector which has to have the same length as columns in the model matrix
+#'     \item a matrix with the same number of columns as columns in the model matrix. This gives
+#'       maximum flexibility for expert users and allows for full Tikhonov regularization.
+#'   }
+#'   Default: `ridge_penalty = 0`, which is internally replaced with a small positive number for numerical stability.
 #' @param do_cox_reid_adjustment the classical maximum likelihood estimator of the `overdisperion` is biased
 #'   towards small values. McCarthy _et al._ (2012) showed that it is preferable to optimize the Cox-Reid
 #'   adjusted profile likelihood.\cr
@@ -139,6 +150,8 @@
 #'   \item{`data`}{a `SummarizedExperiment` that contains the input counts and the `col_data`}
 #'   \item{`model_matrix`}{a matrix with dimensions `ncol(data) x n_coefficients`. It is build based
 #'   on the `design` argument.}
+#'   \item{`design_formula`}{the formula that used to fit the model, or `NULL` otherwise}
+#'   \item{`ridge_penalty`}{a vector with the specification of the ridge penalty.}
 #' }
 #'
 #' @examples
@@ -166,6 +179,9 @@
 #'  fit <- glm_gp(Y, design = ~ fav_food + city + age, col_data = data)
 #'  summary(fit)
 #'
+#'  # Specify 'ridge_penalty' to penalize extreme Beta coefficients
+#'  fit_reg <- glm_gp(Y, design = ~ fav_food + city + age, col_data = data, ridge_penalty = 1.5)
+#'  summary(fit_reg)
 #'
 #'
 #' @seealso [overdispersion_mle()] and [overdispersion_shrinkage()] for the internal functions that do the
