@@ -437,8 +437,7 @@ handle_ridge_penalty_parameter <- function(ridge_penalty, model_matrix, verbose)
         ridge_penalty[intercept_position != 0] <- 1e-10
       }
     }else if(is.matrix(ridge_penalty)){
-      if(nrow(ridge_penalty) != ncol(model_matrix) ||
-          ncol(ridge_penalty) != ncol(model_matrix)){
+      if(ncol(ridge_penalty) != ncol(model_matrix)){
         stop("'ridge_penalty' is a matrix, but its dimensions do not match ",
              "the column of the model_matrix (", ncol(model_matrix), ").")
       }

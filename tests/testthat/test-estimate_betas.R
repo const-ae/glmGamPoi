@@ -514,13 +514,37 @@ test_that("ridge penalization works as expected", {
 
   expect_equal(res, ref_res)
 
-  # Force parameters to be opposites
-  Lambda <- matrix(50, nrow = 2, ncol = 2)
+
+  # Accepts asymmetric Lambda
+  # Here I use 4^2 = 3^2 + sqrt(7)^2
+  Lambda <- cbind(c(0, 3, sqrt(7)), c(2, 0, 0))
   res2 <- estimate_betas_fisher_scoring(Y, X, offset, dispersions = 0, beta_mat_init = init,
+                                       ridge_penalty = Lambda)
+
+  expect_equal(res2, ref_res)
+
+  # Force parameters to be opposites
+  Lambda <- matrix(5000, nrow = 1, ncol = 2)
+  res3 <- estimate_betas_fisher_scoring(Y, X, offset, dispersions = 0, beta_mat_init = init,
+                                        ridge_penalty = Lambda)
+  expect_equal(res3$Beta[1], -res3$Beta[2], tolerance = 1e-4)
+
+
+  # Modified X can be combined with a modified Lambda
+  set.seed(1)
+  rot <- matrix(rnorm(4), nrow = 2, ncol = 2)
+  X <- matrix(rnorm(n = 100 * 2), nrow = 100, ncol = 2)
+
+  Xnew <- X %*% rot
+  lambda <- diag(c(0.3, 0.7), nrow = 2)
+  Lambda <- lambda  %*% rot
+  ref_res <- estimate_betas_fisher_scoring(Y, X, offset, dispersions = 0, beta_mat_init = init,
+                                           ridge_penalty = lambda)
+  res4 <- estimate_betas_fisher_scoring(Y, Xnew, offset, dispersions = 0, beta_mat_init = init,
                                         ridge_penalty = Lambda)
 
-  expect_equal(res2$Beta[1], -res2$Beta[2], tolerance = 1e-4)
-
+  expect_equal(ref_res$Beta, res4$Beta %*% t(rot))
+  expect_equal(ref_res$deviances, res4$deviances)
 
 })
 

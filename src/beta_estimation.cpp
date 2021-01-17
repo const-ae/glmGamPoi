@@ -202,9 +202,8 @@ List fitBeta_fisher_scoring_impl(RObject Y, const arma::mat& model_matrix, RObje
   if(apply_ridge_penalty){\
     NumericMatrix tmp = ridge_penalty_nl.get();
     ridge_penalty = arma::mat(tmp.cbegin(), tmp.nrow(), tmp.ncol());
-    if(model_matrix.n_cols != ridge_penalty.n_rows ||
-         model_matrix.n_cols != ridge_penalty.n_cols){
-      stop("Number of columns in model_matrix does not match the rows/columns of ridge_penalty");
+    if(model_matrix.n_cols != ridge_penalty.n_cols){
+      stop("Number of columns in model_matrix does not match the columns of the ridge_penalty");
     }
     ridge_penalty_sq = ridge_penalty.t() * ridge_penalty;
   }
@@ -246,7 +245,6 @@ List fitBeta_fisher_scoring_impl(RObject Y, const arma::mat& model_matrix, RObje
           step = fisher_scoring_qr_step(model_matrix, counts, mu_hat, thetas(gene_idx) * mu_hat);
         }
       }
-
       // Find step size that actually decreases the deviance
       double dev = 0;
       if(apply_ridge_penalty){

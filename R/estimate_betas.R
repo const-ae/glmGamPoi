@@ -30,7 +30,7 @@ estimate_betas_fisher_scoring <- function(Y, model_matrix, offset_matrix,
   stopifnot(length(dispersions) == nrow(Y))
   stopifnot(dim(offset_matrix) == dim(Y))
   stopifnot(is.null(ridge_penalty) ||
-              (is.matrix(ridge_penalty) && nrow(ridge_penalty) == ncol(model_matrix) && ncol(ridge_penalty) == ncol(model_matrix)) ||
+              (is.matrix(ridge_penalty) && ncol(ridge_penalty) == ncol(model_matrix)) ||
               length(ridge_penalty) == ncol(model_matrix))
 
   if(! is.null(ridge_penalty) && ! is.matrix(ridge_penalty)){
