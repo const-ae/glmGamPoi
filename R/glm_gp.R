@@ -433,8 +433,8 @@ handle_ridge_penalty_parameter <- function(ridge_penalty, model_matrix, verbose)
     intercept_position <- attr(model_matrix, "intercept_position")
     if(length(ridge_penalty) == 1){
       ridge_penalty <- rep_len(ridge_penalty, ncol(model_matrix))
-      if(! is.null(intercept_position)){
-        ridge_penalty[intercept_position != 0] <- 1e-10
+      if(! is.null(intercept_position) && intercept_position[1] != 0){
+        ridge_penalty[intercept_position] <- 1e-10
       }
     }else if(is.matrix(ridge_penalty)){
       if(ncol(ridge_penalty) != ncol(model_matrix)){
