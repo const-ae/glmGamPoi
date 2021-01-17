@@ -11,6 +11,7 @@ glm_gp_impl(
   size_factors = c("normed_sum", "deconvolution", "poscounts"),
   overdispersion = TRUE,
   overdispersion_shrinkage = TRUE,
+  ridge_penalty = 0,
   do_cox_reid_adjustment = TRUE,
   subsample = FALSE,
   verbose = FALSE
@@ -87,6 +88,7 @@ a list with four elements
 and sample
 \item \code{size_factors} a vector with the size factor for each
 sample
+\item \code{ridge_penalty} a vector with the ridge penalty
 }
 }
 \description{

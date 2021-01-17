@@ -13,6 +13,7 @@ glm_gp(
   size_factors = c("normed_sum", "deconvolution", "poscounts"),
   overdispersion = TRUE,
   overdispersion_shrinkage = TRUE,
+  ridge_penalty = 0,
   do_cox_reid_adjustment = TRUE,
   subsample = FALSE,
   on_disk = NULL,
