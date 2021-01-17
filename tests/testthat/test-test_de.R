@@ -115,16 +115,21 @@ test_that("Pseudo bulk produces same results as making it manually", {
 
   res3 <- test_pseudobulk(se, design = ~ condition + cont1 + cont2 - 1,
                           aggregate_cells_by = sample,
-                          contrast = conditionctrl - conditiontreated)
+                          contrast = conditionctrl - conditiontreated,
+                          ridge_penalty = 5)
   expect_equal(res2, res3)
 
-  res4 <- test_pseudobulk(se, design = ~ condition + cont1 + cont2,
+  res4 <- test_pseudobulk(se, design = ~ condition + cont1 + cont2 - 1,
+                          aggregate_cells_by = sample,
+                          contrast = conditionctrl - conditiontreated)
+
+  res5 <- test_pseudobulk(se, design = ~ condition + cont1 + cont2,
                           reference_level = "treated",
                           aggregate_cells_by = sample,
                           contrast = conditionctrl)
   # They are as good as identical
   lapply(c("pval", "adj_pval", "f_statistic", "lfc"), function(col){
-    expect_gt(cor(res3[[col]], res4[[col]]), 0.99)
+    expect_gt(cor(res4[[col]], res5[[col]]), 0.99)
   })
 
 })
@@ -151,22 +156,64 @@ test_that("offset is correctly propagated in test_de()", {
 })
 
 
-test_that("ridge_penalty doesn't screw up the results", {
+test_that("likelihood ratio test works with ridge_penalty", {
+
+  set.seed(1)
+  size <- 50
+  group <- sample(LETTERS[1:4], size = size, replace = TRUE)
+  mu <- c(A = 2, B = 4, C = 10, D = 2.5)
+  y <- rpois(n = size, lambda = mu[group])
+  fit1 <- glm_gp(y, group, ridge_penalty = 0, overdispersion = 0)
+  res1 <- test_de(fit1, B - D)
+
+  fit2 <- glm_gp(y, group, ridge_penalty = 1e-6, overdispersion = 0)
+  res2 <- test_de(fit2, B - D)
+
+  expect_equal(fit1[- which(names(fit1) == "ridge_penalty")],
+               fit2[- which(names(fit2) == "ridge_penalty")])
+  expect_equal(res1, res2)
+
+  fit3 <- glm_gp(y, group, ridge_penalty = 5, overdispersion = 0)
+  res3 <- test_de(fit3, B - D)
+
+  expect_true(all(fit3$Beta < fit1$Beta))
+  expect_gt(res3$f_statistic, 0)
+  expect_gt(res3$pval, res2$pval)
 
 
-  group <- sample(LETTERS[1:4], size = 100, replace = TRUE)
-  lambda <- c(A = 2, B = 4, C = 10, D = 2.5)
-  y <- rpois(n = 100, lambda = lambda[group])
-  fit1 <- glm_gp(y, group, ridge_penalty = 0)
-  res1 <- test_de(fit1, A - B)
+  # Should be similar but not identical
+  fit3 <- glm_gp(y, group, ridge_penalty = 10)
+  fit4 <- glm_gp(y, group, ridge_penalty = 10, reference_level = "A")
+  fit3$Beta
+  fit4$Beta
+  test_de(fit3, B - D)
+  test_de(fit4, B_vs_A - D_vs_A)
 
-  fit2 <- glm_gp(y, group, ridge_penalty = 4, verbose = TRUE)
-  res2 <- test_de(fit2, C - D)
+
+})
 
 
-  res1
-  res2
-  expect_gt(res2$f_statistic, 0)
+test_that("ridge_penalty is adapted if reduced_design is specified", {
+
+  size <- 100
+  y <- rnbinom(n = size, mu = 5, size = 1 / 3.1)
+  df <- data.frame(group = sample(LETTERS[1:2], size, replace = TRUE),
+                   cont = rnorm(size))
+
+  fit <- glm_gp(y, design = ~ group + cont + group:cont, col_data = df)
+  res1 <- test_de(fit, contrast = `groupB:cont`)
+  res2 <- test_de(fit, reduced_design = ~ group + cont)
+  expect_equal(res1[,-which(names(res1) == "lfc")],
+               res2[,-which(names(res2) == "lfc")],
+               tolerance = 1e-7)
+
+  fit_ridge <- glm_gp(y, design = ~ group + cont + group:cont, col_data = df,
+                      ridge_penalty = 1.2, reference_level = "B")
+  res1 <- test_de(fit_ridge, contrast = `groupA:cont`)
+  res2 <- test_de(fit_ridge, reduced_design = ~ group + cont)
+  expect_equal(res1[,-which(names(res1) == "lfc")],
+               res2[,-which(names(res2) == "lfc")],
+               tolerance = 1e-6)
 
 
 })

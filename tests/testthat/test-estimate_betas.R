@@ -546,6 +546,39 @@ test_that("ridge penalization works as expected", {
   expect_equal(ref_res$Beta, res4$Beta %*% t(rot))
   expect_equal(ref_res$deviances, res4$deviances)
 
+
+  # Let's see...
+  size <- 100
+  Y <- matrix(rnbinom(n = size, mu = 5, size = 1 / 3.1), nrow = 1)
+  offset <- matrix(0, nrow = 1, ncol = size)
+  df <- data.frame(group = sample(LETTERS[1:2], size, replace = TRUE),
+                   cont = rnorm(size))
+  X1 <- model.matrix(~ group + cont + group:cont, data  = df)
+  init <- matrix(rep(1, ncol(X1)), nrow = 1)
+  df2 <- df
+  df2$group <- relevel(as.factor(df2$group), "B")
+  X2 <- model.matrix(~ group + cont + group:cont, data  = df2)
+  rot <- solve_lm_for_B(X1, X2)
+  lambda <- c(0, 0.3, 0.1, 0.4)
+  res5 <- estimate_betas_fisher_scoring(Y, X1, offset, dispersions = 3.1, beta_mat_init = init,
+                                           ridge_penalty = lambda)
+  Lambda <- diag(lambda) %*% rot
+  res6 <- estimate_betas_fisher_scoring(Y, X2, offset, dispersions = 3.1, beta_mat_init = init,
+                                        ridge_penalty = Lambda)
+
+  expect_equal(res5$Beta, res6$Beta %*% t(rot), tolerance = 1e-4)
+  expect_equal(res5$deviances, res6$deviances)
+
+  # Also works for a full fit
+  fit5 <- glm_gp(Y ~ X1 - 1, ridge_penalty = lambda)
+  fit6 <- glm_gp(Y ~ X2 - 1, ridge_penalty = Lambda)
+
+  expect_equal(unname(fit5$Beta), unname(fit6$Beta %*% t(rot)), tolerance = 1e-4)
+  expect_equal(fit5$deviances, fit6$deviances)
+  expect_equal(fit5$overdispersions, fit6$overdispersions)
+  expect_equal(fit5$overdispersion_shrinkage_list, fit6$overdispersion_shrinkage_list)
+  expect_equal(fit5$Mu, fit6$Mu)
+
 })
 
 

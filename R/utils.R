@@ -121,3 +121,55 @@ divide_each_row_by_vector <- function(matrix, vector){
 }
 
 
+
+
+#' Solve the equation Y = A B for A or B
+#'
+#' @keywords internals
+solve_lm_for_A <- function(Y, B, w = NULL){
+  if(nrow(B) == 0){
+    matrix(numeric(0), nrow = nrow(Y), ncol = 0)
+  }else if(nrow(Y) == 0){
+    matrix(numeric(0), nrow = 0, ncol = nrow(B))
+  }else if(is.null(w)){
+    qrx <- qr(t(B))
+    Q <- qr.Q(qrx)
+    R <- qr.R(qrx)
+
+    t(backsolve(R, t(Y %*% Q)))
+  }else{
+    stopifnot(length(w) == 1 || length(w) == ncol(Y))
+    sqrt_w <- sqrt(w)
+    qrx <- qr(t(B) * sqrt_w)
+    Q <- qr.Q(qrx)
+    R <- qr.R(qrx)
+
+    t(backsolve(R, t(t(t(Y) * sqrt_w) %*% Q)))
+  }
+}
+
+
+#' @rdname solve_lm_for_A
+solve_lm_for_B <- function(Y, A, w = NULL){
+  if(ncol(A) == 0){
+    matrix(numeric(0), nrow = 0, ncol = ncol(Y))
+  }else if(ncol(Y) == 0){
+    matrix(numeric(0), nrow = ncol(A), ncol = 0)
+  }else if(is.null(w)){
+    qrx <- qr(A)
+    Q <- qr.Q(qrx)
+    R <- qr.R(qrx)
+
+    backsolve(R, t(Q) %*% Y)
+  }else{
+    stopifnot(length(w) == 1 || length(w) == nrow(Y))
+    sqrt_w <- sqrt(w)
+    qrx <- qr(A * sqrt_w)
+    Q <- qr.Q(qrx)
+    R <- qr.R(qrx)
+
+    backsolve(R, t(Q) %*% (Y * sqrt_w))
+  }
+}
+
+
