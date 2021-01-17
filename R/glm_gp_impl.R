@@ -48,9 +48,7 @@ glm_gp_impl <- function(Y, model_matrix,
   # only_intercept_model <- ncol(model_matrix) == 1 && all(model_matrix == 1)
   groups <- get_groups_for_model_matrix(model_matrix)
   if(! is.null(groups) && any(ridge_penalty > 1e-10)){
-    if(verbose) message("The data consist of ", max(groups), " different groups. ",
-                        "However, due to the ridge_penalty it is not possible to ",
-                        "use the faster group-wise estimator")
+    # Cannot apply ridge penalty in group-wise optimization
     groups <- NULL
   }
 
