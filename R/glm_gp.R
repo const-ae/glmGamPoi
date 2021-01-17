@@ -429,7 +429,8 @@ handle_subsample_parameter <- function(data, subsample){
 
 handle_ridge_penalty_parameter <- function(ridge_penalty, model_matrix, verbose){
   if(! is.null(ridge_penalty)){
-    ridge_penalty <- pmax(ridge_penalty, 1e-10)
+    ridge_penalty[abs(ridge_penalty) < 1e-10] <- 1e-10
+
     intercept_position <- attr(model_matrix, "intercept_position")
     if(length(ridge_penalty) == 1){
       ridge_penalty <- rep_len(ridge_penalty, ncol(model_matrix))
@@ -444,8 +445,8 @@ handle_ridge_penalty_parameter <- function(ridge_penalty, model_matrix, verbose)
 
     }else if(length(ridge_penalty) == ncol(model_matrix)){
       # Got a full length ridge_penalty, check if this conflicts with intercept
-      if(verbose && ! is.null(intercept_position) && any(ridge_penalty[intercept_position] > 1e-10)){
-        message("A ridge penalty for each column of the design matrix was provided, including the intercept ",
+      if(! is.null(intercept_position) && any(abs(ridge_penalty[intercept_position]) > 1e-10)){
+        warning("A ridge penalty for each column of the design matrix was provided, including the intercept ",
                 "in column ", intercept_position, ". Are you sure this is correct?\n",
                 "To avoid this message, set the ridge_penalty[", intercept_position, "] to a value ",
                 "smaller than 1e-10.")
