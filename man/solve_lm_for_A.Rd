@@ -9,6 +9,15 @@ solve_lm_for_A(Y, B, w = NULL)
 
 solve_lm_for_B(Y, A, w = NULL)
 }
+\arguments{
+\item{Y}{the left side of the equation}
+
+\item{w}{a vector with weights. If \code{NULL} it is ignored,
+otherwise it must be of length 1 or have the same length as
+columns in \code{Y}. Default: \code{NULL}}
+
+\item{A, B}{the known matrix on the right side of the equation}
+}
 \description{
 Solve the equation Y = A B for A or B
 }

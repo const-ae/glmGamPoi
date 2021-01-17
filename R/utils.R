@@ -125,6 +125,12 @@ divide_each_row_by_vector <- function(matrix, vector){
 
 #' Solve the equation Y = A B for A or B
 #'
+#' @param Y the left side of the equation
+#' @param A,B the known matrix on the right side of the equation
+#' @param w a vector with weights. If `NULL` it is ignored,
+#'   otherwise it must be of length 1 or have the same length as
+#'   columns in `Y`. Default: `NULL`
+#'
 #' @keywords internals
 solve_lm_for_A <- function(Y, B, w = NULL){
   if(nrow(B) == 0){
