@@ -337,6 +337,8 @@ get_col_data <- function(data, col_data){
 handle_design_parameter <- function(design, data, col_data, reference_level){
   n_samples <- ncol(data)
 
+  ignore_degeneracy <- isTRUE(attr(design, "ignore_degeneracy"))
+
   # Handle the design parameter
   if(is.matrix(design)){
     if(! is.null(reference_level)){
@@ -389,7 +391,7 @@ handle_design_parameter <- function(design, data, col_data, reference_level){
 
   }
 
-  if(ncol(model_matrix) >= ncol(data)){
+  if(ncol(model_matrix) >= ncol(data) && ! ignore_degeneracy){
     stop("The model_matrix:\n", format_matrix(head(model_matrix)), "\nhas more columns (", ncol(model_matrix),
          ") than the there are samples in the data matrix\n",
          format_matrix(head(data[,seq_len(min(5, ncol(data))),drop=FALSE], n = 3)),
@@ -399,7 +401,7 @@ handle_design_parameter <- function(design, data, col_data, reference_level){
 
   # Check rank of model_matrix
   qr_mm <- qr(model_matrix)
-  if(qr_mm$rank < ncol(model_matrix) && n_samples > 0){
+  if(qr_mm$rank < ncol(model_matrix) && n_samples > 0  && ! ignore_degeneracy){
     is_zero_column <- DelayedMatrixStats::colCounts(model_matrix, value = 0) == nrow(model_matrix)
     if(any(is_zero_column)){
       stop("The model matrix:\n", format_matrix(head(model_matrix, n = 3)), "\nseems degenerate ('matrix_rank(model_matrix) < ncol(model_matrix)'). ",

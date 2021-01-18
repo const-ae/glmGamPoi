@@ -4,10 +4,27 @@
 #' @return a matrix with one column for each coefficient
 #'
 #' @keywords internal
-estimate_betas_roughly <- function(Y, model_matrix, offset_matrix, pseudo_count = 1){
-  if(nrow(Y) == 0) return(matrix(numeric(0), nrow = 0, ncol = ncol(model_matrix)))
-  qrx <- qr(model_matrix)
-  Q <- qr.Q(qrx)
+estimate_betas_roughly <- function(Y, model_matrix, offset_matrix, pseudo_count = 1, ridge_penalty = NULL){
+  stopifnot(is.null(ridge_penalty) ||
+              (is.matrix(ridge_penalty) && ncol(ridge_penalty) == ncol(model_matrix)) ||
+              length(ridge_penalty) == ncol(model_matrix))
+
+  if(nrow(Y) == 0){
+    return(matrix(numeric(0), nrow = 0, ncol = ncol(model_matrix)))
+  }
+
+  if(is.null(ridge_penalty)){
+    qrx <- qr(model_matrix)
+  }else if(is.matrix(ridge_penalty)){
+    qrx <- qr(rbind(model_matrix, ridge_penalty))
+  }else if(is.vector(ridge_penalty)){
+    qrx <- qr(rbind(model_matrix, diag(ridge_penalty, nrow = length(ridge_penalty))))
+  }else{
+    stop("Illegal ridge penalty definition")
+  }
+
+
+  Q <- qr.Q(qrx)[seq_len(nrow(model_matrix)),,drop=FALSE]
   R <- qr.R(qrx)
 
   norm_log_count_mat <- t(log((Y / exp(offset_matrix) + pseudo_count)))

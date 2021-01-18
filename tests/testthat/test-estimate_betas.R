@@ -583,4 +583,22 @@ test_that("ridge penalization works as expected", {
 
 
 
+test_that("penalty allows fitting degenerate design matrices", {
+
+
+  y <- rnbinom(n = 30, mu = 7, size = 1/2.2)
+  X <- matrix(rnorm(n = 30 * 3), nrow = 30, ncol = 3)
+  X <- cbind(X, 2 * X[,1] + 1.1 * X[,2])
+  X_mod <- X
+  attr(X_mod, "ignore_degeneracy") <- TRUE
+
+  expect_error(glm_gp(y, design = X, ridge_penalty = NULL))
+  expect_error(glm_gp(y, design = X_mod, ridge_penalty = NULL))
+
+  expect_error(glm_gp(y, design = X, ridge_penalty = 0.4))
+  glm_gp(y, design = X_mod, ridge_penalty = 0.4) # Succeeds
+
+})
+
+
 

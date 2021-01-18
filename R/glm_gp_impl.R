@@ -83,7 +83,7 @@ glm_gp_impl <- function(Y, model_matrix,
   }else{
     # Init beta with reasonable values
     if(verbose){ message("Make initial beta estimate") }
-    beta_init <- estimate_betas_roughly(Y, model_matrix, offset_matrix = offset_matrix)
+    beta_init <- estimate_betas_roughly(Y, model_matrix, offset_matrix = offset_matrix, ridge_penalty = ridge_penalty)
     if(verbose){ message("Estimate beta") }
     beta_res <- estimate_betas_fisher_scoring(Y, model_matrix = model_matrix, offset_matrix = offset_matrix,
                                               dispersions = disp_init, beta_mat_init = beta_init, ridge_penalty = ridge_penalty)
