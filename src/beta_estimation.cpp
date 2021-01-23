@@ -199,7 +199,7 @@ List fitBeta_fisher_scoring_impl(RObject Y, const arma::mat& model_matrix, RObje
   bool apply_ridge_penalty = ridge_penalty_nl.isNotNull();
   arma::mat ridge_penalty;
   arma::mat ridge_penalty_sq;
-  if(apply_ridge_penalty){\
+  if(apply_ridge_penalty){
     NumericMatrix tmp = ridge_penalty_nl.get();
     ridge_penalty = arma::mat(tmp.cbegin(), tmp.nrow(), tmp.ncol());
     if(model_matrix.n_cols != ridge_penalty.n_cols){
