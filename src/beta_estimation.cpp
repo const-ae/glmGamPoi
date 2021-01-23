@@ -136,6 +136,7 @@ double decrease_deviance_plus_ridge(/*In-Out Parameter*/ arma::vec& beta_hat,
                                     const arma::vec& step,
                                     const arma::mat& model_matrix,
                                     const arma::mat& ridge_penalty_sq,
+                                    const arma::vec& ridge_target,
                                     const arma::mat& exp_off,
                                     const arma::Col<NumericType>& counts,
                                     const double theta, const double dev_old,
@@ -147,7 +148,7 @@ double decrease_deviance_plus_ridge(/*In-Out Parameter*/ arma::vec& beta_hat,
   const arma::vec mu_old = mu_hat;
   while(true){
     mu_hat = calculate_mu(model_matrix, beta_hat, exp_off);
-    double pen_sum = arma::as_scalar(beta_hat.t() * ridge_penalty_sq * beta_hat);
+    double pen_sum = arma::as_scalar((beta_hat - ridge_target).t() * ridge_penalty_sq * (beta_hat - ridge_target));
     dev = compute_gp_deviance_mean(counts, mu_hat, theta) + pen_sum;
     double conv_test = fabs(dev - dev_old)/(fabs(dev) + 0.1);
     double mu_rel_change = max(mu_hat / mu_old);
@@ -199,6 +200,7 @@ List fitBeta_fisher_scoring_impl(RObject Y, const arma::mat& model_matrix, RObje
   bool apply_ridge_penalty = ridge_penalty_nl.isNotNull();
   arma::mat ridge_penalty;
   arma::mat ridge_penalty_sq;
+  arma::vec ridge_target;
   if(apply_ridge_penalty){
     NumericMatrix tmp = ridge_penalty_nl.get();
     ridge_penalty = arma::mat(tmp.cbegin(), tmp.nrow(), tmp.ncol());
@@ -206,6 +208,12 @@ List fitBeta_fisher_scoring_impl(RObject Y, const arma::mat& model_matrix, RObje
       stop("Number of columns in model_matrix does not match the columns of the ridge_penalty");
     }
     ridge_penalty_sq = ridge_penalty.t() * ridge_penalty;
+
+    if(tmp.hasAttribute("target")){
+      ridge_target = (NumericVector) tmp.attr("target");
+    }else{
+      ridge_target = arma::zeros(tmp.ncol());
+    }
   }
   // The result
   arma::mat beta_mat = as<arma::mat>(beta_matSEXP);
@@ -227,7 +235,7 @@ List fitBeta_fisher_scoring_impl(RObject Y, const arma::mat& model_matrix, RObje
     double dev_old = 0;
     if(apply_ridge_penalty){
       // For diagonal ridge_penalty: pen = Sum (lambda_i b_i)^2
-      double pen_sum = arma::as_scalar(beta_hat.t() * ridge_penalty_sq * beta_hat);
+      double pen_sum = arma::as_scalar((beta_hat - ridge_target).t() * ridge_penalty_sq * (beta_hat - ridge_target));
       dev_old = compute_gp_deviance_mean(counts, mu_hat, thetas(gene_idx)) + pen_sum;
     }else{
       dev_old = compute_gp_deviance_mean(counts, mu_hat, thetas(gene_idx));
@@ -240,7 +248,7 @@ List fitBeta_fisher_scoring_impl(RObject Y, const arma::mat& model_matrix, RObje
         step = fisher_scoring_diagonal_step(model_matrix, counts, mu_hat, thetas(gene_idx) * mu_hat);
       }else{
         if(apply_ridge_penalty){
-          step = fisher_scoring_qr_ridge_step(model_matrix, counts, mu_hat, thetas(gene_idx) * mu_hat, ridge_penalty, beta_hat);
+          step = fisher_scoring_qr_ridge_step(model_matrix, counts, mu_hat, thetas(gene_idx) * mu_hat, ridge_penalty, ridge_target, beta_hat);
         }else{
           step = fisher_scoring_qr_step(model_matrix, counts, mu_hat, thetas(gene_idx) * mu_hat);
         }
@@ -248,7 +256,7 @@ List fitBeta_fisher_scoring_impl(RObject Y, const arma::mat& model_matrix, RObje
       // Find step size that actually decreases the deviance
       double dev = 0;
       if(apply_ridge_penalty){
-        dev = decrease_deviance_plus_ridge(beta_hat, mu_hat, step, model_matrix, ridge_penalty_sq,
+        dev = decrease_deviance_plus_ridge(beta_hat, mu_hat, step, model_matrix, ridge_penalty_sq, ridge_target,
                                 exp_off, counts, thetas(gene_idx), dev_old, tolerance, max_rel_mu_change);
       }else{
         dev = decrease_deviance(beta_hat, mu_hat, step, model_matrix,
