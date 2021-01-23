@@ -450,8 +450,12 @@ handle_ridge_penalty_parameter <- function(ridge_penalty, model_matrix, verbose)
     ridge_penalty[abs(ridge_penalty) < 1e-10] <- 1e-10
 
     intercept_position <- attr(model_matrix, "intercept_position")
+
+
     if(length(ridge_penalty) == 1){
+      ridge_target <- attr(ridge_penalty, "target")
       ridge_penalty <- rep_len(ridge_penalty, ncol(model_matrix))
+      attr(ridge_penalty, "target") <- ridge_target
       if(! is.null(intercept_position) && intercept_position[1] != 0){
         ridge_penalty[intercept_position] <- 1e-10
       }
@@ -475,7 +479,19 @@ handle_ridge_penalty_parameter <- function(ridge_penalty, model_matrix, verbose)
            "It must either be of length 1 or the number of columns in the design matrix.\n",
            "If length(ridge_penalty) == 1, it is applied to all columns except the intercept.")
     }
+
+
+    ridge_target <- attr(ridge_penalty, "target")
+    target_length <- if(is.matrix(ridge_penalty)) ncol(ridge_penalty) else  length(ridge_penalty)
+    if(is.null(ridge_target)){
+      ridge_target <- rep_len(0, target_length)
+    }else if(length(ridge_target) != target_length){
+      stop("Size of ridge_penalty and 'attr(ridge_penalty, \"target\") must correspond.")
+    }
+    attr(ridge_penalty, "target") <- ridge_target
   }
+
+
   ridge_penalty
 }
 

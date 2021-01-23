@@ -17,7 +17,7 @@ estimate_betas_roughly <- function(Y, model_matrix, offset_matrix, pseudo_count 
     qrx <- qr(model_matrix)
   }else if(is.matrix(ridge_penalty)){
     qrx <- qr(rbind(model_matrix, ridge_penalty))
-  }else if(is.vector(ridge_penalty)){
+  }else if(is.numeric(ridge_penalty)){
     qrx <- qr(rbind(model_matrix, diag(ridge_penalty, nrow = length(ridge_penalty))))
   }else{
     stop("Illegal ridge penalty definition")
@@ -51,7 +51,9 @@ estimate_betas_fisher_scoring <- function(Y, model_matrix, offset_matrix,
               length(ridge_penalty) == ncol(model_matrix))
 
   if(! is.null(ridge_penalty) && ! is.matrix(ridge_penalty)){
+    ridge_target <- attr(ridge_penalty, "target")
     ridge_penalty <- diag(ridge_penalty, nrow = length(ridge_penalty))
+    attr(ridge_penalty, "target") <- ridge_target
   }
 
   betaRes <- fitBeta_fisher_scoring(Y, model_matrix, exp(offset_matrix), dispersions, beta_mat_init,

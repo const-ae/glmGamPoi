@@ -602,3 +602,31 @@ test_that("penalty allows fitting degenerate design matrices", {
 
 
 
+
+test_that("setting a target value for a parameter works via ridge penalty", {
+
+  n_genes <- 100
+  n_cells <- 500
+  sf <- rchisq(n = n_cells, df = 5)
+  sf <- sf / mean(sf)
+  gene_means <- 10^runif(n = n_genes, min = -3, max = 3)
+
+
+
+  Mu <- gene_means %*% t(sf)
+  Y <- matrix(rnbinom(n = n_genes * n_cells, size = 1 / 0.1, mu = Mu), nrow = n_genes, ncol = n_cells)
+  rownames(Y) <- paste0("Gene_", seq_len(n_genes))
+  colnames(Y) <- paste("Cell_", seq_len(n_cells))
+
+
+  pen <- c(0, 0.8)
+  attr(pen, "target") <- c(0, 1)
+  fit <- glm_gp(Y, design = ~ 1 + log(sf), size_factors = FALSE, overdispersion = 0.1, ridge_penalty = pen)
+  # plot(gene_means, fit$Beta[,2], log = "x"); abline(h = 1)
+  # plot(gene_means, exp(fit$Beta[,1]), log = "xy"); abline(0,1)
+  expect_equal(unname(fit$Beta[,2]), rep(1, n_genes), tolerance = 0.2)
+
+
+})
+
+

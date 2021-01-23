@@ -46,7 +46,7 @@ arma::vec fisher_scoring_qr_step(const arma::mat& model_matrix, const arma::Col<
  */
 template<class NumericType>
 arma::vec fisher_scoring_qr_ridge_step(const arma::mat& model_matrix, const arma::Col<NumericType>& counts, const arma::colvec& mu,
-                                       const arma::colvec& theta_times_mu, const arma::mat& ridge_penalty, const arma::colvec& beta){
+                                       const arma::colvec& theta_times_mu, const arma::mat& ridge_penalty,  const arma::colvec& ridge_target, const arma::colvec& beta){
   // The QR decomposition of the model_matrix
   arma::mat q, r;
   int extra = ridge_penalty.n_rows;
@@ -57,7 +57,7 @@ arma::vec fisher_scoring_qr_ridge_step(const arma::mat& model_matrix, const arma
   arma::mat extended_model_matrix = arma::join_cols(model_matrix, ridge_helper);
 
   arma::vec extended_w_sqrt_vec = arma::join_cols(w_sqrt_vec, arma::ones(extra));
-  arma::vec extended_working_resid =  arma::join_cols((counts - mu) / mu, - ridge_helper * beta);
+  arma::vec extended_working_resid =  arma::join_cols((counts - mu) / mu, - ridge_helper * (beta - ridge_target));
   // prepare matrices
   arma::mat weighted_extended_model_matrix = extended_model_matrix.each_col() % extended_w_sqrt_vec;
   qr_econ(q, r, weighted_extended_model_matrix);
