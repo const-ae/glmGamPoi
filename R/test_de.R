@@ -252,7 +252,7 @@ test_de_q <- function(fit,
   if(is.null(names)){
     names <- sprintf(paste0("row_%0", floor(log10(nrow(data))), "i"), seq_len(nrow(data)))
   }
-  if(verbose){message("Preprare results")}
+  if(verbose){message("Prepare results")}
   res <- data.frame(name = names, pval = pval, adj_pval = adj_pval,
                     f_statistic = f_stat, df1 = df_test, df2 = df_fit,
                     lfc = lfc,

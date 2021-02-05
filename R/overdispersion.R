@@ -38,7 +38,7 @@
 #' additional maintenance burden.
 #'
 #' @return
-#' The function returs a list with the following elements:
+#' The function returns a list with the following elements:
 #' \describe{
 #'   \item{`estimate`}{the numerical estimate of the overdispersion.}
 #'   \item{`iterations`}{the number of iterations it took to calculate
