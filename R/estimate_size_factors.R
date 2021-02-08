@@ -88,7 +88,11 @@ combine_size_factors_and_offset <- function(offset, size_factors, Y, verbose = F
   }
   if(isTRUE(size_factors) || is.character(size_factors)){
     method <- if(isTRUE(size_factors)){
-      "deconvolution"
+      if(requireNamespace("scran", quietly = TRUE)){
+        "deconvolution"
+      }else{
+        "normed_sum"
+      }
     }else if(all(size_factors == c("normed_sum", "deconvolution", "poscounts"))){
       "normed_sum"
     }else if(length(size_factors) == 1 && size_factors %in% c("normed_sum", "deconvolution", "poscounts")){
