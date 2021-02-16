@@ -307,7 +307,9 @@ ggplot(tmp, aes(x = celltype, y = expression)) +
 
 
 
+# Acknowlegments
 
+This work was supported by the EMBL International PhD Programme and the European Research Council Synergy grant DECODE under grant agreement No. 810296.
 
 
 

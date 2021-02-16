@@ -101,7 +101,7 @@ library(DelayedMatrixStats)
 # The full dataset with 33,000 genes and 4340 cells
 # The first time this is run, it will download the data
 pbmcs <- TENxPBMCData::TENxPBMCData("pbmc4k")
-#> snapshotDate(): 2020-10-02
+#> snapshotDate(): 2020-10-27
 #> see ?TENxPBMCData and browseVignettes('TENxPBMCData') for documentation
 #> loading from cache
 
@@ -196,10 +196,10 @@ bench::mark(
 #> # A tibble: 4 x 6
 #>   expression               min   median `itr/sec` mem_alloc `gc/sec`
 #>   <bch:expr>          <bch:tm> <bch:tm>     <dbl> <bch:byt>    <dbl>
-#> 1 glmGamPoi_in_memory     1.1s    1.12s    0.748   533.49MB    2.99 
-#> 2 glmGamPoi_on_disk      4.09s    4.69s    0.221   852.28MB    1.40 
-#> 3 DESeq2                21.28s   22.07s    0.0456    1.08GB    0.365
-#> 4 edgeR                  5.67s    5.86s    0.170     1.18GB    1.08
+#> 1 glmGamPoi_in_memory    1.26s     1.3s    0.773   534.11MB    3.35 
+#> 2 glmGamPoi_on_disk      4.65s     4.8s    0.200   852.91MB    1.40 
+#> 3 DESeq2                23.03s   23.87s    0.0420    1.08GB    0.350
+#> 4 edgeR                  5.92s    6.33s    0.154     1.18GB    1.08
 ```
 
 On this dataset, `glmGamPoi` is more than 5 times faster than `edgeR`
@@ -265,8 +265,8 @@ and cell type (`cell`):
 
 ``` r
 sce <- muscData::Kang18_8vs8()
-#> snapshotDate(): 2020-10-02
-#> snapshotDate(): 2020-10-02
+#> snapshotDate(): 2020-10-27
+#> snapshotDate(): 2020-10-27
 #> see ?muscData and browseVignettes('muscData') for documentation
 #> loading from cache
 colData(sce)
@@ -377,12 +377,12 @@ de_res$lfc <- ifelse(abs(de_res$lfc) > 20, sign(de_res$lfc) * Inf, de_res$lfc)
 # Most different genes
 head(de_res[order(de_res$pval), ])
 #>       name         pval     adj_pval f_statistic df1      df2        lfc
-#> 189   IFI6 1.192350e-07 0.0008470376    37.58943   1 52.03273   6.118008
-#> 6691 PSME2 1.741621e-07 0.0008470376    36.32494   1 52.03273   3.519394
-#> 5181 IFIT3 1.511251e-06 0.0048999779    29.46707   1 52.03273   7.872549
-#> 9689   MX1 5.424514e-06 0.0131910618    25.68213   1 52.03273   5.037912
-#> 5356  IRF7 1.095526e-05 0.0213123592    23.68273   1 52.03273   4.670868
-#> 2321   IGJ 1.490883e-05 0.0241697017    22.82425   1 52.03273 -12.445271
+#> 189   IFI6 1.212629e-07 0.0008316174    37.25346   1 53.33034   6.118008
+#> 6691 PSME2 1.709916e-07 0.0008316174    36.12175   1 53.33034   3.519394
+#> 5181 IFIT3 1.564660e-06 0.0050731499    29.18276   1 53.33034   7.872549
+#> 9689   MX1 5.336737e-06 0.0129776112    25.58876   1 53.33034   5.037912
+#> 5356  IRF7 1.086665e-05 0.0211399736    23.58467   1 53.33034   4.670868
+#> 2321   IGJ 1.348147e-05 0.0218557065    22.98818   1 53.33034 -12.445271
 ```
 
 The test is successful and we identify interesting genes that are
@@ -481,6 +481,12 @@ ggplot(tmp, aes(x = celltype, y = expression)) +
 
 ![](man/figures/README-unnamed-chunk-17-1.png)<!-- -->
 
+# Acknowlegments
+
+This work was supported by the EMBL International PhD Programme and the
+European Research Council Synergy grant DECODE under grant agreement
+No. 810296.
+
 # Session Info
 
 ``` r
@@ -511,8 +517,8 @@ sessionInfo()
 #> [15] Biobase_2.50.0              GenomicRanges_1.42.0       
 #> [17] GenomeInfoDb_1.26.1         IRanges_2.24.0             
 #> [19] S4Vectors_0.28.0            BiocGenerics_0.36.0        
-#> [21] MatrixGenerics_1.2.0        matrixStats_0.57.0         
-#> [23] glmGamPoi_1.3.5            
+#> [21] MatrixGenerics_1.3.1        matrixStats_0.57.0-9001    
+#> [23] glmGamPoi_1.3.6            
 #> 
 #> loaded via a namespace (and not attached):
 #>  [1] bitops_1.0-6                  bit64_4.0.5                  
@@ -527,7 +533,7 @@ sessionInfo()
 #> [19] scales_1.1.1                  bench_1.1.1                  
 #> [21] genefilter_1.72.0             rappdirs_0.3.1               
 #> [23] stringr_1.4.0                 digest_0.6.27                
-#> [25] rmarkdown_2.5                 XVector_0.30.0               
+#> [25] rmarkdown_2.6                 XVector_0.30.0               
 #> [27] pkgconfig_2.0.3               htmltools_0.5.0              
 #> [29] sparseMatrixStats_1.3.2       limma_3.46.0                 
 #> [31] fastmap_1.0.1                 rlang_0.4.9                  
@@ -551,7 +557,7 @@ sessionInfo()
 #> [67] evaluate_0.14                 BiocManager_1.30.10          
 #> [69] vctrs_0.3.5                   httpuv_1.5.4                 
 #> [71] gtable_0.3.0                  purrr_0.3.4                  
-#> [73] assertthat_0.2.1              xfun_0.19                    
+#> [73] assertthat_0.2.1              xfun_0.20                    
 #> [75] mime_0.9                      xtable_1.8-4                 
 #> [77] later_1.1.0.1                 survival_3.2-7               
 #> [79] tibble_3.0.4                  AnnotationDbi_1.52.0         
