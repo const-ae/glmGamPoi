@@ -583,6 +583,31 @@ test_that("ridge penalization works as expected", {
 
 
 
+test_that("different matrix square roots give the same penalization results", {
+
+  n_samples <- 100
+
+  y <- rpois(n = n_samples, lambda = 15)
+  X <- cbind(1, rnorm(n_samples), rep(c(0, 1), length = n_samples), rnorm(n_samples, mean = 2))
+  pen1 <- matrix(rnorm(4 * 4), nrow = 4, ncol = 4)
+  tikhonov_penalty <- t(pen1) %*% pen1
+  pen2 <- chol(tikhonov_penalty)
+
+  # pen1 and pen2 are distinct square roots of tikhonov_penalty
+  expect_false(all(pen1 == pen2))
+  expect_equal(t(pen1) %*% pen1 - tikhonov_penalty, matrix(0, nrow = 4, ncol = 4))
+  expect_equal(t(pen2) %*% pen2 - tikhonov_penalty, matrix(0, nrow = 4, ncol = 4))
+  expect_equal(t(pen2) %*% pen2 - t(pen1) %*% pen1, matrix(0, nrow = 4, ncol = 4))
+
+  res1 <- glm_gp(y ~ X - 1, ridge_penalty = pen1)
+  res2 <- glm_gp(y ~ X - 1, ridge_penalty = pen2)
+
+  expect_equal(res1$Beta, res2$Beta)
+})
+
+
+
+
 test_that("penalty allows fitting degenerate design matrices", {
 
 
