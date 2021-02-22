@@ -271,7 +271,7 @@ test_de_q <- function(fit,
 
   # Likelihood ratio
   if(verbose){message("Calculate quasi likelihood ratio")}
-  lr <- (fit_alt$deviances - fit$deviances) * nrow(fit$model_matrix)
+  lr <- (fit_alt$deviances - fit$deviances)
   df_test <- ncol(fit$model_matrix) - ncol(fit_alt$model_matrix)
   df_test <- ifelse(df_test == 0, NA, df_test)
   df_fit <- fit$overdispersion_shrinkage_list$ql_df0 + (ncol(data) - ncol(fit$model_matrix))

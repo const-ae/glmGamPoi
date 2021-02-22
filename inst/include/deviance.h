@@ -34,7 +34,7 @@ inline double compute_gp_deviance (double y, double mu, double theta) {
 }
 
 template<class NumericType>
-inline double compute_gp_deviance_mean(const arma::Mat<NumericType>& Y,
+inline double compute_gp_deviance_sum(const arma::Mat<NumericType>& Y,
                                const arma::Mat<double>& Mu,
                                const NumericVector& thetas){
   double dev = 0.0;
@@ -42,18 +42,18 @@ inline double compute_gp_deviance_mean(const arma::Mat<NumericType>& Y,
   for (int i = 0; i < Y.n_elem; i++) {
     dev += compute_gp_deviance(Y.at(i), Mu.at(i), thetas(i % nrows));
   }
-  return dev / Y.n_elem;
+  return dev;
 }
 
 template<class NumericType>
-inline double compute_gp_deviance_mean(const arma::Mat<NumericType>& Y,
+inline double compute_gp_deviance_sum(const arma::Mat<NumericType>& Y,
                                const arma::Mat<double>& Mu,
                                double theta){
   double dev = 0.0;
   for (int i = 0; i < Y.n_elem; i++) {
     dev += compute_gp_deviance(Y.at(i), Mu.at(i), theta);
   }
-  return dev / Y.n_elem;
+  return dev;
 }
 
 

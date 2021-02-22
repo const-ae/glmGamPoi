@@ -110,7 +110,7 @@ double decrease_deviance(/*In-Out Parameter*/ arma::vec& beta_hat,
   const arma::vec mu_old = mu_hat;
   while(true){
     mu_hat = calculate_mu(model_matrix, beta_hat, exp_off);
-    dev = compute_gp_deviance_mean(counts, mu_hat, theta);
+    dev = compute_gp_deviance_sum(counts, mu_hat, theta);
     double conv_test = fabs(dev - dev_old)/(fabs(dev) + 0.1);
     double mu_rel_change = max(mu_hat / mu_old);
     if((dev < dev_old && mu_rel_change < max_rel_mu_change) || conv_test < tolerance){
@@ -144,12 +144,13 @@ double decrease_deviance_plus_ridge(/*In-Out Parameter*/ arma::vec& beta_hat,
   double speeding_factor = 1.0;
   int line_iter = 0;
   double dev = 0;
+  int n_samples = model_matrix.n_rows;
   beta_hat = beta_hat + step;
   const arma::vec mu_old = mu_hat;
   while(true){
     mu_hat = calculate_mu(model_matrix, beta_hat, exp_off);
-    double pen_sum = arma::as_scalar((beta_hat - ridge_target).t() * ridge_penalty_sq * (beta_hat - ridge_target));
-    dev = compute_gp_deviance_mean(counts, mu_hat, theta) + pen_sum;
+    double pen_sum = n_samples * arma::as_scalar((beta_hat - ridge_target).t() * ridge_penalty_sq * (beta_hat - ridge_target));
+    dev = compute_gp_deviance_sum(counts, mu_hat, theta) + pen_sum;
     double conv_test = fabs(dev - dev_old)/(fabs(dev) + 0.1);
     double mu_rel_change = max(mu_hat / mu_old);
     if((dev < dev_old && mu_rel_change < max_rel_mu_change) || conv_test < tolerance){
@@ -235,10 +236,10 @@ List fitBeta_fisher_scoring_impl(RObject Y, const arma::mat& model_matrix, RObje
     double dev_old = 0;
     if(apply_ridge_penalty){
       // For diagonal ridge_penalty: pen = Sum (lambda_i b_i)^2
-      double pen_sum = arma::as_scalar((beta_hat - ridge_target).t() * ridge_penalty_sq * (beta_hat - ridge_target));
-      dev_old = compute_gp_deviance_mean(counts, mu_hat, thetas(gene_idx)) + pen_sum;
+      double pen_sum = n_samples * arma::as_scalar((beta_hat - ridge_target).t() * ridge_penalty_sq * (beta_hat - ridge_target));
+      dev_old = compute_gp_deviance_sum(counts, mu_hat, thetas(gene_idx)) + pen_sum;
     }else{
-      dev_old = compute_gp_deviance_mean(counts, mu_hat, thetas(gene_idx));
+      dev_old = compute_gp_deviance_sum(counts, mu_hat, thetas(gene_idx));
     }
     for (int t = 0; t < max_iter; t++) {
       iterations(gene_idx)++;
@@ -398,7 +399,7 @@ List fitBeta_one_group_internal(SEXP Y_SEXP, SEXP offsets_SEXP,
     for(int sample_iter = 0; sample_iter < n_samples; sample_iter++){
       dev += compute_gp_deviance(counts[sample_iter], exp(beta + off[sample_iter]), theta);
     }
-    deviance(gene_idx) = dev / n_samples;
+    deviance(gene_idx) = dev;
   }
   return List::create(
     Named("beta", result),

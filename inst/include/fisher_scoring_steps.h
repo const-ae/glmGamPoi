@@ -52,8 +52,10 @@ arma::vec fisher_scoring_qr_ridge_step(const arma::mat& model_matrix, const arma
   int extra = ridge_penalty.n_rows;
   arma::vec w_vec = (mu/(1.0 + theta_times_mu));
   arma::vec w_sqrt_vec = sqrt(w_vec);
-  // Add rows for Ridge Regularization (see https://math.stackexchange.com/a/299508/492945)
+  // the sqrt(n) is important to scale the ridge_penalty by the number of samples
+  // i.e. pen = sum dev(y, mu) + n * b^t Lambda^t Lambda b^t
   arma::mat ridge_helper = sqrt(model_matrix.n_rows) *  ridge_penalty;
+  // Add rows for Ridge Regularization (see https://math.stackexchange.com/a/299508/492945)
   arma::mat extended_model_matrix = arma::join_cols(model_matrix, ridge_helper);
 
   arma::vec extended_w_sqrt_vec = arma::join_cols(w_sqrt_vec, arma::ones(extra));
