@@ -4,7 +4,13 @@
 \alias{estimate_betas_roughly}
 \title{Make a quick first guess where reasonable beta would be}
 \usage{
-estimate_betas_roughly(Y, model_matrix, offset_matrix, pseudo_count = 1)
+estimate_betas_roughly(
+  Y,
+  model_matrix,
+  offset_matrix,
+  pseudo_count = 1,
+  ridge_penalty = NULL
+)
 }
 \value{
 a matrix with one column for each coefficient

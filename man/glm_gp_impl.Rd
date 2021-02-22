@@ -65,10 +65,10 @@ fit and used to estimate the variances of a quasi Gamma Poisson model (Lund et a
 
 \item{ridge_penalty}{to avoid overfitting, we can penalize fits with large coefficient estimates. Instead
 of directly minimizing the deviance per gene (\eqn{Sum dev(y_i, X_i b)}), we will minimize
-\eqn{1/N Sum dev(y_i, X_i b) + Sum (penalty_p * b_p)^2}.\cr
+\eqn{Sum dev(y_i, X_i b) + N * Sum (penalty_p * b_p)^2}.\cr
 \code{ridge_penalty} can be
 \itemize{
-\item a scalar in which case all parameters except the intercept is penalized.
+\item a scalar in which case all parameters except the intercept are penalized.
 \item a vector which has to have the same length as columns in the model matrix
 \item a matrix with the same number of columns as columns in the model matrix. This gives
 maximum flexibility for expert users and allows for full Tikhonov regularization.
