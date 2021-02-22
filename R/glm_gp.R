@@ -447,33 +447,36 @@ handle_subsample_parameter <- function(data, subsample){
 
 handle_ridge_penalty_parameter <- function(ridge_penalty, model_matrix, verbose){
   if(! is.null(ridge_penalty)){
-    ridge_penalty[abs(ridge_penalty) < 1e-10] <- 1e-10
-
+    # This penalty is helpful to protect against numerical instability
+    minimal_penalty <- 1e-10 / nrow(model_matrix)
     intercept_position <- attr(model_matrix, "intercept_position")
 
 
     if(length(ridge_penalty) == 1){
+      if(abs(ridge_penalty) < minimal_penalty){
+        ridge_penalty <- minimal_penalty
+      }
       ridge_target <- attr(ridge_penalty, "target")
       ridge_penalty <- rep_len(ridge_penalty, ncol(model_matrix))
       attr(ridge_penalty, "target") <- ridge_target
       if(! is.null(intercept_position) && intercept_position[1] != 0){
-        ridge_penalty[intercept_position] <- 1e-10
+        ridge_penalty[intercept_position] <- minimal_penalty
       }
     }else if(is.matrix(ridge_penalty)){
       if(ncol(ridge_penalty) != ncol(model_matrix)){
         stop("'ridge_penalty' is a matrix, but its dimensions do not match ",
              "the column of the model_matrix (", ncol(model_matrix), ").")
       }
-
+      diag(ridge_penalty)[abs(diag(ridge_penalty)) <  minimal_penalty] <- minimal_penalty
     }else if(length(ridge_penalty) == ncol(model_matrix)){
       # Got a full length ridge_penalty, check if this conflicts with intercept
-      if(! is.null(intercept_position) && any(abs(ridge_penalty[intercept_position]) > 1e-10)){
+      if(! is.null(intercept_position) && any(abs(ridge_penalty[intercept_position]) > minimal_penalty)){
         warning("A ridge penalty for each column of the design matrix was provided, including the intercept ",
                 "in column ", intercept_position, ". Are you sure this is correct?\n",
                 "To avoid this message, set the ridge_penalty[", intercept_position, "] to a value ",
-                "smaller than 1e-10.")
+                "smaller than '1e-10/nrow(model_matrix)'.")
       }
-      ridge_penalty
+      ridge_penalty[abs(ridge_penalty) < minimal_penalty] <- minimal_penalty
     }else{
       stop("The definition of the ridge penalty does not match the model_matrix. ",
            "It must either be of length 1 or the number of columns in the design matrix.\n",
