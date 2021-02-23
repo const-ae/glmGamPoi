@@ -368,12 +368,12 @@ handle_design_parameter <- function(design, data, col_data, reference_level){
 
   }
 
-  if(ncol(model_matrix) >= ncol(data)){
-    stop("The model_matrix:\n", format_matrix(head(model_matrix)), "\nhas more columns (", ncol(model_matrix),
-         ") than the there are samples in the data matrix\n",
-         format_matrix(head(data[,seq_len(min(5, ncol(data))),drop=FALSE], n = 3)),
-         "\nwhich has ", ncol(data), " columns. ",
-         "Too few replicates / too many coefficients to fit model.")
+  if(ncol(model_matrix) >= n_samples){
+    stop("The model_matrix has more columns (", ncol(model_matrix),
+         ") than the there are samples in the data matrix (", n_samples, " columns).\n",
+         "Too few replicates / too many coefficients to fit model.\n",
+         "The head of the design matrix: \n", format_matrix(head(model_matrix, n = 3)), "\n",
+         "The head of the data: \n", format_matrix(head(data[,seq_len(min(5, ncol(data))),drop=FALSE], n = 3)))
   }
 
   # Check rank of model_matrix
@@ -381,11 +381,13 @@ handle_design_parameter <- function(design, data, col_data, reference_level){
   if(qr_mm$rank < ncol(model_matrix) && n_samples > 0){
     is_zero_column <- DelayedMatrixStats::colCounts(model_matrix, value = 0) == nrow(model_matrix)
     if(any(is_zero_column)){
-      stop("The model matrix:\n", format_matrix(head(model_matrix, n = 3)), "\nseems degenerate ('matrix_rank(model_matrix) < ncol(model_matrix)'). ",
-           "Column ", paste0(which(is_zero_column), collapse = ", "), " contains only zeros.")
+      stop("The model matrix seems degenerate ('matrix_rank(model_matrix) < ncol(model_matrix)'). ",
+           "Column ", paste0(head(which(is_zero_column), n=10), collapse = ", "), " contains only zeros. \n",
+           "The head of the design matrix: \n", format_matrix(head(model_matrix, n = 3)))
     }else{
-      stop("The model matrix:\n", format_matrix(head(model_matrix, n = 3)), "\nseems degenerate ('matrix_rank(model_matrix) < ncol(model_matrix)'). ",
-           "Some columns are perfectly collinear. Did you maybe include the same coefficient twice?")
+      stop("The model matrix seems degenerate ('matrix_rank(model_matrix) < ncol(model_matrix)'). ",
+           "Some columns are perfectly collinear. Did you maybe include the same coefficient twice?\n",
+           "The head of the design matrix: \n", format_matrix(head(model_matrix, n = 3)))
     }
   }
 
