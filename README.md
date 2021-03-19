@@ -196,10 +196,10 @@ bench::mark(
 #> # A tibble: 4 x 6
 #>   expression               min   median `itr/sec` mem_alloc `gc/sec`
 #>   <bch:expr>          <bch:tm> <bch:tm>     <dbl> <bch:byt>    <dbl>
-#> 1 glmGamPoi_in_memory    1.15s    1.19s    0.728   533.52MB    2.91 
-#> 2 glmGamPoi_on_disk      4.26s    4.37s    0.224   852.31MB    1.49 
-#> 3 DESeq2                20.56s    20.9s    0.0476    1.08GB    0.445
-#> 4 edgeR                  5.55s    5.59s    0.178     1.18GB    1.48
+#> 1 glmGamPoi_in_memory    1.14s    1.15s    0.706   533.52MB    2.82 
+#> 2 glmGamPoi_on_disk      4.07s    4.24s    0.228   852.31MB    1.60 
+#> 3 DESeq2                20.96s   21.73s    0.0463    1.08GB    0.386
+#> 4 edgeR                  6.01s     6.5s    0.156     1.18GB    1.50
 ```
 
 On this dataset, `glmGamPoi` is more than 5 times faster than `edgeR`
@@ -401,7 +401,7 @@ ggplot(de_res, aes(x = lfc, y = -log10(pval))) +
   ggtitle("Volcano Plot", "Genes that change most through interferon-beta treatment in T cells")
 ```
 
-![](man/figures/README-unnamed-chunk-14-1.png)<!-- -->
+![](man/figures/README-make_volcano_plot-1.png)<!-- -->
 
 Another important task in single cell data analysis is the
 identification of marker genes for cell clusters. For this we can also
@@ -479,7 +479,7 @@ ggplot(tmp, aes(x = celltype, y = expression)) +
   ggtitle("Marker genes of B vs. T cells")
 ```
 
-![](man/figures/README-unnamed-chunk-17-1.png)<!-- -->
+![](man/figures/README-plot_marker_genes-1.png)<!-- -->
 
 # Acknowlegments
 
@@ -507,7 +507,7 @@ sessionInfo()
 #> [8] methods   base     
 #> 
 #> other attached packages:
-#>  [1] ggplot2_3.3.2               muscData_1.4.0             
+#>  [1] ggplot2_3.3.3               muscData_1.4.0             
 #>  [3] ExperimentHub_1.16.0        AnnotationHub_2.22.0       
 #>  [5] BiocFileCache_1.14.0        dbplyr_2.0.0               
 #>  [7] TENxPBMCData_1.8.0          HDF5Array_1.18.0           
@@ -518,7 +518,7 @@ sessionInfo()
 #> [17] GenomeInfoDb_1.26.1         IRanges_2.24.0             
 #> [19] S4Vectors_0.28.0            BiocGenerics_0.36.0        
 #> [21] MatrixGenerics_1.3.1        matrixStats_0.57.0-9001    
-#> [23] glmGamPoi_1.3.6            
+#> [23] glmGamPoi_1.3.7            
 #> 
 #> loaded via a namespace (and not attached):
 #>  [1] bitops_1.0-6                  bit64_4.0.5                  
@@ -534,7 +534,7 @@ sessionInfo()
 #> [21] genefilter_1.72.0             rappdirs_0.3.1               
 #> [23] stringr_1.4.0                 digest_0.6.27                
 #> [25] rmarkdown_2.6                 XVector_0.30.0               
-#> [27] pkgconfig_2.0.3               htmltools_0.5.0              
+#> [27] pkgconfig_2.0.3               htmltools_0.5.1.1            
 #> [29] sparseMatrixStats_1.3.2       limma_3.46.0                 
 #> [31] fastmap_1.0.1                 rlang_0.4.9                  
 #> [33] RSQLite_2.2.1                 shiny_1.5.0                  

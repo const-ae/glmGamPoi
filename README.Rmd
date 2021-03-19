@@ -4,7 +4,7 @@ output: github_document
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
-```{r, include = FALSE}
+```{r init_chunk, include = FALSE}
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>",
@@ -59,14 +59,14 @@ If you use this package in a scientific publication, please cite:
 
 Load the glmGamPoi package
 
-```{r}
+```{r load_glmGamPoi}
 library(glmGamPoi)
 ```
 
 
 To fit a single Gamma-Poisson GLM do:
 
-```{r}
+```{r single_gp_fit}
 # overdispersion = 1/size
 counts <- rnbinom(n = 10, mu = 5, size = 1/0.7)
 
@@ -83,12 +83,12 @@ The `glm_gp()` function returns a list with the results of the fit. Most importa
 Fitting repeated Gamma-Poisson GLMs for each gene of a single cell dataset is just as easy:
 
 I will first load an example dataset using the `TENxPBMCData` package. The dataset has 33,000 genes and 4340 cells. It takes roughly 1.5 minutes to fit the Gamma-Poisson model on the full dataset. For demonstration purposes, I will subset the dataset to 300 genes, but keep the 4340 cells:
-```{r, warning=FALSE, message = FALSE}
+```{r load_additional_packages, warning=FALSE, message = FALSE}
 library(SummarizedExperiment)
 library(DelayedMatrixStats)
 ```
 
-```{r}
+```{r load_pbmc_data}
 # The full dataset with 33,000 genes and 4340 cells
 # The first time this is run, it will download the data
 pbmcs <- TENxPBMCData::TENxPBMCData("pbmc4k")
@@ -101,7 +101,7 @@ pbmcs_subset
 
 I call `glm_gp()` to fit one GLM model for each gene and force the calculation to happen in memory.
 
-```{r}
+```{r simple_fit}
 fit <- glm_gp(pbmcs_subset, on_disk = FALSE)
 summary(fit)
 ```
@@ -114,7 +114,7 @@ I compare my method (in-memory and on-disk) with `r BiocStyle::Biocpkg("DESeq2")
 
 
 
-```{r, warning=FALSE}
+```{r run_bench_mark, warning=FALSE}
 # Explicitly realize count matrix in memory so that it is a fair comparison
 pbmcs_subset <- as.matrix(assay(pbmcs_subset))
 model_matrix <- matrix(1, nrow = ncol(pbmcs_subset))
@@ -145,7 +145,7 @@ On this dataset, `glmGamPoi` is more than 5 times faster than `edgeR` and more t
 
 To demonstrate that the method does not sacrifice accuracy, I compare the parameters that each method estimates. The means and β coefficients are identical, but that the overdispersion estimates from `glmGamPoi` are more reliable:
 
-```{r message=FALSE, warning=FALSE}
+```{r compare_with_deseq2_and_edger, message=FALSE, warning=FALSE}
 # Results with my method
 fit <- glm_gp(pbmcs_subset, design = model_matrix, on_disk = FALSE)
 
@@ -201,14 +201,14 @@ The method scales linearly, with the number of rows and columns in the dataset. 
 
 `glmGamPoi` provides an interface to do quasi-likelihood ratio testing to identify differentially expressed genes. To demonstrate this feature, we will use the data from [Kang _et al._ (2018)](https://www.ncbi.nlm.nih.gov/pubmed/29227470) provided by the `MuscData` package. This is a single cell dataset of 8 Lupus patients for which 10x droplet-based scRNA-seq was performed before and after treatment with interferon beta. The `SingleCellExperiment` object conveniently provides the patient id (`ind`), treatment status (`stim`) and cell type (`cell`):
 
-```{r}
+```{r load_kang_data}
 sce <- muscData::Kang18_8vs8()
 colData(sce)
 ```
 
 For demonstration purpose, I will work on a subset of the genes and cells:
 
-```{r}
+```{r subset_kang_data}
 set.seed(1)
 # Take highly expressed genes and proper cells:
 sce_subset <- sce[rowSums(counts(sce)) > 100, 
@@ -224,7 +224,7 @@ sce_subset$cell <- droplevels(sce_subset$cell)
 
 We will identify which genes in CD4 positive T-cells are changed most by the treatment. We will fit a full model including the interaction term `stim:cell`. The interaction term will help us identify cell type specific responses to the treatment:
 
-```{r}
+```{r kang_fit}
 fit <- glm_gp(sce_subset, design = ~ cell + stim +  stim:cell - 1,
               reference_level = "NK cells")
 summary(fit)
@@ -233,14 +233,14 @@ summary(fit)
 
 To see how the coefficient of our model are called, we look at the `colnames(fit$Beta)`:
 
-```{r}
+```{r show_beta_colnames}
 colnames(fit$Beta)
 ```
 
 
 In our example, we want to find the genes that change specifically in T cells. Finding cell type specific responses to a treatment is a big advantage of single cell data over bulk data. To get a proper estimate of the uncertainty (cells from the same donor are **not** independent replicates), we create a pseudobulk for each sample:
 
-```{r}
+```{r do_pseudobulk}
 # The contrast argument specifies what we want to compare
 # We test the expression difference of stimulated and control T-cells
 #
@@ -261,7 +261,7 @@ The test is successful and we identify interesting genes that are differentially
 
 To get a more complete overview of the results, we can make a volcano plot that compares the log2-fold change (LFC) vs the logarithmized p-values.
 
-```{r}
+```{r make_volcano_plot}
 library(ggplot2)
 ggplot(de_res, aes(x = lfc, y = -log10(pval))) +
   geom_point(size = 0.6, aes(color = adj_pval < 0.1)) +
@@ -273,14 +273,14 @@ Another important task in single cell data analysis is the identification of mar
 
 Let's assume we want to find genes that differ between T cells and the B cells. We can directly compare the corresponding coefficients and find genes that differ in the control condition:
 
-```{r}
+```{r find_marker_genes}
 marker_genes <- test_de(fit, `cellCD4 T cells` - `cellB cells`, sort_by = pval)
 head(marker_genes)
 ```
 
 If we want find genes that differ in the stimulated condition, we just include the additional coefficients in the contrast:
 
-```{r}
+```{r do_signif_genes}
 marker_genes2 <- test_de(fit, (`cellCD4 T cells` + `cellCD4 T cells:stimstim`) - 
                                (`cellB cells` + `cellB cells:stimstim`), 
                         sort_by = pval)
@@ -292,7 +292,7 @@ We identify many genes related to the human leukocyte antigen (HLA) system that 
 
 A note of caution: applying `test_de()` to single cell data without the pseudobulk gives overly optimistic p-values. This is due to the fact that cells from the same sample are not independent replicates! It can still be fine to use the method for identifying marker genes, as long as one is aware of the difficulties interpreting the results.
 
-```{r}
+```{r plot_marker_genes}
 # Create a data.frame with the expression values, gene names, and cell types
 tmp <- data.frame(gene = rep(marker_genes$name[1:6], times = ncol(sce_subset)),
                   expression = c(counts(sce_subset)[marker_genes$name[1:6], ]),
@@ -316,7 +316,7 @@ This work was supported by the EMBL International PhD Programme and the European
 
 # Session Info
 
-```{r}
+```{r print_sessionInfo}
 sessionInfo()
 ```
 
