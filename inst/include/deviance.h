@@ -57,6 +57,7 @@ inline double compute_gp_deviance_sum(const arma::Mat<NumericType>& Y,
 }
 
 
+
 template<class NumericType>
 inline arma::Mat<double> compute_gp_deviance_residuals_matrix_impl(const arma::Mat<NumericType> Y, const arma::Mat<double> Mu, NumericVector thetas) {
   arma::Mat<double> result(Y.n_rows, Y.n_cols);

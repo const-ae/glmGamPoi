@@ -60,6 +60,17 @@
 #'   the overdispersion varies based on the mean expression level (lower expression level => higher
 #'   dispersion). If `overdispersion_shrinkage = TRUE`, a median trend of dispersion and expression level is
 #'   fit and used to estimate the variances of a quasi Gamma Poisson model (Lund et al. 2012). Default: `TRUE`.
+#' @param ridge_penalty to avoid overfitting, we can penalize fits with large coefficient estimates. Instead
+#'   of directly minimizing the deviance per gene (\eqn{Sum dev(y_i, X_i b)}), we will minimize
+#'   \eqn{Sum dev(y_i, X_i b) + N * Sum (penalty_p * b_p)^2}.\cr
+#'   `ridge_penalty` can be
+#'   \itemize{
+#'     \item a scalar in which case all parameters except the intercept are penalized.
+#'     \item a vector which has to have the same length as columns in the model matrix
+#'     \item a matrix with the same number of columns as columns in the model matrix. This gives
+#'       maximum flexibility for expert users and allows for full Tikhonov regularization.
+#'   }
+#'   Default: `ridge_penalty = 0`, which is internally replaced with a small positive number for numerical stability.
 #' @param do_cox_reid_adjustment the classical maximum likelihood estimator of the `overdisperion` is biased
 #'   towards small values. McCarthy _et al._ (2012) showed that it is preferable to optimize the Cox-Reid
 #'   adjusted profile likelihood.\cr
@@ -139,6 +150,8 @@
 #'   \item{`data`}{a `SummarizedExperiment` that contains the input counts and the `col_data`}
 #'   \item{`model_matrix`}{a matrix with dimensions `ncol(data) x n_coefficients`. It is build based
 #'   on the `design` argument.}
+#'   \item{`design_formula`}{the formula that used to fit the model, or `NULL` otherwise}
+#'   \item{`ridge_penalty`}{a vector with the specification of the ridge penalty.}
 #' }
 #'
 #' @examples
@@ -166,6 +179,9 @@
 #'  fit <- glm_gp(Y, design = ~ fav_food + city + age, col_data = data)
 #'  summary(fit)
 #'
+#'  # Specify 'ridge_penalty' to penalize extreme Beta coefficients
+#'  fit_reg <- glm_gp(Y, design = ~ fav_food + city + age, col_data = data, ridge_penalty = 1.5)
+#'  summary(fit_reg)
 #'
 #'
 #' @seealso [overdispersion_mle()] and [overdispersion_shrinkage()] for the internal functions that do the
@@ -203,6 +219,7 @@ glm_gp <- function(data,
                    size_factors = c("normed_sum", "deconvolution", "poscounts"),
                    overdispersion = TRUE,
                    overdispersion_shrinkage = TRUE,
+                   ridge_penalty = 0,
                    do_cox_reid_adjustment = TRUE,
                    subsample = FALSE,
                    on_disk = NULL,
@@ -234,6 +251,7 @@ glm_gp <- function(data,
               size_factors = size_factors,
               overdispersion = overdispersion,
               overdispersion_shrinkage = overdispersion_shrinkage,
+              ridge_penalty = ridge_penalty,
               do_cox_reid_adjustment = do_cox_reid_adjustment,
               subsample = subsample,
               verbose = verbose)
@@ -249,6 +267,9 @@ glm_gp <- function(data,
   res$design_formula <- des$design_formula
   colnames(res$Beta) <- colnames(res$model_matrix)
   rownames(res$Beta) <- rownames(data)
+  if(! is.null(res$ridge_penalty)){
+    names(res$ridge_penalty) <- colnames(res$model_matrix)
+  }
   rownames(res$Mu) <- rownames(data)
   colnames(res$Mu) <- colnames(data)
   rownames(res$Offset) <- rownames(data)
@@ -316,6 +337,8 @@ get_col_data <- function(data, col_data){
 handle_design_parameter <- function(design, data, col_data, reference_level){
   n_samples <- ncol(data)
 
+  ignore_degeneracy <- isTRUE(attr(design, "ignore_degeneracy"))
+
   # Handle the design parameter
   if(is.matrix(design)){
     if(! is.null(reference_level)){
@@ -368,7 +391,7 @@ handle_design_parameter <- function(design, data, col_data, reference_level){
 
   }
 
-  if(ncol(model_matrix) >= n_samples){
+  if(ncol(model_matrix) >= n_samples && ! ignore_degeneracy){
     stop("The model_matrix has more columns (", ncol(model_matrix),
          ") than the there are samples in the data matrix (", n_samples, " columns).\n",
          "Too few replicates / too many coefficients to fit model.\n",
@@ -378,7 +401,7 @@ handle_design_parameter <- function(design, data, col_data, reference_level){
 
   # Check rank of model_matrix
   qr_mm <- qr(model_matrix)
-  if(qr_mm$rank < ncol(model_matrix) && n_samples > 0){
+  if(qr_mm$rank < ncol(model_matrix) && n_samples > 0  && ! ignore_degeneracy){
     is_zero_column <- DelayedMatrixStats::colCounts(model_matrix, value = 0) == nrow(model_matrix)
     if(any(is_zero_column)){
       stop("The model matrix seems degenerate ('matrix_rank(model_matrix) < ncol(model_matrix)'). ",
@@ -393,7 +416,21 @@ handle_design_parameter <- function(design, data, col_data, reference_level){
 
   rownames(model_matrix) <- colnames(data)
   validate_model_matrix(model_matrix, data)
+  model_matrix <- add_attr_if_intercept(model_matrix)
   list(model_matrix = model_matrix, design_formula = design_formula)
+}
+
+add_attr_if_intercept <- function(model_matrix){
+  intercept_position <- 0
+  for(col_idx in seq_len(ncol(model_matrix))){
+    has_intercept <- all(model_matrix[,col_idx] == 1)
+    if(has_intercept){
+      intercept_position <- col_idx
+      break
+    }
+  }
+  attr(model_matrix, "intercept_position") <- intercept_position
+  model_matrix
 }
 
 
@@ -407,6 +444,60 @@ handle_subsample_parameter <- function(data, subsample){
     n_subsamples <- subsample
   }
   min(n_subsamples, ncol(data))
+}
+
+
+handle_ridge_penalty_parameter <- function(ridge_penalty, model_matrix, verbose){
+  if(! is.null(ridge_penalty)){
+    # This penalty is helpful to protect against numerical instability
+    minimal_penalty <- 1e-10 / nrow(model_matrix)
+    intercept_position <- attr(model_matrix, "intercept_position")
+
+
+    if(length(ridge_penalty) == 1){
+      if(abs(ridge_penalty) < minimal_penalty){
+        ridge_penalty <- minimal_penalty
+      }
+      ridge_target <- attr(ridge_penalty, "target")
+      ridge_penalty <- rep_len(ridge_penalty, ncol(model_matrix))
+      attr(ridge_penalty, "target") <- ridge_target
+      if(! is.null(intercept_position) && intercept_position[1] != 0){
+        ridge_penalty[intercept_position] <- minimal_penalty
+      }
+    }else if(is.matrix(ridge_penalty)){
+      if(ncol(ridge_penalty) != ncol(model_matrix)){
+        stop("'ridge_penalty' is a matrix, but its dimensions do not match ",
+             "the column of the model_matrix (", ncol(model_matrix), ").")
+      }
+      diag(ridge_penalty)[abs(diag(ridge_penalty)) <  minimal_penalty] <- minimal_penalty
+    }else if(length(ridge_penalty) == ncol(model_matrix)){
+      # Got a full length ridge_penalty, check if this conflicts with intercept
+      if(! is.null(intercept_position) && any(abs(ridge_penalty[intercept_position]) > minimal_penalty)){
+        warning("A ridge penalty for each column of the design matrix was provided, including the intercept ",
+                "in column ", intercept_position, ". Are you sure this is correct?\n",
+                "To avoid this message, set the ridge_penalty[", intercept_position, "] to a value ",
+                "smaller than '1e-10/nrow(model_matrix)'.")
+      }
+      ridge_penalty[abs(ridge_penalty) < minimal_penalty] <- minimal_penalty
+    }else{
+      stop("The definition of the ridge penalty does not match the model_matrix. ",
+           "It must either be of length 1 or the number of columns in the design matrix.\n",
+           "If length(ridge_penalty) == 1, it is applied to all columns except the intercept.")
+    }
+
+
+    ridge_target <- attr(ridge_penalty, "target")
+    target_length <- if(is.matrix(ridge_penalty)) ncol(ridge_penalty) else  length(ridge_penalty)
+    if(is.null(ridge_target)){
+      ridge_target <- rep_len(0, target_length)
+    }else if(length(ridge_target) != target_length){
+      stop("Size of ridge_penalty and 'attr(ridge_penalty, \"target\") must correspond.")
+    }
+    attr(ridge_penalty, "target") <- ridge_target
+  }
+
+
+  ridge_penalty
 }
 
 

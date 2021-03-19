@@ -196,10 +196,10 @@ bench::mark(
 #> # A tibble: 4 x 6
 #>   expression               min   median `itr/sec` mem_alloc `gc/sec`
 #>   <bch:expr>          <bch:tm> <bch:tm>     <dbl> <bch:byt>    <dbl>
-#> 1 glmGamPoi_in_memory    1.26s     1.3s    0.773   534.11MB    3.35 
-#> 2 glmGamPoi_on_disk      4.65s     4.8s    0.200   852.91MB    1.40 
-#> 3 DESeq2                23.03s   23.87s    0.0420    1.08GB    0.350
-#> 4 edgeR                  5.92s    6.33s    0.154     1.18GB    1.08
+#> 1 glmGamPoi_in_memory    1.15s    1.19s    0.728   533.52MB    2.91 
+#> 2 glmGamPoi_on_disk      4.26s    4.37s    0.224   852.31MB    1.49 
+#> 3 DESeq2                20.56s    20.9s    0.0476    1.08GB    0.445
+#> 4 edgeR                  5.55s    5.59s    0.178     1.18GB    1.48
 ```
 
 On this dataset, `glmGamPoi` is more than 5 times faster than `edgeR`
@@ -377,12 +377,12 @@ de_res$lfc <- ifelse(abs(de_res$lfc) > 20, sign(de_res$lfc) * Inf, de_res$lfc)
 # Most different genes
 head(de_res[order(de_res$pval), ])
 #>       name         pval     adj_pval f_statistic df1      df2        lfc
-#> 189   IFI6 1.212629e-07 0.0008316174    37.25346   1 53.33034   6.118008
-#> 6691 PSME2 1.709916e-07 0.0008316174    36.12175   1 53.33034   3.519394
-#> 5181 IFIT3 1.564660e-06 0.0050731499    29.18276   1 53.33034   7.872549
-#> 9689   MX1 5.336737e-06 0.0129776112    25.58876   1 53.33034   5.037912
-#> 5356  IRF7 1.086665e-05 0.0211399736    23.58467   1 53.33034   4.670868
-#> 2321   IGJ 1.348147e-05 0.0218557065    22.98818   1 53.33034 -12.445271
+#> 189   IFI6 1.214726e-07 0.0008330714    37.24112   1 53.36198   6.118008
+#> 6691 PSME2 1.712905e-07 0.0008330714    36.10979   1 53.36198   3.519394
+#> 5181 IFIT3 1.568289e-06 0.0050849143    29.17157   1 53.36198   7.872549
+#> 9689   MX1 5.343472e-06 0.0129939874    25.58183   1 53.36198   5.037912
+#> 5356  IRF7 1.088792e-05 0.0211813556    23.57637   1 53.36198   4.670868
+#> 2321   IGJ 1.345767e-05 0.0218171286    22.99032   1 53.36198 -12.445271
 ```
 
 The test is successful and we identify interesting genes that are

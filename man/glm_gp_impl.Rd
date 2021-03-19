@@ -11,6 +11,7 @@ glm_gp_impl(
   size_factors = c("normed_sum", "deconvolution", "poscounts"),
   overdispersion = TRUE,
   overdispersion_shrinkage = TRUE,
+  ridge_penalty = 0,
   do_cox_reid_adjustment = TRUE,
   subsample = FALSE,
   verbose = FALSE
@@ -62,6 +63,18 @@ the overdispersion varies based on the mean expression level (lower expression l
 dispersion). If \code{overdispersion_shrinkage = TRUE}, a median trend of dispersion and expression level is
 fit and used to estimate the variances of a quasi Gamma Poisson model (Lund et al. 2012). Default: \code{TRUE}.}
 
+\item{ridge_penalty}{to avoid overfitting, we can penalize fits with large coefficient estimates. Instead
+of directly minimizing the deviance per gene (\eqn{Sum dev(y_i, X_i b)}), we will minimize
+\eqn{Sum dev(y_i, X_i b) + N * Sum (penalty_p * b_p)^2}.\cr
+\code{ridge_penalty} can be
+\itemize{
+\item a scalar in which case all parameters except the intercept are penalized.
+\item a vector which has to have the same length as columns in the model matrix
+\item a matrix with the same number of columns as columns in the model matrix. This gives
+maximum flexibility for expert users and allows for full Tikhonov regularization.
+}
+Default: \code{ridge_penalty = 0}, which is internally replaced with a small positive number for numerical stability.}
+
 \item{do_cox_reid_adjustment}{the classical maximum likelihood estimator of the \code{overdisperion} is biased
 towards small values. McCarthy \emph{et al.} (2012) showed that it is preferable to optimize the Cox-Reid
 adjusted profile likelihood.\cr
@@ -87,6 +100,7 @@ a list with four elements
 and sample
 \item \code{size_factors} a vector with the size factor for each
 sample
+\item \code{ridge_penalty} a vector with the ridge penalty
 }
 }
 \description{

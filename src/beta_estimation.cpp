@@ -130,6 +130,46 @@ double decrease_deviance(/*In-Out Parameter*/ arma::vec& beta_hat,
 }
 
 
+template<class NumericType>
+double decrease_deviance_plus_ridge(/*In-Out Parameter*/ arma::vec& beta_hat,
+                                    /*In-Out Parameter*/ arma::vec& mu_hat,
+                                    const arma::vec& step,
+                                    const arma::mat& model_matrix,
+                                    const arma::mat& ridge_penalty_sq,
+                                    const arma::vec& ridge_target,
+                                    const arma::mat& exp_off,
+                                    const arma::Col<NumericType>& counts,
+                                    const double theta, const double dev_old,
+                                    const double tolerance, const double max_rel_mu_change){
+  double speeding_factor = 1.0;
+  int line_iter = 0;
+  double dev = 0;
+  int n_samples = model_matrix.n_rows;
+  beta_hat = beta_hat + step;
+  const arma::vec mu_old = mu_hat;
+  while(true){
+    mu_hat = calculate_mu(model_matrix, beta_hat, exp_off);
+    double pen_sum = n_samples * arma::as_scalar((beta_hat - ridge_target).t() * ridge_penalty_sq * (beta_hat - ridge_target));
+    dev = compute_gp_deviance_sum(counts, mu_hat, theta) + pen_sum;
+    double conv_test = fabs(dev - dev_old)/(fabs(dev) + 0.1);
+    double mu_rel_change = max(mu_hat / mu_old);
+    if((dev < dev_old && mu_rel_change < max_rel_mu_change) || conv_test < tolerance){
+      break; // while loop
+    }else if(line_iter >= 100){
+      // speeding factor is very small, something is going wrong here
+      dev = std::numeric_limits<double>::quiet_NaN();
+      break; // while loop
+    }else{
+      // Halfing the speed
+      speeding_factor = speeding_factor / 2.0;
+      beta_hat = beta_hat - step * speeding_factor;
+    }
+    line_iter++;
+  }
+  return dev;
+}
+
+
 
 
 //--------------------------------------------------------------------------------------------------//
@@ -142,6 +182,7 @@ double decrease_deviance(/*In-Out Parameter*/ arma::vec& beta_hat,
 //  * Remove unncessary outputs: beta_mat_var, hat_diagonals, deviance
 //  * Remove beta divergence check if abs(beta) very large
 //  * Add line search that ensures that deviance is decreasing at every step
+//  * Add optional ridge penalty
 
 
 // fit the Negative Binomial GLM with Fisher scoring
@@ -149,17 +190,36 @@ double decrease_deviance(/*In-Out Parameter*/ arma::vec& beta_hat,
 //
 template<class NumericType, class BMNumericType>
 List fitBeta_fisher_scoring_impl(RObject Y, const arma::mat& model_matrix, RObject exp_offset_matrix,
-                                 NumericVector thetas, SEXP beta_matSEXP, double ridge_penalty,
+                                 NumericVector thetas, SEXP beta_matSEXP, Nullable<NumericMatrix> ridge_penalty_nl,
                                  double tolerance, double max_rel_mu_change, int max_iter, bool use_diagonal_approx) {
   auto Y_bm = beachmat::create_matrix<BMNumericType>(Y);
   auto exp_offsets_bm = beachmat::create_numeric_matrix(exp_offset_matrix);
   int n_samples = Y_bm->get_ncol();
   int n_genes = Y_bm->get_nrow();
+
+  // the ridge penalty
+  bool apply_ridge_penalty = ridge_penalty_nl.isNotNull();
+  arma::mat ridge_penalty;
+  arma::mat ridge_penalty_sq;
+  arma::vec ridge_target;
+  if(apply_ridge_penalty){
+    NumericMatrix tmp = ridge_penalty_nl.get();
+    ridge_penalty = arma::mat(tmp.cbegin(), tmp.nrow(), tmp.ncol());
+    if(model_matrix.n_cols != ridge_penalty.n_cols){
+      stop("Number of columns in model_matrix does not match the columns of the ridge_penalty");
+    }
+    ridge_penalty_sq = ridge_penalty.t() * ridge_penalty;
+
+    if(tmp.hasAttribute("target")){
+      ridge_target = (NumericVector) tmp.attr("target");
+    }else{
+      ridge_target = arma::zeros(tmp.ncol());
+    }
+  }
   // The result
   arma::mat beta_mat = as<arma::mat>(beta_matSEXP);
+
   // deviance, convergence and tolerance
-
-
   NumericVector iterations(n_genes);
   NumericVector deviance(n_genes);
   for (int gene_idx = 0; gene_idx < n_genes; gene_idx++) {
@@ -173,7 +233,14 @@ List fitBeta_fisher_scoring_impl(RObject Y, const arma::mat& model_matrix, RObje
     arma::vec beta_hat = beta_mat.row(gene_idx).t();
     arma::vec mu_hat = calculate_mu(model_matrix, beta_hat, exp_off);
     // Init deviance
-    double dev_old = compute_gp_deviance_sum(counts, mu_hat, thetas(gene_idx));
+    double dev_old = 0;
+    if(apply_ridge_penalty){
+      // For diagonal ridge_penalty: pen = Sum (lambda_i b_i)^2
+      double pen_sum = n_samples * arma::as_scalar((beta_hat - ridge_target).t() * ridge_penalty_sq * (beta_hat - ridge_target));
+      dev_old = compute_gp_deviance_sum(counts, mu_hat, thetas(gene_idx)) + pen_sum;
+    }else{
+      dev_old = compute_gp_deviance_sum(counts, mu_hat, thetas(gene_idx));
+    }
     for (int t = 0; t < max_iter; t++) {
       iterations(gene_idx)++;
       // Find good direction to optimize beta
@@ -181,16 +248,21 @@ List fitBeta_fisher_scoring_impl(RObject Y, const arma::mat& model_matrix, RObje
       if(use_diagonal_approx){
         step = fisher_scoring_diagonal_step(model_matrix, counts, mu_hat, thetas(gene_idx) * mu_hat);
       }else{
-        if(ridge_penalty == 0){
-          step = fisher_scoring_qr_step(model_matrix, counts, mu_hat, thetas(gene_idx) * mu_hat);
+        if(apply_ridge_penalty){
+          step = fisher_scoring_qr_ridge_step(model_matrix, counts, mu_hat, thetas(gene_idx) * mu_hat, ridge_penalty, ridge_target, beta_hat);
         }else{
-          step = fisher_scoring_qr_ridge_step(model_matrix, counts, mu_hat, thetas(gene_idx) * mu_hat, ridge_penalty);
+          step = fisher_scoring_qr_step(model_matrix, counts, mu_hat, thetas(gene_idx) * mu_hat);
         }
       }
-
       // Find step size that actually decreases the deviance
-      double dev = decrease_deviance(beta_hat, mu_hat, step, model_matrix, exp_off, counts,
-                                     thetas(gene_idx), dev_old, tolerance, max_rel_mu_change);
+      double dev = 0;
+      if(apply_ridge_penalty){
+        dev = decrease_deviance_plus_ridge(beta_hat, mu_hat, step, model_matrix, ridge_penalty_sq, ridge_target,
+                                exp_off, counts, thetas(gene_idx), dev_old, tolerance, max_rel_mu_change);
+      }else{
+        dev = decrease_deviance(beta_hat, mu_hat, step, model_matrix,
+                                exp_off, counts, thetas(gene_idx), dev_old, tolerance, max_rel_mu_change);
+      }
       double conv_test = fabs(dev - dev_old)/(fabs(dev) + 0.1);
       dev_old = dev;
       if (std::isnan(conv_test)) {
@@ -216,19 +288,19 @@ List fitBeta_fisher_scoring_impl(RObject Y, const arma::mat& model_matrix, RObje
 
 // [[Rcpp::export]]
 List fitBeta_fisher_scoring(RObject Y, const arma::mat& model_matrix, RObject exp_offset_matrix,
-                                  NumericVector thetas, SEXP beta_matSEXP, double ridge_penalty,
+                                  NumericVector thetas, SEXP beta_matSEXP, Nullable<NumericMatrix> ridge_penalty_nl,
                                   double tolerance, double max_rel_mu_change, int max_iter) {
   auto mattype=beachmat::find_sexp_type(Y);
   if (mattype==INTSXP) {
     return fitBeta_fisher_scoring_impl<int, beachmat::integer_matrix>(Y, model_matrix, exp_offset_matrix,
                                                                       thetas,  beta_matSEXP,
-                                                                      /*ridge_penalty=*/ ridge_penalty,
+                                                                      /*ridge_penalty=*/ ridge_penalty_nl,
                                                                       tolerance, max_rel_mu_change, max_iter,
                                                                       /*use_diagonal_approx=*/ false);
   } else if (mattype==REALSXP) {
     return fitBeta_fisher_scoring_impl<double, beachmat::numeric_matrix>(Y, model_matrix, exp_offset_matrix,
                                                                          thetas,  beta_matSEXP,
-                                                                         /*ridge_penalty=*/ ridge_penalty,
+                                                                         /*ridge_penalty=*/ ridge_penalty_nl,
                                                                          tolerance, max_rel_mu_change, max_iter,
                                                                          /*use_diagonal_approx=*/ false);
   } else {
@@ -246,13 +318,13 @@ List fitBeta_diagonal_fisher_scoring(RObject Y, const arma::mat& model_matrix, R
   if (mattype==INTSXP) {
     return fitBeta_fisher_scoring_impl<int, beachmat::integer_matrix>(Y, model_matrix, exp_offset_matrix,
                                                                       thetas,  beta_matSEXP,
-                                                                      /*ridge_penalty=*/ 0,
+                                                                      /*ridge_penalty=*/ R_NilValue,
                                                                       tolerance, max_rel_mu_change, max_iter,
                                                                       /*use_diagonal_approx=*/ true);
   } else if (mattype==REALSXP) {
     return fitBeta_fisher_scoring_impl<double, beachmat::numeric_matrix>(Y, model_matrix, exp_offset_matrix,
                                                                          thetas,  beta_matSEXP,
-                                                                         /*ridge_penalty=*/ 0,
+                                                                         /*ridge_penalty=*/ R_NilValue,
                                                                          tolerance, max_rel_mu_change, max_iter,
                                                                          /*use_diagonal_approx=*/ true);
   } else {

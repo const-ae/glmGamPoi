@@ -4,10 +4,27 @@
 #' @return a matrix with one column for each coefficient
 #'
 #' @keywords internal
-estimate_betas_roughly <- function(Y, model_matrix, offset_matrix, pseudo_count = 1){
-  if(nrow(Y) == 0) return(matrix(numeric(0), nrow = 0, ncol = ncol(model_matrix)))
-  qrx <- qr(model_matrix)
-  Q <- qr.Q(qrx)
+estimate_betas_roughly <- function(Y, model_matrix, offset_matrix, pseudo_count = 1, ridge_penalty = NULL){
+  stopifnot(is.null(ridge_penalty) ||
+              (is.matrix(ridge_penalty) && ncol(ridge_penalty) == ncol(model_matrix)) ||
+              length(ridge_penalty) == ncol(model_matrix))
+
+  if(nrow(Y) == 0){
+    return(matrix(numeric(0), nrow = 0, ncol = ncol(model_matrix)))
+  }
+
+  if(is.null(ridge_penalty)){
+    qrx <- qr(model_matrix)
+  }else if(is.matrix(ridge_penalty)){
+    qrx <- qr(rbind(model_matrix, ridge_penalty))
+  }else if(is.numeric(ridge_penalty)){
+    qrx <- qr(rbind(model_matrix, diag(ridge_penalty, nrow = length(ridge_penalty))))
+  }else{
+    stop("Illegal ridge penalty definition")
+  }
+
+
+  Q <- qr.Q(qrx)[seq_len(nrow(model_matrix)),,drop=FALSE]
   R <- qr.R(qrx)
 
   norm_log_count_mat <- t(log((Y / exp(offset_matrix) + pseudo_count)))
@@ -23,16 +40,25 @@ estimate_betas_roughly <- function(Y, model_matrix, offset_matrix, pseudo_count 
 #'
 #' @keywords internal
 estimate_betas_fisher_scoring <- function(Y, model_matrix, offset_matrix,
-                                          dispersions, beta_mat_init){
+                                          dispersions, beta_mat_init, ridge_penalty){
   stopifnot(nrow(model_matrix) == ncol(Y))
   stopifnot(nrow(beta_mat_init) == nrow(Y))
   stopifnot(ncol(beta_mat_init) == ncol(model_matrix))
   stopifnot(length(dispersions) == nrow(Y))
   stopifnot(dim(offset_matrix) == dim(Y))
+  stopifnot(is.null(ridge_penalty) ||
+              (is.matrix(ridge_penalty) && ncol(ridge_penalty) == ncol(model_matrix)) ||
+              length(ridge_penalty) == ncol(model_matrix))
 
+  if(! is.null(ridge_penalty) && ! is.matrix(ridge_penalty)){
+    ridge_target <- attr(ridge_penalty, "target")
+    ridge_penalty <- diag(ridge_penalty, nrow = length(ridge_penalty))
+    attr(ridge_penalty, "target") <- ridge_target
+  }
 
   betaRes <- fitBeta_fisher_scoring(Y, model_matrix, exp(offset_matrix), dispersions, beta_mat_init,
-                                    ridge_penalty = 1e-6, tolerance = 1e-8, max_rel_mu_change = 1e5, max_iter =  1000)
+                                    ridge_penalty_nl = ridge_penalty, tolerance = 1e-8,
+                                    max_rel_mu_change = 1e5, max_iter =  1000)
 
   list(Beta = betaRes$beta_mat, iterations = betaRes$iter, deviances = betaRes$deviance)
 }

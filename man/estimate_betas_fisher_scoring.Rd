@@ -9,7 +9,8 @@ estimate_betas_fisher_scoring(
   model_matrix,
   offset_matrix,
   dispersions,
-  beta_mat_init
+  beta_mat_init,
+  ridge_penalty
 )
 }
 \value{

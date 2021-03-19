@@ -155,8 +155,11 @@ test_de_q <- function(fit,
                       decreasing = FALSE, n_max = Inf,
                       verbose = FALSE,
                       env = parent.frame()){
+
+  ridge_penalty <- fit$ridge_penalty
   if(! is.matrix(full_design) || length(full_design) != length(fit$model_matrix) || ! all(full_design == fit$model_matrix) ){
     full_design <- handle_design_parameter(full_design, fit$data, SummarizedExperiment::colData(fit$data), NULL)$model_matrix
+    ridge_penalty <- NULL
   }
   if(is.null(reduced_design) == missing(contrast)){
     stop("Please provide either an alternative design (formula or matrix) or a contrast ",
@@ -174,6 +177,7 @@ test_de_q <- function(fit,
                              aggregate_cells_by = pseudobulk_by_e,
                              contrast = contrast,
                              reduced_design = reduced_design,
+                             ridge_penalty = ridge_penalty,
                              subset_to = subset_to_e,
                              pval_adjust_method = pval_adjust_method, sort_by = sort_by,
                              decreasing = decreasing, n_max = n_max,
@@ -190,8 +194,7 @@ test_de_q <- function(fit,
     size_factor_subset <- fit$size_factors[subset_to_e]
 
     fit_subset <- glm_gp(data_subset, design = model_matrix_subset, size_factors = size_factor_subset,
-                  overdispersion = fit$overdispersions, on_disk = is_on_disk.glmGamPoi(fit),
-                  verbose = verbose)
+                  overdispersion = fit$overdispersions, on_disk = is_on_disk.glmGamPoi(fit), verbose = verbose)
     test_res <- test_de_q(fit_subset, contrast = contrast, reduced_design = reduced_design,
                           subset_to = NULL, pseudobulk_by = NULL,
                           pval_adjust_method = pval_adjust_method, sort_by = sort_by,
@@ -218,8 +221,39 @@ test_de_q <- function(fit,
     qrc <- qr(cntrst)
     rot <- qr.Q(qrc, complete = TRUE)[,-1,drop=FALSE]
     reduced_design <- fit$model_matrix %*% rot
+    reduced_ridge_penalty <- if(is.null(ridge_penalty)){
+      NULL
+    }else if(is.matrix(ridge_penalty)){
+      ridge_penalty %*% rot
+    }else{
+      diag(ridge_penalty, nrow = length(ridge_penalty)) %*% rot
+    }
     lfc <- fit$Beta %*% cntrst / log(2)
   }else{
+    # Convert the formula to model matrix
+    reduced_design <- handle_design_parameter(reduced_design,  fit$data,
+                                   SummarizedExperiment::colData(fit$data), reference_level = NULL)$model_matrix
+    if(ncol(reduced_design) >= ncol(full_design)){
+      stop("The reduced model is as complex (or even more complex) than ",
+           "the 'fit' model. The 'reduced_design' should contain fewer terms ",
+           "the original 'design'.")
+    }
+
+    # Check if full_model is nested in full_design
+    rot <- solve_lm_for_B(reduced_design, full_design)
+    if(any(abs(reduced_design - full_design %*% rot) > 1e-10)){
+      warning("Although the 'reduced_design' matrix has fewer columns than ",
+              "'fit$model_matrix', it appears that the 'reduced_design' is not ",
+              "nested in the 'fit$model_matrix'. Accordingly, the results of the ",
+              "statistical test will be unreliable.")
+    }
+    reduced_ridge_penalty <- if(is.null(ridge_penalty)){
+      NULL
+    }else if(is.matrix(ridge_penalty)){
+      ridge_penalty %*% rot
+    }else{
+      diag(ridge_penalty, nrow = length(ridge_penalty)) %*% rot
+    }
     lfc <- NA
   }
   if(verbose){message("Fit reduced model")}
@@ -230,17 +264,14 @@ test_de_q <- function(fit,
                     offset = fit$Offset,
                     overdispersion = disp_trend,
                     overdispersion_shrinkage = FALSE,
+                    ridge_penalty = reduced_ridge_penalty,
                     on_disk = do_on_disk)
 
-  if(ncol(fit_alt$model_matrix) >= ncol(fit$model_matrix)){
-    stop("The reduced model is as complex (or even more complex) than ",
-         "the 'fit' model. The 'reduced_design' should contain fewer terms ",
-         "the original 'design'.")
-  }
+
 
   # Likelihood ratio
   if(verbose){message("Calculate quasi likelihood ratio")}
-  lr <- fit_alt$deviances - fit$deviances
+  lr <- (fit_alt$deviances - fit$deviances)
   df_test <- ncol(fit$model_matrix) - ncol(fit_alt$model_matrix)
   df_test <- ifelse(df_test == 0, NA, df_test)
   df_fit <- fit$overdispersion_shrinkage_list$ql_df0 + (ncol(data) - ncol(fit$model_matrix))
