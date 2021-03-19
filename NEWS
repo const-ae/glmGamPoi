@@ -10,6 +10,8 @@ analysis with Kang et al. (2018) as example data
 + `glm_gp` returns the Offset matrix and bug fix for test_de() if a
 offset was specified
 + Add CITATION file
++ Make sure that residuals are pristine (when the input was a DelayedArray)
++ Set dimnames of residuals
 
 
 Version 1.2 (2020-11-09)

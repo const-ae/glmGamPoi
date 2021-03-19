@@ -28,6 +28,16 @@ test_that("residual calculation works", {
 })
 
 
+test_that("residuals are named", {
+  set.seed(1)
+  X <- cbind(1, matrix(rnorm(4 * 2) , nrow = 4, ncol = 2))
+  Y <- matrix(rnbinom(n = 2 * 4, mu = 30, size = 0.7), nrow = 2, ncol = 4)
+  rownames(Y) <- paste0("Gene_", seq_len(nrow(Y)))
+  colnames(Y) <- paste0("Cell_", seq_len(ncol(Y)))
+  fit <- glm_gp(Y, X, size_factors = FALSE, overdispersion = 1/0.7)
+  expect_equal(dimnames(residuals(fit)), dimnames(Y))
+})
+
 
 
 test_that("residual calculation works with Delayed Matrix", {
@@ -45,6 +55,12 @@ test_that("residual calculation works with Delayed Matrix", {
   expect_s4_class(residuals(fit, "working"), "DelayedMatrix")
   expect_s4_class(residuals(fit, "pearson"), "DelayedMatrix")
   expect_s4_class(residuals(fit, "deviance"), "DelayedMatrix")
+
+  expect_true(DelayedArray::isPristine(residuals(fit, "response")))
+  expect_true(DelayedArray::isPristine(residuals(fit, "working")))
+  expect_true(DelayedArray::isPristine(residuals(fit, "pearson")))
+  expect_true(DelayedArray::isPristine(residuals(fit, "deviance")))
+
 
   expect_equal(c(t(residuals(fit, "response"))),
                unname(c(residuals.glm(r_fit1, "response"), residuals.glm(r_fit2, "response"))),

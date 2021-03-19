@@ -31,27 +31,44 @@
 residuals.glmGamPoi <- function(object, type = c("deviance", "pearson", "randomized_quantile", "working", "response"), ...){
   type <- match.arg(type, c("deviance", "pearson", "randomized_quantile", "working", "response"))
   Y <- assay(object$data)
-  if(type == "deviance"){
-    make_resid_hdf5_mat <- is_on_disk.glmGamPoi(object)
+  make_resid_hdf5_mat <- is_on_disk.glmGamPoi(object)
+  ret <- if(type == "deviance"){
     if(! make_resid_hdf5_mat){
       compute_gp_deviance_residuals_matrix(Y, object$Mu, object$overdispersions)
     }else{
       delayed_matrix_apply_block(Y, object$Mu, object$overdispersions, compute_gp_deviance_residuals_matrix)
     }
   }else if(type == "pearson"){
-    (Y - object$Mu) / sqrt(object$Mu + multiply_vector_to_each_column(object$Mu^2, object$overdispersions))
+    res <- (Y - object$Mu) / sqrt(object$Mu + multiply_vector_to_each_column(object$Mu^2, object$overdispersions))
+    if(! make_resid_hdf5_mat){
+      res
+    }else{
+      HDF5Array::writeHDF5Array(res)
+    }
   }else if(type == "randomized_quantile"){
-    make_resid_hdf5_mat <- is_on_disk.glmGamPoi(object)
     if(! make_resid_hdf5_mat){
       qres.gampoi(Y, object$Mu, object$overdispersions)
     }else{
       delayed_matrix_apply_block(Y, object$Mu, object$overdispersions, qres.gampoi)
     }
   }else if(type == "working"){
-    (Y - object$Mu) / object$Mu
+    res <- (Y - object$Mu) / object$Mu
+    if(! make_resid_hdf5_mat){
+      res
+    }else{
+      HDF5Array::writeHDF5Array(res)
+    }
   }else if(type == "response"){
-    Y - object$Mu
+    res <- Y - object$Mu
+    if(! make_resid_hdf5_mat){
+      res
+    }else{
+      HDF5Array::writeHDF5Array(res)
+    }
   }
+
+  dimnames(ret) <- dimnames(Y)
+  ret
 }
 
 
