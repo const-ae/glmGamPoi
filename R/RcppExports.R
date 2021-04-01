@@ -53,3 +53,19 @@ estimate_global_overdispersions_fast <- function(Y, mean_matrix, model_matrix, d
     .Call(`_glmGamPoi_estimate_global_overdispersions_fast`, Y, mean_matrix, model_matrix, do_cox_reid_adjustment, log_thetas)
 }
 
+div_zbz_dbl <- function(a, b) {
+    .Call(`_glmGamPoi_div_zbz_dbl`, a, b)
+}
+
+div_zbz_int <- function(a, b) {
+    .Call(`_glmGamPoi_div_zbz_int`, a, b)
+}
+
+div_zbz_dbl_mat <- function(a, b) {
+    .Call(`_glmGamPoi_div_zbz_dbl_mat`, a, b)
+}
+
+div_zbz_int_mat <- function(a, b) {
+    .Call(`_glmGamPoi_div_zbz_int_mat`, a, b)
+}
+

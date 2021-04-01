@@ -147,3 +147,19 @@ test_that("compute_gp_deviance can handle weird values", {
 })
 
 
+test_that("residuals are never NA", {
+
+  Y <- matrix(0, nrow = 3, ncol = 10)
+  Y[1, 4] <- 4
+  Y[3, 2] <- 17
+
+  fit <- glm_gp(Y, size_factors = FALSE)
+
+  expect_true(all(! is.na(residuals(fit, "deviance"))))
+  expect_true(all(! is.na(residuals(fit, "pearson"))))
+  expect_true(all(! is.na(residuals(fit, "randomized_quantile"))))
+  expect_true(all(! is.na(residuals(fit, "working"))))
+  expect_true(all(! is.na(residuals(fit, "response"))))
+
+})
+

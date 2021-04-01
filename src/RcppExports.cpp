@@ -204,6 +204,54 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// div_zbz_dbl
+NumericVector div_zbz_dbl(NumericVector a, NumericVector b);
+RcppExport SEXP _glmGamPoi_div_zbz_dbl(SEXP aSEXP, SEXP bSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< NumericVector >::type a(aSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type b(bSEXP);
+    rcpp_result_gen = Rcpp::wrap(div_zbz_dbl(a, b));
+    return rcpp_result_gen;
+END_RCPP
+}
+// div_zbz_int
+NumericVector div_zbz_int(IntegerVector a, IntegerVector b);
+RcppExport SEXP _glmGamPoi_div_zbz_int(SEXP aSEXP, SEXP bSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< IntegerVector >::type a(aSEXP);
+    Rcpp::traits::input_parameter< IntegerVector >::type b(bSEXP);
+    rcpp_result_gen = Rcpp::wrap(div_zbz_int(a, b));
+    return rcpp_result_gen;
+END_RCPP
+}
+// div_zbz_dbl_mat
+NumericMatrix div_zbz_dbl_mat(NumericMatrix a, NumericMatrix b);
+RcppExport SEXP _glmGamPoi_div_zbz_dbl_mat(SEXP aSEXP, SEXP bSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< NumericMatrix >::type a(aSEXP);
+    Rcpp::traits::input_parameter< NumericMatrix >::type b(bSEXP);
+    rcpp_result_gen = Rcpp::wrap(div_zbz_dbl_mat(a, b));
+    return rcpp_result_gen;
+END_RCPP
+}
+// div_zbz_int_mat
+NumericMatrix div_zbz_int_mat(IntegerMatrix a, IntegerMatrix b);
+RcppExport SEXP _glmGamPoi_div_zbz_int_mat(SEXP aSEXP, SEXP bSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< IntegerMatrix >::type a(aSEXP);
+    Rcpp::traits::input_parameter< IntegerMatrix >::type b(bSEXP);
+    rcpp_result_gen = Rcpp::wrap(div_zbz_int_mat(a, b));
+    return rcpp_result_gen;
+END_RCPP
+}
 
 static const R_CallMethodDef CallEntries[] = {
     {"_glmGamPoi_lte_n_equal_rows", (DL_FUNC) &_glmGamPoi_lte_n_equal_rows, 3},
@@ -219,6 +267,10 @@ static const R_CallMethodDef CallEntries[] = {
     {"_glmGamPoi_conventional_deriv_score_function_fast", (DL_FUNC) &_glmGamPoi_conventional_deriv_score_function_fast, 7},
     {"_glmGamPoi_estimate_overdispersions_fast", (DL_FUNC) &_glmGamPoi_estimate_overdispersions_fast, 6},
     {"_glmGamPoi_estimate_global_overdispersions_fast", (DL_FUNC) &_glmGamPoi_estimate_global_overdispersions_fast, 5},
+    {"_glmGamPoi_div_zbz_dbl", (DL_FUNC) &_glmGamPoi_div_zbz_dbl, 2},
+    {"_glmGamPoi_div_zbz_int", (DL_FUNC) &_glmGamPoi_div_zbz_int, 2},
+    {"_glmGamPoi_div_zbz_dbl_mat", (DL_FUNC) &_glmGamPoi_div_zbz_dbl_mat, 2},
+    {"_glmGamPoi_div_zbz_int_mat", (DL_FUNC) &_glmGamPoi_div_zbz_int_mat, 2},
     {NULL, NULL, 0}
 };
 
