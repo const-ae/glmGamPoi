@@ -9,6 +9,8 @@ of the mean estimate.
 large values of mu
 + Fix minor bug in test_de() concerning the calculation of the degree
 of freedom
++ Fix minor bug in calculation of working and Pearson residuals, which
+used to return NaN if mu was 0. Now, they are 0.
 + Improve vignette/Readme: add section on differential expression
 analysis with Kang et al. (2018) as example data
 + `glm_gp` returns the Offset matrix and bug fix for test_de() if a
