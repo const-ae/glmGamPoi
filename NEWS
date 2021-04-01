@@ -1,4 +1,8 @@
 Changes in development version
++ Ridge regularization framework. glmGamPoi now supports regularizing
+the coefficient estimates using a quadratic penalty function.
+Furthmore, more advanced regularization schemes, such as regularizing
+towards a specific value and full Tikhonov regularization are implemented.
 + New predict() function. Also supports estimating the standard error
 of the mean estimate.
 + Make sure that Fisher scoring does not converge to unrealistically
