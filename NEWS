@@ -18,6 +18,7 @@ offset was specified
 + Add CITATION file
 + Make sure that residuals are pristine (when the input was a DelayedArray)
 + Set dimnames of residuals
++ Improve error message if input is a sparse matrix
 
 
 Version 1.2 (2020-11-09)
