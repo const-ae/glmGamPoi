@@ -309,10 +309,15 @@ handle_data_parameter <- function(data, on_disk){
     se <- as(data, "SummarizedExperiment")
     data_mat <- handle_data_parameter(SummarizedExperiment::assay(se), on_disk)
   }else if(is(data, "dgCMatrix") || is(data, "dgTMatrix")) {
-    stop("glmGamPoi does not yet support sparse input data of type '", class(data),"'. ",
-         "If your data fits into memory, please cast it to a dense matrix with ",
-         "'as.matrix(data)' or if it is too big, convert it to an on-disk dataset ",
-         "with the 'HDF5Array' package. ")
+    if(isTRUE(on_disk)){
+      data_mat <- HDF5Array::writeHDF5Array(data)
+    }else if(isFALSE(on_disk)){
+      data_mat <- as.matrix(data)
+    }else{
+      stop("glmGamPoi does not yet support sparse input data of type '", class(data),"'. ",
+           "Please explicitly set the 'on_disk' parameter to force a conversion to a dense format either in-memory ('on_disk = FALSE') ",
+           "or on-disk ('on_disk = TRUE')")
+    }
   }else{
     stop("Cannot handle data of class '", class(data), "'.",
          "It must be of type dense matrix object (i.e., a base matrix or DelayedArray),",

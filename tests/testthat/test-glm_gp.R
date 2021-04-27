@@ -189,7 +189,37 @@ test_that("glm_gp can handle SummarizedExperiment correctly", {
   fit_se <- glm_gp(se, design = ~ fav_food + city + age)
 
   expect_equal(fit, fit_se)
+})
 
+
+test_that("glm_gp can handle sparse input correctly", {
+
+
+  data <- data.frame(fav_food = sample(c("apple", "banana", "cherry"), size = 50, replace = TRUE),
+                     city = sample(c("heidelberg", "paris", "new york"), size = 50, replace = TRUE),
+                     age = rnorm(n = 50, mean = 40, sd = 15))
+  Y <- matrix(rnbinom(n = 10 * 50, mu = 3, size = 1/3.1), nrow = 10, ncol = 50)
+  rownames(Y) <- paste0("gene_", seq_len(10))
+  colnames(Y) <- paste0("person_", seq_len(50))
+  Y_sp <- as(Y, "dgCMatrix")
+
+  fit <- glm_gp(Y, design = ~ fav_food + city + age, col_data = data)
+  expect_error({
+    glm_gp(Y_sp, design = ~ fav_food + city + age, col_data = data)
+  })
+  fit_sp1 <- glm_gp(Y_sp, design = ~ fav_food + city + age, col_data = data, on_disk = FALSE)
+  fit_sp2 <- glm_gp(Y_sp, design = ~ fav_food + city + age, col_data = data, on_disk = TRUE)
+
+  expect_equal(fit, fit_sp1)
+
+  expect_equal(fit[!names(fit) %in% c("Mu", "data", "Offset")], fit_sp2[!names(fit_sp2) %in% c("Mu", "data", "Offset")])
+  expect_equal(c(fit$Mu), c(fit_sp2$Mu))
+  expect_s4_class(fit_sp2$Mu, "DelayedArray")
+  expect_equal(c(assay(fit$data)), c(assay(fit_sp2$data)))
+  expect_equal(class(fit$data), class(fit_sp2$data))
+  expect_s4_class(assay(fit_sp2$data), "DelayedArray")
+  expect_equal(c(fit$Offset), c(fit_sp2$Offset))
+  expect_s4_class(fit_sp2$Offset, "DelayedArray")
 })
 
 test_that("glm_gp can handle intercept model", {
