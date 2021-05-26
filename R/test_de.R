@@ -211,6 +211,11 @@ test_de_q <- function(fit,
     # e.g. a vector with c(1, 0, -1, 0) for contrast = A - C
     cntrst <- parse_contrast_q(contrast, levels = colnames(fit$model_matrix),
                                env = env)
+    cntrst <- as.matrix(cntrst)
+    if(nrow(cntrst) != ncol(fit$model_matrix)){
+      stop("The length of the contrast vector does not match the number of coefficients in the model (",
+           ncol(fit$model_matrix), ")\n", format_matrix(cntrst))
+    }
     # The modifying matrix of reduced_design has ncol(model_matrix) - 1 columns and rank.
     # The columns are all orthogonal to cntrst.
     # see: https://scicomp.stackexchange.com/a/27835/36204

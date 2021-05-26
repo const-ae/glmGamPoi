@@ -36,6 +36,23 @@ test_that("test_de works with contrast vector input", {
   res2 <- test_de(fit, contrast = c(0, -1, 0, 1))
   expect_equal(res1, res2)
 
+  # Error on malformed contrast vector
+  expect_error(test_de(fit, contrast = c(0, -1, 0)))
+
+})
+
+test_that("test_de works with a matrix as contrast", {
+  Y <- matrix(rnbinom(n = 30 * 20, mu = 4, size = 0.3), nrow = 30, ncol  =20)
+  annot <- data.frame(group = sample(c("A", "B", "C"), size = 20, replace = TRUE),
+                      cont1 = rnorm(20), cont2 = rnorm(20, mean = 30))
+  design <- model.matrix(~ group + cont1 + cont2 -1, data = annot)
+  fit <- glm_gp(Y, design = design)
+  # res1 <- test_de(fit, contrast = cont2 - groupB)
+  # res2 <- test_de(fit, contrast = c(0, -1, 0, 1))
+  # expect_equal(res1, res2)
+  contr_mat <- limma::makeContrasts(contrasts = c("groupA-groupB", "groupA - groupC", "groupB - groupC"), levels = colnames(fit$Beta))
+
+  test_de(fit, contrast = contr_mat)
 })
 
 
@@ -132,6 +149,35 @@ test_that("Pseudo bulk produces same results as making it manually", {
     expect_gt(cor(res4[[col]], res5[[col]]), 0.99)
   })
 
+})
+
+
+test_that("pseudobulk works with a matrix as contrast", {
+  Y <- matrix(rnbinom(n = 30 * 100, mu = 4, size = 0.3), nrow = 30, ncol = 100)
+  annot <- data.frame(sample = sample(LETTERS[1:6], size = 100, replace = TRUE),
+                      cont1 = rnorm(100), cont2 = rnorm(100, mean = 30),
+                      cell_type = sample(c("Tcell", "Bcell", "Makrophages"), size = 100, replace = TRUE))
+  annot$condition <- ifelse(annot$sample %in% c("A", "B", "C"), "ctrl", "treated")
+  se <- SummarizedExperiment::SummarizedExperiment(Y, colData = annot)
+  fit <- glm_gp(se, design = ~ condition + cont1 + cont2 - 1, ridge_penalty = 5)
+  contr_mat <- limma::makeContrasts(contrasts = c("conditiontreated - conditionctrl", "cont1 - conditionctrl", "cont1 - cont2"), levels = colnames(fit$Beta))
+
+  res <- test_de(fit, contrast = contr_mat,
+                 pseudobulk_by = sample)
+
+  splitter <- split(seq_len(ncol(se)), SummarizedExperiment::colData(se)$sample)
+  pseudobulk_mat <- do.call(cbind, lapply(splitter, function(idx){
+    matrixStats::rowSums2(assay(se), cols = idx)
+  }))
+  pseudo_design_mat <- do.call(rbind, lapply(splitter, function(idx){
+    matrixStats::colMeans2(fit$model_matrix, rows = idx)
+  }))
+
+
+  fit2 <- glm_gp(pseudobulk_mat, design = pseudo_design_mat, ridge_penalty = 5)
+  res2 <- test_de(fit2, contrast = contr_mat)
+
+  expect_equal(res, res2)
 })
 
 
