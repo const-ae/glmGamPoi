@@ -1,4 +1,4 @@
-Changes in development version
+Version 1.4 (2021-05-19)
 + Ridge regularization framework. glmGamPoi now supports regularizing
 the coefficient estimates using a quadratic penalty function.
 Furthmore, more advanced regularization schemes, such as regularizing
