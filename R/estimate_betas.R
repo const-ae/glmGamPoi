@@ -60,18 +60,18 @@ estimate_betas_fisher_scoring <- function(Y, model_matrix, offset_matrix,
   betaRes <- fitBeta_fisher_scoring(Y, model_matrix, exp(offset_matrix), dispersions, beta_mat_init,
                                     ridge_penalty_nl = ridge_penalty, tolerance = 1e-8,
                                     max_rel_mu_change = 1e5, max_iter =  max_iter)
-  warn_non_convergence(betaRes$iter, max_iter, rownames(Y))
+  warn_non_convergence(betaRes$iter == max_iter, rownames(Y))
 
   list(Beta = betaRes$beta_mat, iterations = betaRes$iter, deviances = betaRes$deviance)
 }
 
-warn_non_convergence <- function(iterations, max_iter, rownames){
-  if(any(iterations == max_iter)){
+warn_non_convergence <- function(not_converged, rownames){
+  if(any(not_converged)){
     # Estimate didn't converge for some gene :(
     labels <- if(! is.null(rownames)){
-      rownames[iterations == max_iter]
+      rownames[not_converged]
     }else{
-      which(iterations == max_iter)
+      which(not_converged)
     }
     warning("Beta estimation did not converge for ", paste0(head(labels), collapse = ", "),
             if(length(labels) > 6){", ..."}, ".\n",
