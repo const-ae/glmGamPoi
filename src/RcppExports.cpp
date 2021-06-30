@@ -97,6 +97,19 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// compute_gp_deviance_sum_mask
+double compute_gp_deviance_sum_mask(NumericVector y, NumericVector mu, double theta);
+RcppExport SEXP _glmGamPoi_compute_gp_deviance_sum_mask(SEXP ySEXP, SEXP muSEXP, SEXP thetaSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< NumericVector >::type y(ySEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type mu(muSEXP);
+    Rcpp::traits::input_parameter< double >::type theta(thetaSEXP);
+    rcpp_result_gen = Rcpp::wrap(compute_gp_deviance_sum_mask(y, mu, theta));
+    return rcpp_result_gen;
+END_RCPP
+}
 // compute_gp_deviance_residuals_matrix_mask
 arma::Mat<double> compute_gp_deviance_residuals_matrix_mask(const SEXP Y_SEXP, const arma::Mat<double>& Mu, NumericVector thetas);
 RcppExport SEXP _glmGamPoi_compute_gp_deviance_residuals_matrix_mask(SEXP Y_SEXPSEXP, SEXP MuSEXP, SEXP thetasSEXP) {
@@ -260,6 +273,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_glmGamPoi_fitBeta_diagonal_fisher_scoring", (DL_FUNC) &_glmGamPoi_fitBeta_diagonal_fisher_scoring, 8},
     {"_glmGamPoi_fitBeta_one_group", (DL_FUNC) &_glmGamPoi_fitBeta_one_group, 6},
     {"_glmGamPoi_compute_gp_deviance_mask", (DL_FUNC) &_glmGamPoi_compute_gp_deviance_mask, 3},
+    {"_glmGamPoi_compute_gp_deviance_sum_mask", (DL_FUNC) &_glmGamPoi_compute_gp_deviance_sum_mask, 3},
     {"_glmGamPoi_compute_gp_deviance_residuals_matrix_mask", (DL_FUNC) &_glmGamPoi_compute_gp_deviance_residuals_matrix_mask, 3},
     {"_glmGamPoi_make_table_if_small", (DL_FUNC) &_glmGamPoi_make_table_if_small, 2},
     {"_glmGamPoi_conventional_loglikelihood_fast", (DL_FUNC) &_glmGamPoi_conventional_loglikelihood_fast, 7},

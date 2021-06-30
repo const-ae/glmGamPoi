@@ -41,7 +41,7 @@ estimate_betas_roughly <- function(Y, model_matrix, offset_matrix, pseudo_count 
 #' @keywords internal
 estimate_betas_fisher_scoring <- function(Y, model_matrix, offset_matrix,
                                           dispersions, beta_mat_init, ridge_penalty){
-  max_iter = 1000
+  max_iter <- 1000
   stopifnot(nrow(model_matrix) == ncol(Y))
   stopifnot(nrow(beta_mat_init) == nrow(Y))
   stopifnot(ncol(beta_mat_init) == ncol(model_matrix))
@@ -60,7 +60,21 @@ estimate_betas_fisher_scoring <- function(Y, model_matrix, offset_matrix,
   betaRes <- fitBeta_fisher_scoring(Y, model_matrix, exp(offset_matrix), dispersions, beta_mat_init,
                                     ridge_penalty_nl = ridge_penalty, tolerance = 1e-8,
                                     max_rel_mu_change = 1e5, max_iter =  max_iter)
-  warn_non_convergence(betaRes$iter == max_iter, rownames(Y))
+  not_converged <- betaRes$iter == max_iter
+  if(any(not_converged)){
+    # Try again with optim
+    betaRes2 <- estimate_betas_optim(Y[not_converged,,drop=FALSE], model_matrix,
+                                     offset_matrix[not_converged,,drop=FALSE],
+                                     dispersions = dispersions[not_converged],
+                                     beta_mat_init = beta_mat_init[not_converged,,drop=FALSE],
+                                     ridge_penalty = ridge_penalty, max_iter = max_iter)
+    betaRes$beta_mat[not_converged, ] <- betaRes2$Beta
+    betaRes$deviance[not_converged] <- betaRes2$deviances
+    betaRes$iter[not_converged] <- betaRes2$iterations
+    warn_non_convergence(betaRes$iter == max_iter, rownames(Y))
+  }
+
+
 
   list(Beta = betaRes$beta_mat, iterations = betaRes$iter, deviances = betaRes$deviance)
 }
@@ -77,6 +91,62 @@ warn_non_convergence <- function(not_converged, rownames){
             if(length(labels) > 6){", ..."}, ".\n",
             "Will continue anyways and ignore those rows in subsequent calls.")
   }
+}
+
+estimate_betas_optim <- function(Y, model_matrix, offset_matrix, dispersions, beta_mat_init, ridge_penalty, max_iter = 1000){
+  stopifnot(nrow(model_matrix) == ncol(Y))
+  stopifnot(nrow(beta_mat_init) == nrow(Y))
+  stopifnot(ncol(beta_mat_init) == ncol(model_matrix))
+  stopifnot(length(dispersions) == nrow(Y))
+  stopifnot(dim(offset_matrix) == dim(Y))
+  stopifnot(is.null(ridge_penalty) ||
+              (is.matrix(ridge_penalty) && ncol(ridge_penalty) == ncol(model_matrix)) ||
+              length(ridge_penalty) == ncol(model_matrix))
+
+
+  if(! is.null(ridge_penalty) && ! is.matrix(ridge_penalty)){
+    ridge_target <- attr(ridge_penalty, "target")
+    ridge_penalty <- diag(ridge_penalty, nrow = length(ridge_penalty))
+    attr(ridge_penalty, "target") <- ridge_target
+  }
+
+  apply_ridge <- ! is.null(ridge_penalty)
+  n_samples <- ncol(Y)
+  if(apply_ridge){
+    ridge_penalty_sq <- tcrossprod(ridge_penalty)
+    ridge_target <- if(is.null(attr(ridge_penalty, "target", TRUE))){
+      rep(0, ncol(model_matrix))
+    }else{
+      attr(ridge_penalty, "target", TRUE)
+    }
+  }
+  result <- list(Beta = matrix(NA, nrow = nrow(Y), ncol = ncol(model_matrix)),
+                 iter = rep(NA, nrow(Y)),
+                 deviance = rep(NA, nrow(Y)))
+
+  for(idx in seq_len(nrow(Y))){
+    y <- Y[idx, ]
+    off <- offset_matrix[idx, ]
+    beta_init <- beta_mat_init[idx, ]
+    theta <- dispersions[idx]
+    if(! apply_ridge){
+      res <- optim(par = beta_init, function(beta){
+        mu <- exp(model_matrix %*% beta + off)
+        compute_gp_deviance_sum(y, mu, theta)
+      }, method = "BFGS", control = list(maxit = max_iter))
+    }else{
+      res <- optim(par = beta_init, function(beta){
+        mu <- exp(model_matrix %*% beta + off)
+        penalty <- n_samples * t(beta - ridge_target) %*% ridge_penalty_sq %*% (beta - ridge_target)
+        compute_gp_deviance_sum(y, mu, theta) + penalty
+      }, method = "BFGS", control = list(maxit = max_iter))
+    }
+    result$Beta[idx, ] <- res$par
+    result$iterations[idx] <- res$counts[1]
+    result$deviances[idx] <- res$value
+  }
+
+  result
 }
 
 

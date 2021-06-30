@@ -655,3 +655,23 @@ test_that("setting a target value for a parameter works via ridge penalty", {
 })
 
 
+
+test_that("estimate_betas_optim works as estimate_betas_fisher_scoring", {
+  Y <- matrix(1:72, nrow = 9, ncol = 8)[3:5,,drop=FALSE]
+  model_matrix <- matrix(rnorm(n = 8 * 2), nrow = 8, ncol = 2)
+  offset_matrix <- matrix(0, nrow = nrow(Y), ncol = ncol(Y))
+  disp_init <- estimate_dispersions_roughly(Y, model_matrix, offset_matrix)
+  beta_init <- estimate_betas_roughly(Y, model_matrix, offset_matrix)
+
+  fit1 <- estimate_betas_fisher_scoring(Y, model_matrix = model_matrix, offset_matrix = offset_matrix,
+                                       dispersions = disp_init, beta_mat_init = beta_init, ridge_penalty = NULL)
+
+  fit2 <- estimate_betas_optim(Y, model_matrix = model_matrix, offset_matrix = offset_matrix,
+                       dispersions = disp_init, beta_mat_init = beta_init, ridge_penalty = NULL)
+
+  expect_equal(fit1$deviance, fit2$deviance)
+  expect_equal(fit1$Beta, fit2$Beta, tolerance = 1e-3)
+})
+
+
+

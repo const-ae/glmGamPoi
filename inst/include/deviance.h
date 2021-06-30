@@ -56,6 +56,17 @@ inline double compute_gp_deviance_sum(const arma::Mat<NumericType>& Y,
   return dev;
 }
 
+inline double compute_gp_deviance_sum(const NumericVector& Y,
+                                      const NumericVector& Mu,
+                                      double theta){
+  double dev = 0.0;
+  int n_elem = Y.size();
+  for (int i = 0; i < n_elem; i++) {
+    dev += compute_gp_deviance(Y[i], Mu[i], theta);
+  }
+  return dev;
+}
+
 
 
 template<class NumericType>
