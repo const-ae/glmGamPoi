@@ -82,14 +82,16 @@ overdispersion_shrinkage <- function(disp_est, gene_means, df,
                                      ql_disp_trend = NULL,
                                      ...,
                                      verbose = FALSE){
+  est_value <- ! (is.na(disp_est) | is.na(gene_means) | is.na(df))
   stopifnot(length(disp_est) == length(gene_means))
-  min(length(disp_est), max(0.1 * length(disp_est), 100))
 
   if(is.null(disp_trend) || isTRUE(disp_trend)){
     if(verbose){ message("Fit dispersion trend") }
-    disp_trend <- loc_median_fit(gene_means, y = disp_est, ...)
+    disp_trend <- rep(NA, length(disp_est))
+    disp_trend[est_value] <- loc_median_fit(gene_means[est_value], y = disp_est[est_value], ...)
   }else if(isFALSE(disp_trend)) {
-    disp_trend <- rep(mean(disp_est), length(disp_est))
+    disp_trend <- rep(NA, length(disp_est))
+    disp_trend[est_value] <- rep(mean(disp_est, na.rm = TRUE), sum(est_value))
   }
 
   if(verbose){ message("Shrink dispersion estimates") }
@@ -151,7 +153,9 @@ variance_prior <- function(s2, df, covariate = NULL, abundance_trend = NULL){
     # This happens if input has zero columns
     return(list(variance0 = rep(NA, length(s2)), df0 = NA, var_post = s2))
   }
-  if(all(s2 == 1)){
+
+  s2_sub <- na.omit(s2)
+  if(all(s2_sub == 1)){
     # Happens for example if overdispersion is fixed to 0 -> Poisson GLM
     return(list(variance0 = rep(1, length(s2)), df0 = Inf, var_post = s2))
   }
@@ -164,34 +168,35 @@ variance_prior <- function(s2, df, covariate = NULL, abundance_trend = NULL){
 
   # Fit an intercept to s2
   opt_res <- optim(par=c(log_variance0=0, log_df0_inv=0), function(par){
-    -sum(df(s2/exp(par[1]), df1=df, df2=exp(par[2]), log=TRUE) - par[1], na.rm=TRUE)
+    -sum(df(s2_sub/exp(par[1]), df1=df, df2=exp(par[2]), log=TRUE) - par[1], na.rm=TRUE)
   })
-  variance0 <- rep(exp(unname(opt_res$par[1])), times = length(s2))
+  variance0 <- rep(exp(unname(opt_res$par[1])), times = length(s2_sub))
   df0 <- exp(unname(opt_res$par[2]))
 
   if(is.numeric(abundance_trend)){
     stop("Numeric abundance trend is not supported.")
-  }else if(is.null(covariate) || is.null(abundance_trend) || ! abundance_trend || length(s2) < 10 || sum(covariate > 1e-8) < 10) {
-    if(length(s2) < 10 && isTRUE(abundance_trend)){
+  }else if(is.null(covariate) || is.null(abundance_trend) || ! abundance_trend || length(s2_sub) < 10 || sum(covariate > 1e-8, na.rm = TRUE) < 10) {
+    if(length(s2_sub) < 10 && isTRUE(abundance_trend)){
       warning("abundance_trend was set to 'TRUE', however there were not enough observations (length(s2) = ",
-              length(s2), " < 10) to fit the trend.")
+              length(s2_sub), " < 10) to fit the trend.")
     }
     # Do nothing else to data
   }else{
     # Fit a trend!
-    # Fit a spline through the log(s2) ~ covariate + 1 to account
-    # for remaing trends in s2
-    log_covariate <- log(covariate)
-    not_zero <- covariate > 1e-8
+    # Fit a spline through the log(s2_sub) ~ covariate + 1 to account
+    # for remaing trends in s2_sub
+    covariate_sub <- covariate[! is.na(s2)]
+    log_covariate <- log(covariate_sub)
+    not_zero <- covariate_sub > 1e-8
     ra <- range(log_covariate[not_zero])
     knots <- ra[1] + c(1/3, 2/3) * (ra[2] - ra[1])
     tryCatch({
       design <- splines::ns(log_covariate[not_zero], df = 4, knots = knots, intercept = TRUE)
-      init_fit <- lm.fit(design, log(s2[not_zero]))
+      init_fit <- lm.fit(design, log(s2_sub[not_zero]))
       opt_res <- optim(par=c(betas = init_fit$coefficients, log_df0_inv=0), function(par){
         variance0 <- exp(design %*% par[1:4])
         df0 <- exp(par[5])
-        -sum(df(s2[not_zero]/variance0, df1=df, df2=df0, log=TRUE) - log(variance0), na.rm=TRUE)
+        -sum(df(s2_sub[not_zero]/variance0, df1=df, df2=df0, log=TRUE) - log(variance0), na.rm=TRUE)
       }, control = list(maxit = 5000))
       variance0[not_zero] <- c(exp(design %*% opt_res$par[1:4]))
       df0 <- exp(unname(opt_res$par[5]))
@@ -205,6 +210,7 @@ variance_prior <- function(s2, df, covariate = NULL, abundance_trend = NULL){
     warning("Variance prior estimate did not properly converge\n")
   }
 
-  var_post <- (df0 * variance0 + df * s2) / (df0 + df)
+  var_post <- rep(NA, length(s2))
+  var_post[! is.na(s2)] <- (df0 * variance0 + df * s2_sub) / (df0 + df)
   list(variance0 = variance0, df0 = df0, var_post = var_post)
 }

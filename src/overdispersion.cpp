@@ -286,10 +286,18 @@ List estimate_overdispersions_fast_internal(RObject Y, RObject mean_matrix, Nume
     NumericVector mu(n_samples);
     mean_mat_bm->get_row(gene_idx, mu.begin());
 
-    List dispRes =  Rcpp::as<List>(overdispersion_mle_impl(counts, mu, model_matrix, do_cox_reid_adjustment, n_subsamples, max_iter));
-    estimates(gene_idx) = Rcpp::as<double>(dispRes["estimate"]);
-    iterations(gene_idx) = Rcpp::as<double>(dispRes["iterations"]);
-    messages(gene_idx) = Rcpp::as<String>(dispRes["message"]);
+    // Check if the first value is NA, if yes all of them will be
+    if(n_samples > 0 && Rcpp::traits::is_na<REALSXP>(mu[0])){
+      estimates(gene_idx) = NA_REAL;
+      iterations(gene_idx) = max_iter;
+      messages(gene_idx) = "Mean estimate was NA. Cannot estimate overdispersion";
+    }else{
+      List dispRes =  Rcpp::as<List>(overdispersion_mle_impl(counts, mu, model_matrix, do_cox_reid_adjustment, n_subsamples, max_iter));
+      estimates(gene_idx) = Rcpp::as<double>(dispRes["estimate"]);
+      iterations(gene_idx) = Rcpp::as<double>(dispRes["iterations"]);
+      messages(gene_idx) = Rcpp::as<String>(dispRes["message"]);
+    }
+
   }
   return List::create(
     Named("estimate", estimates),

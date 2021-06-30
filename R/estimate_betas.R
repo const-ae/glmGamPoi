@@ -41,6 +41,7 @@ estimate_betas_roughly <- function(Y, model_matrix, offset_matrix, pseudo_count 
 #' @keywords internal
 estimate_betas_fisher_scoring <- function(Y, model_matrix, offset_matrix,
                                           dispersions, beta_mat_init, ridge_penalty){
+  max_iter = 1000
   stopifnot(nrow(model_matrix) == ncol(Y))
   stopifnot(nrow(beta_mat_init) == nrow(Y))
   stopifnot(ncol(beta_mat_init) == ncol(model_matrix))
@@ -58,9 +59,24 @@ estimate_betas_fisher_scoring <- function(Y, model_matrix, offset_matrix,
 
   betaRes <- fitBeta_fisher_scoring(Y, model_matrix, exp(offset_matrix), dispersions, beta_mat_init,
                                     ridge_penalty_nl = ridge_penalty, tolerance = 1e-8,
-                                    max_rel_mu_change = 1e5, max_iter =  1000)
+                                    max_rel_mu_change = 1e5, max_iter =  max_iter)
+  warn_non_convergence(betaRes$iter, max_iter, rownames(Y))
 
   list(Beta = betaRes$beta_mat, iterations = betaRes$iter, deviances = betaRes$deviance)
+}
+
+warn_non_convergence <- function(iterations, max_iter, rownames){
+  if(any(iterations == max_iter)){
+    # Estimate didn't converge for some gene :(
+    labels <- if(! is.null(rownames)){
+      rownames[iterations == max_iter]
+    }else{
+      which(iterations == max_iter)
+    }
+    warning("Beta estimation did not converge for ", paste0(head(labels), collapse = ", "),
+            if(length(labels) > 6){", ..."}, ".\n",
+            "Will continue anyways and ignore those rows in subsequent calls.")
+  }
 }
 
 

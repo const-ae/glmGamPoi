@@ -232,6 +232,12 @@ List fitBeta_fisher_scoring_impl(RObject Y, const arma::mat& model_matrix, RObje
     // Init beta and mu
     arma::vec beta_hat = beta_mat.row(gene_idx).t();
     arma::vec mu_hat = calculate_mu(model_matrix, beta_hat, exp_off);
+    if(beta_hat.has_nan() || Rcpp::traits::is_na<REALSXP>(thetas(gene_idx))){
+      beta_hat.fill(NA_REAL);
+      iterations(gene_idx) = 0;
+      deviance(gene_idx) = NA_REAL;
+      continue;
+    }
     // Init deviance
     double dev_old = 0;
     if(apply_ridge_penalty){
@@ -357,6 +363,13 @@ List fitBeta_one_group_internal(SEXP Y_SEXP, SEXP offsets_SEXP,
 
     double beta = beta_start_values(gene_idx);
     const double& theta = thetas(gene_idx);
+    if(Rcpp::traits::is_na<REALSXP>(beta) || Rcpp::traits::is_na<REALSXP>(theta)){
+      // Missing values, just continue with next gene
+      result(gene_idx) = NA_REAL;
+      iterations(gene_idx) = 0;
+      deviance(gene_idx) = NA_REAL;
+      continue;
+    }
 
     typename NumericType::vector counts(n_samples);
     Y_bm->get_row(gene_idx, counts.begin());

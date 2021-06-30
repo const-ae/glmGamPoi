@@ -397,6 +397,47 @@ test_that("lte_n_equal_rows and get_row_groups works", {
 
 
 
+test_that("NA's produced by fitBeta_fisher_scoring don't cause problems", {
+  n_genes <- 100
+  n_cells <- 500
+  sf <- rchisq(n = n_cells, df = 5)
+  sf <- sf / mean(sf)
+  gene_means <- 10^runif(n = n_genes, min = -3, max = 3)
+
+  Mu <- gene_means %*% t(sf)
+  Y <- matrix(rnbinom(n = n_genes * n_cells, size = 1 / 0.1, mu = Mu), nrow = n_genes, ncol = n_cells)
+  rownames(Y) <- paste0("Gene_", seq_len(n_genes))
+  colnames(Y) <- paste("Cell_", seq_len(n_cells))
+  cont <- rnorm(n_cells)
+  cont2 <- rnorm(n_cells)
+
+
+  # mockr::with_mock and mockery::stub don't properly work yet
+  testthat::with_mock(fitBeta_fisher_scoring =  function(Y, model_matrix, exp_offset_matrix, thetas, beta_matSEXP, ridge_penalty_nl, tolerance, max_rel_mu_change, max_iter) {
+    res <- .Call(`_glmGamPoi_fitBeta_fisher_scoring`, Y, model_matrix, exp_offset_matrix, thetas, beta_matSEXP, ridge_penalty_nl, tolerance, max_rel_mu_change, max_iter)
+    if(! any(res$iter == 0)){
+      res$beta_mat[c(5, 17), ] <- NA
+      res$iter[c(5, 17)] <- 1000
+      res$deviance[c(5, 17)] <- NaN
+    }
+    res
+  }, {
+    expect_warning(fit <- glm_gp(Y, design = ~ cont + cont2, size_factors = sf))
+    expect_equal(sum(is.na(fit$Mu)), 2 * n_cells)
+    expect_equal(unname(which(is.na(fit$overdispersions))), c(5, 17))
+    expect_equal(unname(which(is.na(fit$overdispersion_shrinkage_list$ql_disp_shrunken))), c(5, 17))
+    expect_equal(unname(which(is.na(fit$Beta[, "Intercept"]))), c(5, 17))
+    expect_equal(unname(which(is.na(fit$Beta[, "cont"]))), c(5, 17))
+
+    expect_silent(res <- test_de(fit, reduced_design = ~ 1))
+    expect_true(is.na(res$pval[5]))
+    expect_false(is.na(res$pval[4]))
+
+    expect_silent(res <- test_de(fit, contrast = cont))
+    expect_true(is.na(res$pval[5]))
+    expect_false(is.na(res$pval[4]))
+  })
+})
 
 
 
