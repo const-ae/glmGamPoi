@@ -669,7 +669,7 @@ test_that("estimate_betas_optim works as estimate_betas_fisher_scoring", {
   fit2 <- estimate_betas_optim(Y, model_matrix = model_matrix, offset_matrix = offset_matrix,
                        dispersions = disp_init, beta_mat_init = beta_init, ridge_penalty = NULL)
 
-  expect_equal(fit1$deviance, fit2$deviance)
+  expect_equal(fit1$deviances, fit2$deviances)
   expect_equal(fit1$Beta, fit2$Beta, tolerance = 1e-3)
 })
 

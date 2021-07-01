@@ -411,32 +411,81 @@ test_that("NA's produced by fitBeta_fisher_scoring don't cause problems", {
   cont <- rnorm(n_cells)
   cont2 <- rnorm(n_cells)
 
+  fit_orig <- glm_gp(Y, design = ~ cont + cont2, size_factors = sf)
+
 
   # mockr::with_mock and mockery::stub don't properly work yet
-  testthat::with_mock(fitBeta_fisher_scoring =  function(Y, model_matrix, exp_offset_matrix, thetas, beta_matSEXP, ridge_penalty_nl, tolerance, max_rel_mu_change, max_iter) {
-    res <- .Call(`_glmGamPoi_fitBeta_fisher_scoring`, Y, model_matrix, exp_offset_matrix, thetas, beta_matSEXP, ridge_penalty_nl, tolerance, max_rel_mu_change, max_iter)
-    if(! any(res$iter == 0)){
-      res$beta_mat[c(5, 17), ] <- NA
-      res$iter[c(5, 17)] <- 1000
-      res$deviance[c(5, 17)] <- NaN
-    }
-    res
-  }, {
-    expect_warning(fit <- glm_gp(Y, design = ~ cont + cont2, size_factors = sf))
-    expect_equal(sum(is.na(fit$Mu)), 2 * n_cells)
-    expect_equal(unname(which(is.na(fit$overdispersions))), c(5, 17))
-    expect_equal(unname(which(is.na(fit$overdispersion_shrinkage_list$ql_disp_shrunken))), c(5, 17))
-    expect_equal(unname(which(is.na(fit$Beta[, "Intercept"]))), c(5, 17))
-    expect_equal(unname(which(is.na(fit$Beta[, "cont"]))), c(5, 17))
+  testthat::with_mock(
+    # Simulated failure to converge
+    fitBeta_fisher_scoring =  function(Y, model_matrix, exp_offset_matrix, thetas, beta_matSEXP, ridge_penalty_nl, tolerance, max_rel_mu_change, max_iter) {
+      res <- .Call(`_glmGamPoi_fitBeta_fisher_scoring`, Y, model_matrix, exp_offset_matrix, thetas, beta_matSEXP, ridge_penalty_nl, tolerance, max_rel_mu_change, max_iter)
+      if(! any(res$iter == 0)){
+        res$beta_mat[c(5, 17), ] <- NA
+        res$iter[c(5, 17)] <- 1000
+        res$deviance[c(5, 17)] <- NaN
+      }
+      res
+    },
+    {
+      # optim recovers problematic result
+      # although they are not 100% identical
+      expect_silent(fit <- glm_gp(Y, design = ~ cont + cont2, size_factors = sf))
+      expect_equal(fit_orig$Beta[-c(5, 17),], fit$Beta[-c(5, 17),])
+      expect_equal(fit_orig$Beta[c(5, 17),], fit$Beta[c(5, 17),], tolerance = 1e-3)
+      expect_equal(fit_orig$Mu[-c(5, 17),], fit$Mu[-c(5, 17),])
+      expect_equal(fit_orig$Mu[c(5, 17),], fit$Mu[c(5, 17),], tolerance = 1e-3)
+      expect_equal(fit_orig$overdispersions[-c(5, 17)], fit$overdispersions[-c(5, 17)])
+      expect_equal(fit_orig$overdispersions[c(5, 17)], fit$overdispersions[c(5, 17)], tolerance = 0.01)
+      expect_equal(fit_orig$overdispersion_shrinkage_list$ql_disp_estimate[-c(5, 17)], fit$overdispersion_shrinkage_list$ql_disp_estimate[-c(5, 17)])
+      expect_equal(fit_orig$overdispersion_shrinkage_list$ql_disp_estimate[c(5, 17)], fit$overdispersion_shrinkage_list$ql_disp_estimate[c(5, 17)], tolerance = 0.01)
 
-    expect_silent(res <- test_de(fit, reduced_design = ~ 1))
-    expect_true(is.na(res$pval[5]))
-    expect_false(is.na(res$pval[4]))
-
-    expect_silent(res <- test_de(fit, contrast = cont))
-    expect_true(is.na(res$pval[5]))
-    expect_false(is.na(res$pval[4]))
+      expect_equal(fit_orig[-which(names(fit_orig) %in% c("Beta", "overdispersions", "overdispersion_shrinkage_list", "Mu"))],
+                   fit[-which(names(fit_orig) %in% c("Beta", "overdispersions", "overdispersion_shrinkage_list", "Mu"))])
   })
+
+
+
+  testthat::with_mock(
+    # Simulated failure to converge
+    fitBeta_fisher_scoring =  function(Y, model_matrix, exp_offset_matrix, thetas, beta_matSEXP, ridge_penalty_nl, tolerance, max_rel_mu_change, max_iter) {
+      res <- .Call(`_glmGamPoi_fitBeta_fisher_scoring`, Y, model_matrix, exp_offset_matrix, thetas, beta_matSEXP, ridge_penalty_nl, tolerance, max_rel_mu_change, max_iter)
+      if(! any(res$iter == 0)){
+        res$beta_mat[c(5, 17), ] <- NA
+        res$iter[c(5, 17)] <- 1000
+        res$deviance[c(5, 17)] <- NaN
+      }
+      res
+    }, # Make sure that optim doesn't recover the correct result
+      estimate_betas_fisher_scoring = {
+        ebfs <- estimate_betas_fisher_scoring
+        args <- formals(ebfs)
+        args[["try_recovering_convergence_problems"]] <- FALSE
+        formals(ebfs) <- args
+        ebfs
+      },
+    {
+      # The function isn't crashed by internal NA's
+      expect_warning(fit <- glm_gp(Y, design = ~ cont + cont2, size_factors = sf))
+      expect_equal(sum(is.na(fit$Mu)), 2 * n_cells)
+      expect_equal(unname(which(is.na(fit$overdispersions))), c(5, 17))
+      expect_equal(unname(which(is.na(fit$overdispersion_shrinkage_list$ql_disp_shrunken))), c(5, 17))
+      expect_equal(unname(which(is.na(fit$Beta[, "Intercept"]))), c(5, 17))
+      expect_equal(unname(which(is.na(fit$Beta[, "cont"]))), c(5, 17))
+
+      expect_equal(fit_orig$Beta[-c(5, 17),], fit$Beta[-c(5, 17),], tolerance = 1e-4)
+      expect_equal(fit_orig$Mu[-c(5, 17),], fit$Mu[-c(5, 17),], tolerance = 1e-4)
+      expect_equal(fit_orig$overdispersions[-c(5, 17)], fit$overdispersions[-c(5, 17)])
+      expect_equal(fit_orig$overdispersion_shrinkage_list$ql_disp_estimate[-c(5, 17)],
+                   fit$overdispersion_shrinkage_list$ql_disp_estimate[-c(5, 17)], tolerance = 1e-3)
+
+      expect_silent(res <- test_de(fit, reduced_design = ~ 1))
+      expect_true(is.na(res$pval[5]))
+      expect_false(is.na(res$pval[4]))
+
+      expect_silent(res <- test_de(fit, contrast = cont))
+      expect_true(is.na(res$pval[5]))
+      expect_false(is.na(res$pval[4]))
+    })
 })
 
 

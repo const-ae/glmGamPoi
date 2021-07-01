@@ -40,7 +40,8 @@ estimate_betas_roughly <- function(Y, model_matrix, offset_matrix, pseudo_count 
 #'
 #' @keywords internal
 estimate_betas_fisher_scoring <- function(Y, model_matrix, offset_matrix,
-                                          dispersions, beta_mat_init, ridge_penalty){
+                                          dispersions, beta_mat_init, ridge_penalty,
+                                          try_recovering_convergence_problems = TRUE){
   max_iter <- 1000
   stopifnot(nrow(model_matrix) == ncol(Y))
   stopifnot(nrow(beta_mat_init) == nrow(Y))
@@ -61,7 +62,7 @@ estimate_betas_fisher_scoring <- function(Y, model_matrix, offset_matrix,
                                     ridge_penalty_nl = ridge_penalty, tolerance = 1e-8,
                                     max_rel_mu_change = 1e5, max_iter =  max_iter)
   not_converged <- betaRes$iter == max_iter
-  if(any(not_converged)){
+  if(try_recovering_convergence_problems & any(not_converged)){
     # Try again with optim
     betaRes2 <- estimate_betas_optim(Y[not_converged,,drop=FALSE], model_matrix,
                                      offset_matrix[not_converged,,drop=FALSE],
@@ -71,8 +72,9 @@ estimate_betas_fisher_scoring <- function(Y, model_matrix, offset_matrix,
     betaRes$beta_mat[not_converged, ] <- betaRes2$Beta
     betaRes$deviance[not_converged] <- betaRes2$deviances
     betaRes$iter[not_converged] <- betaRes2$iterations
-    warn_non_convergence(betaRes$iter == max_iter, rownames(Y))
   }
+  # Don't use 'not_converged' because optim might recover some cases
+  warn_non_convergence(betaRes$iter == max_iter, rownames(Y))
 
 
 
@@ -121,8 +123,8 @@ estimate_betas_optim <- function(Y, model_matrix, offset_matrix, dispersions, be
     }
   }
   result <- list(Beta = matrix(NA, nrow = nrow(Y), ncol = ncol(model_matrix)),
-                 iter = rep(NA, nrow(Y)),
-                 deviance = rep(NA, nrow(Y)))
+                 iterations = rep(NA, nrow(Y)),
+                 deviances = rep(NA, nrow(Y)))
 
   for(idx in seq_len(nrow(Y))){
     y <- Y[idx, ]
