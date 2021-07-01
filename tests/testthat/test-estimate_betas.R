@@ -2,7 +2,12 @@
 
 setup({
   # Limit the number of workers so CRAN is happy
-  DelayedArray::setAutoBPPARAM(BiocParallel::MulticoreParam(workers = 2))
+  if(is_windows()){
+    DelayedArray::setAutoBPPARAM(BiocParallel::SerialParam())
+  }else{
+    DelayedArray::setAutoBPPARAM(BiocParallel::MulticoreParam(workers = 2))
+  }
+
 })
 
 test_that("deviance calculation works", {
