@@ -24,7 +24,7 @@ jobs:
         - { os: windows-latest, r: '4.1'}
         - { os: macOS-latest, r: '4.1'}
         - { os: ubuntu-16.04, r: '4.1', cran: "https://packagemanager.rstudio.com/all/__linux__/xenial/latest"}
-        - { os: ubuntu-20.04, r: 'devel', cran: "https://packagemanager.rstudio.com/all/__linux__/focal/latest"}
+        # - { os: ubuntu-20.04, r: 'devel', cran: "https://packagemanager.rstudio.com/all/__linux__/focal/latest"}
 
     env:
       R_REMOTES_NO_ERRORS_FROM_WARNINGS: true
