@@ -143,9 +143,15 @@ estimate_betas_optim <- function(Y, model_matrix, offset_matrix, dispersions, be
         compute_gp_deviance_sum(y, mu, theta) + penalty
       }, method = "BFGS", control = list(maxit = max_iter))
     }
-    result$Beta[idx, ] <- res$par
-    result$iterations[idx] <- res$counts[1]
-    result$deviances[idx] <- res$value
+    if(res$convergence != 0){
+      result$iterations[idx] <- max_iter
+      result$Beta[idx, ] <- NA_real_
+      result$deviances[idx] <- NA_real_
+    }else{
+      result$iterations[idx] <- min(res$counts[1], max_iter - 1)
+      result$Beta[idx, ] <- res$par
+      result$deviances[idx] <- res$value
+    }
   }
 
   result
