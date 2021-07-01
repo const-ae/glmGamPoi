@@ -115,7 +115,7 @@ estimate_betas_optim <- function(Y, model_matrix, offset_matrix, dispersions, be
   apply_ridge <- ! is.null(ridge_penalty)
   n_samples <- ncol(Y)
   if(apply_ridge){
-    ridge_penalty_sq <- tcrossprod(ridge_penalty)
+    ridge_penalty_sq <- t(ridge_penalty) %*% ridge_penalty
     ridge_target <- if(is.null(attr(ridge_penalty, "target", TRUE))){
       rep(0, ncol(model_matrix))
     }else{

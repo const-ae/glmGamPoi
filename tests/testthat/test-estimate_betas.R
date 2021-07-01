@@ -673,6 +673,27 @@ test_that("estimate_betas_optim works as estimate_betas_fisher_scoring", {
   expect_equal(fit1$Beta, fit2$Beta, tolerance = 1e-3)
 })
 
+test_that("estimate_betas_optim works as estimate_betas_fisher_scoring with ridge penalty", {
+  Y <- matrix(1:72, nrow = 9, ncol = 8)
+  model_matrix <- matrix(rnorm(n = 8 * 3), nrow = 8, ncol = 3)
+  offset_matrix <- matrix(0, nrow = nrow(Y), ncol = ncol(Y))
+  disp_init <- estimate_dispersions_roughly(Y, model_matrix, offset_matrix)
+  beta_init <- estimate_betas_roughly(Y, model_matrix, offset_matrix)
+  ridge_penalty <- matrix(rnorm(3 * 3)^2, nrow = 3, ncol = 3)
+  attr(ridge_penalty, "target") <- c(1,2,3)
+
+  fit1 <- estimate_betas_fisher_scoring(Y, model_matrix = model_matrix, offset_matrix = offset_matrix,
+                                        dispersions = disp_init, beta_mat_init = beta_init, ridge_penalty = ridge_penalty)
+
+  fit2 <- estimate_betas_optim(Y, model_matrix = model_matrix, offset_matrix = offset_matrix,
+                               dispersions = disp_init, beta_mat_init = beta_init, ridge_penalty = ridge_penalty)
+
+  expect_equal(fit1$deviances, fit2$deviances, tolerance = 1e-3)
+  expect_equal(fit1$Beta, fit2$Beta, tolerance = 1e-3)
+})
+
+
+
 test_that("estimate_betas_optim returns NA's if number of iterations are exceeded", {
   Y <- matrix(1:72, nrow = 9, ncol = 8)[3:5,,drop=FALSE]
   model_matrix <- matrix(rnorm(n = 8 * 2), nrow = 8, ncol = 2)
