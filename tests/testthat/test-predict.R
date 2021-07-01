@@ -1,3 +1,10 @@
+options(
+  # MASS::glm.nb internally uses partial argument matching
+  warnPartialMatchArgs = FALSE
+)
+
+
+
 test_that("predict works for simple cases", {
   set.seed(1)
   y <- rnbinom(n = 100, mu = 15, size  = 1/0.8)

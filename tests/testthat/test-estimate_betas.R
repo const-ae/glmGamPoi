@@ -280,7 +280,7 @@ test_that("Fisher scoring and diagonal fisher scoring give consistent results", 
   # Fit Standard Model
   beta_mat_init <- estimate_betas_roughly(Y = data$Y, model_matrix = data$X, offset_matrix = offset_matrix)
   res1 <- fitBeta_fisher_scoring(Y = data$Y, model_matrix = data$X, exp_offset_matrix = exp(offset_matrix),
-                                 thetas = data$overdispersion, beta_matSEXP = beta_mat_init, ridge_penalty = NULL,
+                                 thetas = data$overdispersion, beta_matSEXP = beta_mat_init, ridge_penalty_nl = NULL,
                                  tolerance = 1e-8, max_rel_mu_change = 1e5, max_iter =  100)
   res2 <- fitBeta_diagonal_fisher_scoring(Y = data$Y, model_matrix = data$X, exp_offset_matrix = exp(offset_matrix),
                                  thetas = data$overdispersion, beta_matSEXP = beta_mat_init,
@@ -298,7 +298,7 @@ test_that("Fisher scoring and diagonal fisher scoring give consistent results", 
   new_model_matrix <- model.matrix(~ . - 1, df)
   beta_mat_init <- estimate_betas_roughly(Y = data$Y, model_matrix = new_model_matrix, offset_matrix = offset_matrix)
   res1 <- fitBeta_fisher_scoring(Y = data$Y, model_matrix = new_model_matrix, exp_offset_matrix = exp(offset_matrix),
-                                 thetas = data$overdispersion, beta_matSEXP = beta_mat_init, ridge_penalty = NULL,
+                                 thetas = data$overdispersion, beta_matSEXP = beta_mat_init, ridge_penalty_nl = NULL,
                                  tolerance = 1e-8, max_rel_mu_change = 1e5, max_iter =  100)
   res2 <- fitBeta_diagonal_fisher_scoring(Y = data$Y, model_matrix = new_model_matrix, exp_offset_matrix = exp(offset_matrix),
                                           thetas = data$overdispersion, beta_matSEXP = beta_mat_init,
@@ -317,11 +317,11 @@ test_that("Fisher scoring and ridge penalized fisher scoring give consistent res
   beta_mat_init <- estimate_betas_roughly(Y = data$Y, model_matrix = data$X, offset_matrix = offset_matrix)
   res1 <- fitBeta_fisher_scoring(Y = data$Y, model_matrix = data$X, exp_offset_matrix = exp(offset_matrix),
                                  thetas = data$overdispersion, beta_matSEXP = beta_mat_init,
-                                 ridge_penalty = NULL,
+                                 ridge_penalty_nl = NULL,
                                  tolerance = 1e-8, max_rel_mu_change = 1e5, max_iter =  100)
   res2 <- fitBeta_fisher_scoring(Y = data$Y, model_matrix = data$X, exp_offset_matrix = exp(offset_matrix),
                                  thetas = data$overdispersion, beta_matSEXP = beta_mat_init,
-                                 ridge_penalty = diag(1e-10, nrow = ncol(data$X)),
+                                 ridge_penalty_nl = diag(1e-10, nrow = ncol(data$X)),
                                  tolerance = 1e-8, max_rel_mu_change = 1e5, max_iter =  100)
   expect_equal(res1, res2)
 
@@ -337,15 +337,15 @@ test_that("Fisher scoring and ridge penalized fisher scoring give consistent res
   beta_mat_init <- estimate_betas_roughly(Y = data$Y[,1:size,drop=FALSE], model_matrix = new_model_matrix, offset_matrix = offset_matrix[,1:size,drop=FALSE])
   res1 <- fitBeta_fisher_scoring(Y = data$Y[,1:size,drop=FALSE], model_matrix = new_model_matrix, exp_offset_matrix = exp(offset_matrix)[,1:size,drop=FALSE],
                                  thetas = data$overdispersion, beta_matSEXP = beta_mat_init,
-                                 ridge_penalty = diag(0, nrow = ncol(new_model_matrix)),
+                                 ridge_penalty_nl = diag(0, nrow = ncol(new_model_matrix)),
                                  tolerance = 1e-8, max_rel_mu_change = 1e5, max_iter =  100)
   res2 <- fitBeta_fisher_scoring(Y = data$Y[,1:size,drop=FALSE], model_matrix = new_model_matrix, exp_offset_matrix = exp(offset_matrix)[,1:size,drop=FALSE],
                                  thetas = data$overdispersion, beta_matSEXP = beta_mat_init,
-                                 ridge_penalty = diag(1e-30, nrow = ncol(new_model_matrix)),
+                                 ridge_penalty_nl = diag(1e-30, nrow = ncol(new_model_matrix)),
                                  tolerance = 1e-8, max_rel_mu_change = 1e5, max_iter =  100)
   res3 <- fitBeta_fisher_scoring(Y = data$Y[,1:size,drop=FALSE], model_matrix = new_model_matrix, exp_offset_matrix = exp(offset_matrix)[,1:size,drop=FALSE],
                                  thetas = data$overdispersion, beta_matSEXP = beta_mat_init,
-                                 ridge_penalty = diag(50, nrow = ncol(new_model_matrix)),
+                                 ridge_penalty_nl = diag(50, nrow = ncol(new_model_matrix)),
                                  tolerance = 1e-8, max_rel_mu_change = 1e5, max_iter =  100)
   expect_equal(res1, res2, tolerance = 1e-6)
   expect_lt(res3$beta_mat[6], res1$beta_mat[6])  # The age column is much smaller
@@ -486,7 +486,7 @@ test_that("ridge penalization works as expected", {
   expect_lt(res_reg$Beta[2], res1$Beta[2])
 
   # Group estimator
-  X <- cbind(rep(c(0, 1, 1), length = 100), rep(c(1, 0, 0), length = 100))
+  X <- cbind(rep(c(0, 1, 1), length.out = 100), rep(c(1, 0, 0), length.out = 100))
   glm_gp(Y ~ X - 1, ridge_penalty = 10, verbose = TRUE)
 
   res1 <- estimate_betas_fisher_scoring(Y, X, offset, dispersions = 0, beta_mat_init = init,
@@ -495,7 +495,7 @@ test_that("ridge penalization works as expected", {
                                         ridge_penalty = c(2, 2))
 
   res3 <- estimate_betas_group_wise(Y, offset, dispersions = 0, beta_mat_init = init,
-                                    groups = rep(c(1,2,2), length = 100), model_matrix = X)
+                                    groups = rep(c(1,2,2), length.out = 100), model_matrix = X)
 
 
   expect_equal(res1[c(1,3)], res3[c(1,3)])
@@ -588,7 +588,7 @@ test_that("different matrix square roots give the same penalization results", {
   n_samples <- 100
 
   y <- rpois(n = n_samples, lambda = 15)
-  X <- cbind(1, rnorm(n_samples), rep(c(0, 1), length = n_samples), rnorm(n_samples, mean = 2))
+  X <- cbind(1, rnorm(n_samples), rep(c(0, 1), length.out = n_samples), rnorm(n_samples, mean = 2))
   pen1 <- matrix(rnorm(4 * 4), nrow = 4, ncol = 4)
   tikhonov_penalty <- t(pen1) %*% pen1
   pen2 <- chol(tikhonov_penalty)
