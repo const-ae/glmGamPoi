@@ -10,7 +10,8 @@ estimate_betas_fisher_scoring(
   offset_matrix,
   dispersions,
   beta_mat_init,
-  ridge_penalty
+  ridge_penalty,
+  try_recovering_convergence_problems = TRUE
 )
 }
 \value{

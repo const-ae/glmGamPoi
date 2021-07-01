@@ -50,7 +50,7 @@ for each gene to estimate the overdispersion.}
 while fitting the GLM. Default: \code{FALSE}.}
 }
 \value{
-The function returs a list with the following elements:
+The function returns a list with the following elements:
 \describe{
 \item{\code{estimate}}{the numerical estimate of the overdispersion.}
 \item{\code{iterations}}{the number of iterations it took to calculate
