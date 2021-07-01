@@ -1,5 +1,8 @@
-Development Version
+Version 1.5 (Development Version)
 + Choose a more reasonable scale for global overdispersion estimate
++ Make code more robust accidental internal NA's
++ Add fallback mechanism in case the Fisher scoring fails to converge.
+Instead of returing NA, try again using the BFGS algorithm.
 
 
 Version 1.4 (2021-05-19)
