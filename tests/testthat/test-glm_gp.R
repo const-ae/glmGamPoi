@@ -398,6 +398,9 @@ test_that("lte_n_equal_rows and get_row_groups works", {
 
 
 test_that("NA's produced by fitBeta_fisher_scoring don't cause problems", {
+
+  skip_if_not(isNamespaceLoaded("devtools"))
+
   n_genes <- 100
   n_cells <- 500
   sf <- rchisq(n = n_cells, df = 5)
