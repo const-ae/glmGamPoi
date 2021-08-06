@@ -3,6 +3,7 @@ Version 1.5 (Development Version)
 + Make code more robust accidental internal NA's
 + Add fallback mechanism in case the Fisher scoring fails to converge.
 Instead of returing NA, try again using the BFGS algorithm.
++ Better error message if the design contains NA's
 
 
 Version 1.4 (2021-05-19)
