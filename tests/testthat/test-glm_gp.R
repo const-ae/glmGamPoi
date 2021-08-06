@@ -79,6 +79,11 @@ test_that("handle_design_parameter throws error for degenerate design matrix", {
 
 })
 
+test_that("handle_design_parameter throws error for design matrix with NA's", {
+  data <- matrix(0, ncol = 20, nrow = 1)
+  df <- data.frame(var=c(1:19, NA))
+  expect_error(handle_design_parameter(~ var, data, col_data = df, reference_level = NULL))
+})
 
 test_that("glm_gp can handle no-row input", {
 

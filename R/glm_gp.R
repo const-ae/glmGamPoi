@@ -380,8 +380,7 @@ handle_design_parameter <- function(design, data, col_data, reference_level){
                 "specify a `model_matrix`, a `character vector`, or a `formula`."))
   }
 
-  if(nrow(model_matrix) != ncol(data)) stop("Number of rows in col_data does not match number of columns of data.\n",
-                                            "Were there maybe 'NA's in the colData?")
+  if(nrow(model_matrix) != ncol(data)) stop("Number of rows in col_data does not match number of columns of data.")
   if(! is.null(rownames(model_matrix)) &&
      ! all(rownames(model_matrix) == as.character(seq_len(nrow(model_matrix)))) && # That's the default rownames
      ! is.null(colnames(data))){
@@ -393,7 +392,12 @@ handle_design_parameter <- function(design, data, col_data, reference_level){
         stop("The rownames of the model_matrix / col_data do not match the column names of data.")
       }
     }
+  }
 
+  if(any(DelayedMatrixStats::rowAnyNAs(model_matrix))){
+    stop("The design matrix contains 'NA's for sample ",
+         paste0(head(which(DelayedMatrixStats::rowAnyNAs(model_matrix))), collapse = ", "),
+         ". Please remove them before you call 'glm_gp()'.")
   }
 
   if(ncol(model_matrix) >= n_samples && ! ignore_degeneracy){
@@ -565,6 +569,7 @@ convert_chr_vec_to_model_matrix <- function(design, reference_level){
 }
 
 convert_formula_to_model_matrix <- function(formula, col_data){
+  attr(col_data, "na.action") <- "na.pass"
   tryCatch({
     mf <- model.frame(formula, data = col_data, drop.unused.levels = TRUE)
     terms <- attr(mf, "terms")
