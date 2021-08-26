@@ -314,14 +314,13 @@ test_that("glm_gp gives error for wrong input data ", {
   expect_error(glm_gp(data = sp_mat))
 })
 
-test_that("glm_gp warns about mismatching col_data rownames ", {
+test_that("glm_gp gives error for mismatching col_data rownames ", {
 
   coldata <- data.frame(condition = c(rep("A", 4), rep("B", 3)), stringsAsFactors = FALSE)
   rownames(coldata) <- paste0("sample_", sample(1:7))
   Y <- matrix(numeric(0), ncol = 7, nrow = 0)
   colnames(Y) <- paste0("sample_", 1:7)
-  fit <- glm_gp(Y, design = ~ condition, col_data = coldata, size_factors = FALSE)
-  expect_equal(c(fit$model_matrix), c(model.matrix(~ condition, coldata)[colnames(Y), ]))
+  expect_error(glm_gp(Y, design = ~ condition, col_data = coldata, size_factors = FALSE))
 })
 
 
