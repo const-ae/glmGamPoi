@@ -56,6 +56,28 @@ pseudobulk_sce_q <- function(sce, pseudobulk_by, ..., aggregation_functions, env
   })
   names(new_assays) <- SummarizedExperiment::assayNames(sce)
 
+  # Aggregate reduced dims
+  new_red_dims <- lapply(SingleCellExperiment::reducedDimNames(sce), function(red_name){
+    aggr_fnc <- get_aggregation_function(red_name, aggregation_functions)
+    tdata_mat <- SingleCellExperiment::reducedDim(sce, red_name)
+    if(is(tdata_mat, "LinearEmbeddingMatrix")){
+      data_mat <- t(SingleCellExperiment::sampleFactors(tdata_mat))
+      new_data_mat <- do.call(cbind, lapply(pseudo_bulk_split, function(idx){
+        aggr_fnc(data_mat, cols = idx)
+      }))
+      SingleCellExperiment::LinearEmbeddingMatrix(t(new_data_mat), SingleCellExperiment::featureLoadings(tdata_mat),
+                                                  factorData = SingleCellExperiment::factorData(tdata_mat))
+    }else{
+      data_mat <- t(tdata_mat)
+      new_data_mat <- do.call(cbind, lapply(pseudo_bulk_split, function(idx){
+        aggr_fnc(data_mat, cols = idx)
+      }))
+      rownames(new_data_mat) <- rownames(data_mat)
+      t(new_data_mat)
+    }
+  })
+  names(new_red_dims) <- SingleCellExperiment::reducedDimNames(sce)
+
   # Aggregate column data
   dots <- eval(substitute(alist(...)))
   new_col_data <- lapply(seq_along(dots), function(dot_idx){
@@ -84,7 +106,7 @@ pseudobulk_sce_q <- function(sce, pseudobulk_by, ..., aggregation_functions, env
   names(id_column) <- deparse_one(pseudobulk_by)
   new_col_data <- c(id_column, new_col_data)
 
-  SingleCellExperiment::SingleCellExperiment(new_assays, colData = new_col_data)
+  SingleCellExperiment::SingleCellExperiment(new_assays, colData = new_col_data, reducedDims = new_red_dims)
 
 }
 

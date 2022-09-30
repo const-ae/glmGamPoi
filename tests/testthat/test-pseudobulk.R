@@ -35,6 +35,14 @@ test_that("forming pseudobulk works", {
                matrixStats::rowMins(SummarizedExperiment::assay(sce[,sce$fact == "a"], "counts")))
   expect_equal(unname(SummarizedExperiment::assay(tmp4, "logcounts")[,"b"]),
                matrixStats::rowMeans2(SummarizedExperiment::assay(sce[,sce$fact == "b"], "logcounts")))
+
+  pca <- stats::prcomp(t(SummarizedExperiment::assay(sce,"logcounts")), rank. = 2)
+  SingleCellExperiment::reducedDim(sce, "PCA") <- pca$x
+  SingleCellExperiment::reducedDim(sce, "PCA2") <- SingleCellExperiment::LinearEmbeddingMatrix(pca$x, pca$rotation)
+  tmp5 <- pseudobulk_sce(sce, pseudobulk_by = "fav_food")
+  expect_equal(dim(SingleCellExperiment::reducedDim(tmp5, "PCA")), c(3, 2))
+  expect_equal(dim(SingleCellExperiment::reducedDim(tmp5, "PCA2")), c(3, 2))
+
 })
 
 
