@@ -174,7 +174,7 @@ test_de_q <- function(fit,
     # then does a fresh fit for the full model
     # then calls test_de() with the reduced dataset
     return(test_pseudobulk_q(fit$data, design = full_design,
-                             aggregate_cells_by = pseudobulk_by_e,
+                             aggregate_cells_by = pseudobulk_by,
                              contrast = contrast,
                              reduced_design = reduced_design,
                              ridge_penalty = ridge_penalty,

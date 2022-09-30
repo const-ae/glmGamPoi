@@ -10,12 +10,8 @@ test_that("eval_with works in simple cases", {
   tmp <- 5
   expect_equal(eval_with(x * tmp, data), data$x * tmp)
   expect_equal(eval_with("x * tmp", data), data$x * tmp)
-  string <- "x * tmp"
-  expect_equal(eval_with(string, data), data$x * tmp)
   expect_equal(eval_with(a[1:2], data), data$a[1:2])
-  expect_error(eval_with(a[1], data))
-
+  expect_error(eval_with(b, data))
 })
-
 
 
