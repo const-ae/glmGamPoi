@@ -38,6 +38,7 @@ Imports:
     Rcpp,
     DelayedMatrixStats,
     matrixStats,
+    MatrixGenerics,
     DelayedArray,
     HDF5Array,
     SummarizedExperiment,
