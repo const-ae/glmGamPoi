@@ -3,6 +3,7 @@ Version 1.9
 Variables in arguments such as 'pseudobulk_by' or 'subset_to' which evaluate
 to a single string are no longer interpreted as referring to a column.
 This change makes the handling of NSE more consistent.
++ Add new function 'pseudobulk_sce' to easily form pseudobulk samples
 
 Version 1.5
 + Choose a more reasonable scale for global overdispersion estimate
