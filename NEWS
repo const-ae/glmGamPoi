@@ -1,4 +1,10 @@
-Version 1.5 (Development Version)
+Version 1.9
++ Breaking change to the way that non-standard evaluation parameters are handled.
+Variables in arguments such as 'pseudobulk_by' or 'subset_to' which evaluate
+to a single string are no longer interpreted as referring to a column.
+This change makes the handling of NSE more consistent.
+
+Version 1.5
 + Choose a more reasonable scale for global overdispersion estimate
 + Make code more robust accidental internal NA's
 + Add fallback mechanism in case the Fisher scoring fails to converge.
