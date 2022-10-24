@@ -15,7 +15,7 @@
 #'
 #' @export
 pseudobulk_sce <- function(sce, group_by, ...,
-                           aggregation_functions = list(counts = "rowSums", .default = "rowMeans")){
+                           aggregation_functions = list(counts = "rowSums2", .default = "rowMeans2")){
   if(missing(group_by)) stop("The 'group_by' must not be missing.")
   tryCatch({
     if(inherits(group_by, "uneval") || !rlang::is_quosures(group_by)) stop("The 'group_by' argument must be wrapped using 'vars()'")
@@ -49,7 +49,7 @@ pseudobulk_sce <- function(sce, group_by, ...,
     aggr_fnc <- get_aggregation_function(assay_name, aggregation_functions)
     data_mat <- SummarizedExperiment::assay(sce, assay_name)
     new_data_mat <- do.call(cbind, lapply(group_split, function(idx){
-      aggr_fnc(data_mat, cols = idx)
+      aggr_fnc(data_mat[,idx,drop=FALSE])
     }))
     rownames(new_data_mat) <- rownames(sce)
     new_data_mat
@@ -63,14 +63,14 @@ pseudobulk_sce <- function(sce, group_by, ...,
     if(is(tdata_mat, "LinearEmbeddingMatrix")){
       data_mat <- t(SingleCellExperiment::sampleFactors(tdata_mat))
       new_data_mat <- do.call(cbind, lapply(group_split, function(idx){
-        aggr_fnc(data_mat, cols = idx)
+        aggr_fnc(data_mat[,idx,drop=FALSE])
       }))
       SingleCellExperiment::LinearEmbeddingMatrix(t(new_data_mat), SingleCellExperiment::featureLoadings(tdata_mat),
                                                   factorData = SingleCellExperiment::factorData(tdata_mat))
     }else{
       data_mat <- t(tdata_mat)
       new_data_mat <- do.call(cbind, lapply(group_split, function(idx){
-        aggr_fnc(data_mat, cols = idx)
+        aggr_fnc(data_mat[,idx,drop=FALSE])
       }))
       rownames(new_data_mat) <- rownames(data_mat)
       t(new_data_mat)
@@ -126,9 +126,9 @@ get_aggregation_function <- function(assay_name, aggregation_functions){
     aggregation_functions[[".default"]]
   }
   if(is.character(aggr_fnc)){
-    aggr_fnc <- if(aggr_fnc == "rowSums"){
+    aggr_fnc <- if(aggr_fnc == "rowSums2"){
       MatrixGenerics::rowSums2
-    }else if(aggr_fnc == "rowMeans"){
+    }else if(aggr_fnc == "rowMeans2"){
       MatrixGenerics::rowMeans2
     }else{
       get(aggr_fnc, envir =  globalenv(), mode = "function")

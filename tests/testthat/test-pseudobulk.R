@@ -43,6 +43,16 @@ test_that("forming pseudobulk works", {
   expect_equal(dim(SingleCellExperiment::reducedDim(tmp5, "PCA")), c(3, 2))
   expect_equal(dim(SingleCellExperiment::reducedDim(tmp5, "PCA2")), c(3, 2))
 
+  # Try advanced metaprogramming features
+  fav_food <- "test"
+  pseudobulk_sce(sce, group_by = vars(city), age = mean(.data$age), .env$fav_food)
+
+  f <- function(arg, arg2){
+    pseudobulk_sce(sce, group_by = vars({{arg}}), mean({{arg2}}))
+  }
+  f(city, arg2 = age)
+
+  pseudobulk_sce(sce, group_by = vars(city), aggregation_functions = list(.default = Matrix::rowSums))
 })
 
 
