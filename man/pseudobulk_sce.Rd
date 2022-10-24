@@ -6,7 +6,7 @@
 \usage{
 pseudobulk_sce(
   sce,
-  pseudobulk_by,
+  group_by,
   ...,
   aggregation_functions = list(counts = "rowSums", .default = "rowMeans")
 )
@@ -14,9 +14,10 @@ pseudobulk_sce(
 \arguments{
 \item{sce}{a 'SingleCellExperiment' or an object of a related class}
 
-\item{pseudobulk_by}{an unquoted expression that can refer to columns in
+\item{group_by}{an unquoted expression that can refer to columns in
 the 'colData()'. All observations with the same factor level are aggregated.
-The argument follows the same logic as \code{dplyr::group_by()}.}
+The argument follows the same logic as \code{dplyr::group_by()}. The argument must
+wrapped using \code{vars()}.}
 
 \item{...}{named expressions that summarize columns in 'colData()'. Each expression
 must produce a value of length 1. The arguments follow the same logic
