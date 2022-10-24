@@ -29,6 +29,7 @@ test_that("forming pseudobulk works", {
 
   tmp3 <- pseudobulk_sce(sce, group_by = vars(fact), age = mean(age))
   expect_equal(levels(SummarizedExperiment::colData(tmp3)$fact), letters[1:4])
+  expect_equal(tmp3$age[1], mean(sce$age[sce$fact == tmp3$fact[1]]))
 
   tmp4 <- pseudobulk_sce(sce, group_by = vars(fact), aggregation_functions = list(counts = matrixStats::rowMins))
   expect_equal(unname(SummarizedExperiment::assay(tmp4, "counts")[,"a"]),

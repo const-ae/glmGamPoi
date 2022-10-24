@@ -92,9 +92,8 @@ pseudobulk_sce <- function(sce, group_by, ...,
 
   # Aggregate column data
   dots_cap <- rlang::enquos(...)
-  dots <- lapply(dots_cap, rlang::eval_tidy, data = col_data)
-  new_col_data <- lapply(seq_along(dots), function(dot_idx){
-    dot <- dots[[dot_idx]]
+  new_col_data <- lapply(seq_along(dots_cap), function(dot_idx){
+    dot <- dots_cap[[dot_idx]]
     dot_name <- names(dots_cap)[dot_idx]
     if(is.null(dot_name) || dot_name == ""){
       rlang::as_label(dot)
