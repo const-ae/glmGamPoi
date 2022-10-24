@@ -29,7 +29,8 @@ Suggests:
     BiocStyle,
     TENxPBMCData,
     muscData,
-    scran
+    scran,
+    Matrix
 LinkingTo: 
     Rcpp,
     RcppArmadillo,
