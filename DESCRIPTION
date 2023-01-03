@@ -51,7 +51,7 @@ Imports:
     splines,
     rlang
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.1.2
+RoxygenNote: 7.2.3
 URL: https://github.com/const-ae/glmGamPoi
 BugReports: https://github.com/const-ae/glmGamPoi/issues
 biocViews: Regression, RNASeq, Software, SingleCell
