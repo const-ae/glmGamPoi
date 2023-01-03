@@ -15,6 +15,7 @@ test_de(
   sort_by = NULL,
   decreasing = FALSE,
   n_max = Inf,
+  max_lfc = 10,
   verbose = FALSE
 )
 }
@@ -23,7 +24,9 @@ test_de(
 
 \item{contrast}{The contrast to test. Can be a single column name (quoted or as a string)
 that is removed from the  full model matrix of \code{fit}. Or a complex contrast comparing two
-or more columns: e.g. \code{A - B}, \code{"A - 3 * B"}, \code{(A + B) / 2 - C} etc. \cr
+or more columns: e.g. \code{A - B}, \code{"A - 3 * B"}, \code{(A + B) / 2 - C} etc. For complicated
+experimental design that involved nested conditions, you specify the condition level to compare
+using the \code{fact()} helper function. \cr
 Only one of \code{contrast} or \code{reduced_design} must be specified.}
 
 \item{reduced_design}{a specification of the reduced design used as a comparison to see what
@@ -42,7 +45,8 @@ A typical use case in single cell analysis would be to subset to a specific cell
 the model for the \code{full_design} is re-fit.\cr
 Default: \code{NULL} which means that the data is not subset.}
 
-\item{pseudobulk_by}{a vector with the same length as \code{ncol(fit$data)} that is used to
+\item{pseudobulk_by}{\emph{DEPRECTATED}, please use the \link{pseudobulk} function instead. \cr
+A vector with the same length as \code{ncol(fit$data)} that is used to
 split the columns into different groups (calls \code{\link[=split]{split()}}). \code{pseudobulk_by} can also be an
 expression that evaluates to a vector. The expression can reference columns from \code{colData(fit$data)}. \cr
 The counts are summed across the groups
@@ -64,6 +68,11 @@ order. Default: \code{FALSE}.}
 \item{n_max}{the maximum number of rows to return. Default: \code{Inf} which means that all
 rows are returned}
 
+\item{max_lfc}{set the maximum absolute log fold change that is returned. Large log fold changes
+occur for lowly expressed genes because the ratio of two small numbers can be impractically large. For example, limiting
+the range of log fold changes can clarify the patterns in a volcano plot. Default: \code{10} which
+corresponds to a thousand-fold (2^10) increase in expression.}
+
 \item{verbose}{a boolean that indicates if information about the individual steps are printed
 while fitting the GLM. Default: \code{FALSE}.}
 }
@@ -83,63 +92,62 @@ be \code{NA}.}
 \description{
 Conduct a quasi-likelihood ratio test for a Gamma-Poisson fit.
 }
+\details{
+The \code{fact()} helper function simplifies the specification of a contrast for complex experimental designs.
+Instead of working out which combination of coefficients corresponds to a research question,
+you can simply specify the two conditions that you want to compare.
+
+You can only call the \code{fact} function inside the \code{contrast} argument. The arguments are the selected factor levels
+for each covariate. To compare two conditions, simply subtract the two \code{fact} calls. Internally, the package
+calls \link{model.matrix} using the provided values and the original formula from the fit to produce a vector.
+Subtracting two of these vectors produces a contrast vector. Missing covariates are filled with the first factor level
+or zero for numerical covariates.
+}
 \examples{
-  Y <- matrix(rnbinom(n = 30 * 100, mu = 4, size = 0.3), nrow = 30, ncol = 100)
-  annot <- data.frame(sample = sample(LETTERS[1:6], size = 100, replace = TRUE),
-                      cont1 = rnorm(100), cont2 = rnorm(100, mean = 30))
-  annot$condition <- ifelse(annot$sample \%in\% c("A", "B", "C"), "ctrl", "treated")
-  head(annot)
-  se <- SummarizedExperiment::SummarizedExperiment(Y, colData = annot)
-  fit <- glm_gp(se, design = ~ condition + cont1 + cont2)
+ # Make Data
+ Y <- matrix(rnbinom(n = 30 * 100, mu = 4, size = 0.3), nrow = 30, ncol = 100)
+ annot <- data.frame(mouse = sample(LETTERS[1:6], size = 100, replace = TRUE),
+                     celltype = sample(c("Tcell", "Bcell", "Macrophages"), size = 100, replace = TRUE),
+                     cont1 = rnorm(100), cont2 = rnorm(100, mean = 30))
+ annot$condition <- ifelse(annot$mouse \%in\% c("A", "B", "C"), "ctrl", "treated")
+ head(annot)
+ se <- SummarizedExperiment::SummarizedExperiment(Y, colData = annot)
 
-  # Test with reduced design
-  res <- test_de(fit, reduced_design = ~ condition + cont1)
-  head(res)
-
-  # Test with contrast argument, the results are identical
-  res2 <- test_de(fit, contrast = cont2)
-  head(res2)
-
-  # The column names of fit$Beta are valid variables in the contrast argument
-  colnames(fit$Beta)
-
-
-  # You can also have more complex contrasts:
-  # the following compares cont1 vs cont2:
-  test_de(fit, cont1 - cont2, n_max = 4)
-
-
-  # You can also sort the output
-  test_de(fit, cont1 - cont2, n_max = 4,
-          sort_by = "pval")
-
-  test_de(fit, cont1 - cont2, n_max = 4,
-          sort_by = - abs(f_statistic))
-
-  # If the data has multiple samples, it is a good
-  # idea to aggregate the cell counts by samples.
-  # This is called "pseudobulk".
-  test_de(fit, contrast = "conditiontreated", n_max = 4,
-          pseudobulk_by = sample)
+ # Fit model
+ fit <- glm_gp(se, design = ~ condition + celltype + cont1 + cont2)
+ # Test with reduced design
+ res <- test_de(fit, reduced_design = ~ celltype + cont1 + cont2)
+ head(res)
+ # Test with contrast argument, the results are identical
+ res2 <- test_de(fit, contrast = conditiontreated)
+ head(res2)
+ # Test with explicit specification of the conditions
+ # The results are still identical
+ res3 <- test_de(fit, contrast = fact(condition = "treated", celltype = "Bcell") -
+                                    fact(condition = "ctrl", celltype = "Bcell"))
+ head(res3)
 
 
-  # You can also do the pseudobulk only on a subset of cells:
-  cell_types <- sample(c("Tcell", "Bcell", "Makrophages"), size = 100, replace = TRUE)
-  test_de(fit, contrast = "conditiontreated", n_max = 4,
-          pseudobulk_by = sample,
-          subset_to = cell_types == "Bcell")
+ # The column names of fit$Beta are valid variables in the contrast argument
+ colnames(fit$Beta)
+ # You can also have more complex contrasts:
+ # the following compares cont1 vs cont2:
+ test_de(fit, cont1 - cont2, n_max = 4)
+ # You can also sort the output
+ test_de(fit, cont1 - cont2, n_max = 4,
+         sort_by = "pval")
+ test_de(fit, cont1 - cont2, n_max = 4,
+         sort_by = - abs(f_statistic))
 
-
-  # Be care full, if you included the cell type information in
-  # the original fit, after subsetting the design matrix would
-  # be degenerate. To fix this, specify the full_design in 'test_de()'
-  SummarizedExperiment::colData(se)$ct <- cell_types
-  fit_with_celltype <- glm_gp(se, design = ~ condition + cont1 + cont2 + ct)
-  test_de(fit_with_celltype, contrast = cont1, n_max = 4,
-          full_design =  ~ condition + cont1 + cont2,
-          pseudobulk_by = sample,
-          subset_to = ct == "Bcell")
-
+ # If the data has multiple samples, it is a good
+ # idea to aggregate the cell counts by samples.
+ # This is called forming a "pseudobulk".
+ se_reduced <- pseudobulk(se, group_by = vars(mouse, condition, celltype),
+                          cont1 = mean(cont1), cont2 = min(cont2))
+ fit_reduced <- glm_gp(se_reduced, design = ~ condition + celltype)
+ test_de(fit_reduced, contrast = "conditiontreated", n_max = 4)
+ test_de(fit_reduced, contrast = fact(condition = "treated", celltype = "Macrophages") - fact(condition = "ctrl", celltype = "Macrophages"),
+         n_max = 4)
 
 
 }
