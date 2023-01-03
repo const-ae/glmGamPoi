@@ -222,10 +222,17 @@ counts(sce_subset) <- as.matrix(counts(sce_subset))
 sce_subset$cell <- droplevels(sce_subset$cell)
 ```
 
+In the first step we will aggregate the counts of each patient, condition and cell type and form pseudobulk samples. This ensures that I get reliable p-value by treating each patient as a replicate and not each cell.
+
+```{r}
+sce_reduced <- pseudobulk(sce_subset, group_by = vars(ind, stim, cell))
+```
+
+
 We will identify which genes in CD4 positive T-cells are changed most by the treatment. We will fit a full model including the interaction term `stim:cell`. The interaction term will help us identify cell type specific responses to the treatment:
 
 ```{r kang_fit}
-fit <- glm_gp(sce_subset, design = ~ cell + stim +  stim:cell - 1,
+fit <- glm_gp(sce_reduced, design = ~ cell + stim +  stim:cell - 1,
               reference_level = "NK cells")
 summary(fit)
 ```
@@ -238,26 +245,18 @@ colnames(fit$Beta)
 ```
 
 
-In our example, we want to find the genes that change specifically in T cells. Finding cell type specific responses to a treatment is a big advantage of single cell data over bulk data. To get a proper estimate of the uncertainty (cells from the same donor are **not** independent replicates), we create a pseudobulk for each sample:
+In our example, we want to find the genes that change specifically in T cells. Finding cell type specific responses to a treatment is a big advantage of single cell data over bulk data. 
 
 ```{r do_pseudobulk}
 # The contrast argument specifies what we want to compare
 # We test the expression difference of stimulated and control T-cells
-#
-# There is no sample label in the colData, so we create it on the fly
-# from `stim` and `ind` columns in colData(fit$data).
-de_res <- test_de(fit, contrast = `stimstim` + `cellCD4 T cells:stimstim`, 
-                  pseudobulk_by = paste0(stim, "-", ind)) 
-
-# The large `lfc` values come from groups were nearly all counts are 0
-# Setting them to Inf makes the plots look nicer
-de_res$lfc <- ifelse(abs(de_res$lfc) > 20, sign(de_res$lfc) * Inf, de_res$lfc)
+de_res <- test_de(fit, contrast = fact(cell = "CD4 T cells", stim = "ctrl") - fact(cell = "CD4 T cells", stim = "stim")) 
 
 # Most different genes
 head(de_res[order(de_res$pval), ])
 ```
 
-The test is successful and we identify interesting genes that are differentially expressed in interferon-stimulated T cells:  _IFI6_, _IFIT3_, and _IRF7_ literally stand for _Interferon Induced/Regulated Protein_.
+The test is successful and we identify interesting genes that are differentially expressed in interferon-stimulated T cells:  _IFI6_, _IFIT3_ and _ISG15_ literally stand for _Interferon Induced/Stimulated Protein_.
 
 To get a more complete overview of the results, we can make a volcano plot that compares the log2-fold change (LFC) vs the logarithmized p-values.
 
@@ -271,17 +270,19 @@ ggplot(de_res, aes(x = lfc, y = -log10(pval))) +
 
 Another important task in single cell data analysis is the identification of marker genes for cell clusters. For this we can also use our Gamma-Poisson fit. 
 
-Let's assume we want to find genes that differ between T cells and the B cells. We can directly compare the corresponding coefficients and find genes that differ in the control condition:
+Let's assume we want to find genes that differ between T cells and the B cells. We can directly compare the corresponding coefficients and find genes that differ in the control condition (this time not accounting for the pseudo-replication structure):
 
 ```{r find_marker_genes}
-marker_genes <- test_de(fit, `cellCD4 T cells` - `cellB cells`, sort_by = pval)
+fit_full <- glm_gp(sce_subset, design = ~ cell + stim +  stim:cell - 1,
+                   reference_level = "NK cells")
+marker_genes <- test_de(fit_full, `cellCD4 T cells` - `cellB cells`, sort_by = pval)
 head(marker_genes)
 ```
 
 If we want find genes that differ in the stimulated condition, we just include the additional coefficients in the contrast:
 
 ```{r do_signif_genes}
-marker_genes2 <- test_de(fit, (`cellCD4 T cells` + `cellCD4 T cells:stimstim`) - 
+marker_genes2 <- test_de(fit_full, (`cellCD4 T cells` + `cellCD4 T cells:stimstim`) - 
                                (`cellB cells` + `cellB cells:stimstim`), 
                         sort_by = pval)
 
