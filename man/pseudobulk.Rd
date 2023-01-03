@@ -26,6 +26,10 @@ as \code{dplyr::summarize()}.}
 
 \item{aggregation_functions}{a named list with functions that are used to
 aggregate the assays in the \code{data}.}
+
+\item{col_data}{additional data with \code{ncol(data)} rows. The \code{group_by} and named
+arguments can refer to the columns of the \code{col_data} in addition to the columns in
+\code{colData(data)} (assuming \code{data} is a \code{SummarizedExperiment}).}
 }
 \value{
 a SingleCellExperiment object
