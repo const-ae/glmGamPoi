@@ -216,6 +216,9 @@ test_de_q <- function(fit,
   if(!rlang::quo_is_missing(rlang::enquo(contrast))){
     # e.g. a vector with c(1, 0, -1, 0) for contrast = A - C
     cntrst <- parse_contrast({{contrast}}, coefficient_names = colnames(fit$model_matrix), formula = fit$design_formula)
+    if(all(abs(cntrst) < 1e-12)){
+      stop("All elements of the contrast vector are zero.")
+    }
     cntrst <- as.matrix(cntrst)
     if(nrow(cntrst) != ncol(fit$model_matrix)){
       stop("The length of the contrast vector does not match the number of coefficients in the model (",
