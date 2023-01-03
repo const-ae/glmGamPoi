@@ -8,7 +8,9 @@
 #' @param fit object of class `glmGamPoi`. Usually the result of calling `glm_gp(data, ...)`
 #' @param contrast The contrast to test. Can be a single column name (quoted or as a string)
 #'   that is removed from the  full model matrix of `fit`. Or a complex contrast comparing two
-#'   or more columns: e.g. `A - B`, `"A - 3 * B"`, `(A + B) / 2 - C` etc. \cr
+#'   or more columns: e.g. `A - B`, `"A - 3 * B"`, `(A + B) / 2 - C` etc. For complicated
+#'   experimental design that involved nested conditions, you specify the condition level to compare
+#'   using the `fact()` helper function. \cr
 #'   Only one of `contrast` or `reduced_design` must be specified.
 #' @param reduced_design a specification of the reduced design used as a comparison to see what
 #'   how much better `fit` describes the data.
@@ -41,6 +43,18 @@
 #' @param n_max the maximum number of rows to return. Default: `Inf` which means that all
 #'   rows are returned
 #'
+#' @details
+#' The `fact()` helper function simplifies the specification of a contrast for complex experimental designs.
+#' Instead of working out which combination of coefficients corresponds to a research question,
+#' you can simply specify the two conditions that you want to compare.
+#'
+#' You can only call the `fact` function inside the `contrast` argument. The arguments are the selected factor levels
+#' for each covariate. To compare two conditions, simply subtract the two `fact` calls. Internally, the package
+#' calls [model.matrix] using the provided values and the original formula from the fit to produce a vector.
+#' Subtracting two of these vectors produces a contrast vector. Missing covariates are filled with the first factor level
+#' or zero for numerical covariates.
+#'
+#'
 #' @return a `data.frame` with the following columns
 #' \describe{
 #'   \item{name}{the rownames of the input data}
@@ -54,62 +68,50 @@
 #' }
 #'
 #' @examples
-#'   Y <- matrix(rnbinom(n = 30 * 100, mu = 4, size = 0.3), nrow = 30, ncol = 100)
-#'   annot <- data.frame(sample = sample(LETTERS[1:6], size = 100, replace = TRUE),
-#'                       cont1 = rnorm(100), cont2 = rnorm(100, mean = 30))
-#'   annot$condition <- ifelse(annot$sample %in% c("A", "B", "C"), "ctrl", "treated")
-#'   head(annot)
-#'   se <- SummarizedExperiment::SummarizedExperiment(Y, colData = annot)
-#'   fit <- glm_gp(se, design = ~ condition + cont1 + cont2)
+#'  # Make Data
+#'  Y <- matrix(rnbinom(n = 30 * 100, mu = 4, size = 0.3), nrow = 30, ncol = 100)
+#'  annot <- data.frame(mouse = sample(LETTERS[1:6], size = 100, replace = TRUE),
+#'                      celltype = sample(c("Tcell", "Bcell", "Macrophages"), size = 100, replace = TRUE),
+#'                      cont1 = rnorm(100), cont2 = rnorm(100, mean = 30))
+#'  annot$condition <- ifelse(annot$mouse %in% c("A", "B", "C"), "ctrl", "treated")
+#'  head(annot)
+#'  se <- SummarizedExperiment::SummarizedExperiment(Y, colData = annot)
 #'
-#'   # Test with reduced design
-#'   res <- test_de(fit, reduced_design = ~ condition + cont1)
-#'   head(res)
-#'
-#'   # Test with contrast argument, the results are identical
-#'   res2 <- test_de(fit, contrast = cont2)
-#'   head(res2)
-#'
-#'   # The column names of fit$Beta are valid variables in the contrast argument
-#'   colnames(fit$Beta)
-#'
-#'
-#'   # You can also have more complex contrasts:
-#'   # the following compares cont1 vs cont2:
-#'   test_de(fit, cont1 - cont2, n_max = 4)
-#'
-#'
-#'   # You can also sort the output
-#'   test_de(fit, cont1 - cont2, n_max = 4,
-#'           sort_by = "pval")
-#'
-#'   test_de(fit, cont1 - cont2, n_max = 4,
-#'           sort_by = - abs(f_statistic))
-#'
-#'   # If the data has multiple samples, it is a good
-#'   # idea to aggregate the cell counts by samples.
-#'   # This is called "pseudobulk".
-#'   test_de(fit, contrast = "conditiontreated", n_max = 4,
-#'           pseudobulk_by = sample)
+#'  # Fit model
+#'  fit <- glm_gp(se, design = ~ condition + celltype + cont1 + cont2)
+#'  # Test with reduced design
+#'  res <- test_de(fit, reduced_design = ~ celltype + cont1 + cont2)
+#'  head(res)
+#'  # Test with contrast argument, the results are identical
+#'  res2 <- test_de(fit, contrast = conditiontreated)
+#'  head(res2)
+#'  # Test with explicit specification of the conditions
+#'  # The results are still identical
+#'  res3 <- test_de(fit, contrast = fact(condition = "treated", celltype = "Bcell") -
+#'                                     fact(condition = "ctrl", celltype = "Bcell"))
+#'  head(res3)
 #'
 #'
-#'   # You can also do the pseudobulk only on a subset of cells:
-#'   cell_types <- sample(c("Tcell", "Bcell", "Makrophages"), size = 100, replace = TRUE)
-#'   test_de(fit, contrast = "conditiontreated", n_max = 4,
-#'           pseudobulk_by = sample,
-#'           subset_to = cell_types == "Bcell")
+#'  # The column names of fit$Beta are valid variables in the contrast argument
+#'  colnames(fit$Beta)
+#'  # You can also have more complex contrasts:
+#'  # the following compares cont1 vs cont2:
+#'  test_de(fit, cont1 - cont2, n_max = 4)
+#'  # You can also sort the output
+#'  test_de(fit, cont1 - cont2, n_max = 4,
+#'          sort_by = "pval")
+#'  test_de(fit, cont1 - cont2, n_max = 4,
+#'          sort_by = - abs(f_statistic))
 #'
-#'
-#'   # Be care full, if you included the cell type information in
-#'   # the original fit, after subsetting the design matrix would
-#'   # be degenerate. To fix this, specify the full_design in 'test_de()'
-#'   SummarizedExperiment::colData(se)$ct <- cell_types
-#'   fit_with_celltype <- glm_gp(se, design = ~ condition + cont1 + cont2 + ct)
-#'   test_de(fit_with_celltype, contrast = cont1, n_max = 4,
-#'           full_design =  ~ condition + cont1 + cont2,
-#'           pseudobulk_by = sample,
-#'           subset_to = ct == "Bcell")
-#'
+#'  # If the data has multiple samples, it is a good
+#'  # idea to aggregate the cell counts by samples.
+#'  # This is called forming a "pseudobulk".
+#'  se_reduced <- pseudobulk(se, group_by = vars(mouse, condition, celltype),
+#'                           cont1 = mean(cont1), cont2 = min(cont2))
+#'  fit_reduced <- glm_gp(se_reduced, design = ~ condition + celltype)
+#'  test_de(fit_reduced, contrast = "conditiontreated", n_max = 4)
+#'  test_de(fit_reduced, contrast = fact(condition = "treated", celltype = "Macrophages") - fact(condition = "ctrl", celltype = "Macrophages"),
+#'          n_max = 4)
 #'
 #'
 #' @references
@@ -130,12 +132,10 @@ test_de <- function(fit,
                     decreasing = FALSE, n_max = Inf,
                     verbose = FALSE){
   # Capture all NSE variables
-  contrast_capture <- substitute(contrast)
   subset_to_capture <- substitute(subset_to)
   pseudobulk_by_capture <- substitute(pseudobulk_by)
   sort_by_capture <- substitute(sort_by)
-
-  test_de_q(fit, contrast = contrast_capture, reduced_design = reduced_design, full_design = full_design,
+  test_de_q(fit, contrast = {{contrast}}, reduced_design = reduced_design, full_design = full_design,
             subset_to = subset_to_capture, pseudobulk_by = pseudobulk_by_capture,
             pval_adjust_method = pval_adjust_method, sort_by = sort_by_capture,
             decreasing = decreasing, n_max = n_max,
@@ -161,7 +161,7 @@ test_de_q <- function(fit,
     full_design <- handle_design_parameter(full_design, fit$data, SummarizedExperiment::colData(fit$data), NULL)$model_matrix
     ridge_penalty <- NULL
   }
-  if(is.null(reduced_design) == missing(contrast)){
+  if(is.null(reduced_design) == rlang::quo_is_missing(rlang::enquo(contrast))){
     stop("Please provide either an alternative design (formula or matrix) or a contrast ",
          "(name of a column in fit$model_matrix or a combination of them).")
   }
@@ -175,7 +175,7 @@ test_de_q <- function(fit,
     # then calls test_de() with the reduced dataset
     return(test_pseudobulk_q(fit$data, design = full_design,
                              aggregate_cells_by = pseudobulk_by,
-                             contrast = contrast,
+                             contrast = {{contrast}},
                              reduced_design = reduced_design,
                              ridge_penalty = ridge_penalty,
                              subset_to = subset_to_e,
@@ -195,7 +195,7 @@ test_de_q <- function(fit,
 
     fit_subset <- glm_gp(data_subset, design = model_matrix_subset, size_factors = size_factor_subset,
                   overdispersion = fit$overdispersions, on_disk = is_on_disk.glmGamPoi(fit), verbose = verbose)
-    test_res <- test_de_q(fit_subset, contrast = contrast, reduced_design = reduced_design,
+    test_res <- test_de_q(fit_subset, contrast = {{contrast}}, reduced_design = reduced_design,
                           subset_to = NULL, pseudobulk_by = NULL,
                           pval_adjust_method = pval_adjust_method, sort_by = sort_by,
                           decreasing = decreasing, n_max = n_max,
@@ -207,10 +207,9 @@ test_de_q <- function(fit,
          "'overdispersion_shrinkage = TRUE'.")
   }
   disp_trend <- fit$overdispersion_shrinkage_list$dispersion_trend
-  if(! missing(contrast)){
+  if(!rlang::quo_is_missing(rlang::enquo(contrast))){
     # e.g. a vector with c(1, 0, -1, 0) for contrast = A - C
-    cntrst <- parse_contrast_q(contrast, levels = colnames(fit$model_matrix),
-                               env = env)
+    cntrst <- parse_contrast({{contrast}}, coefficient_names = colnames(fit$model_matrix), formula = fit$design_formula)
     cntrst <- as.matrix(cntrst)
     if(nrow(cntrst) != ncol(fit$model_matrix)){
       stop("The length of the contrast vector does not match the number of coefficients in the model (",

@@ -11,13 +11,12 @@ test_pseudobulk <- function(data, design,
                             verbose = FALSE){
 
   aggregate_cells_by_capture <- substitute(aggregate_cells_by)
-  contrast_capture <- substitute(contrast)
   subset_to_capture <- substitute(subset_to)
   sort_by_capture <- substitute(sort_by)
 
   test_pseudobulk_q(data, design = design,
                     aggregate_cells_by = aggregate_cells_by_capture,
-                    contrast = contrast_capture,
+                    contrast = {{contrast}},
                     reduced_design = reduced_design,
                     ridge_penalty = ridge_penalty,
                     subset_to = subset_to_capture,
@@ -96,7 +95,7 @@ test_pseudobulk_q <- function(data, design,
                 ridge_penalty = ridge_penalty,
                 verbose = verbose)
 
-  test_de_q(fit, contrast = contrast, reduced_design = reduced_design,
+  test_de_q(fit, contrast = {{contrast}}, reduced_design = reduced_design,
             subset_to = NULL, pseudobulk_by = NULL,
             pval_adjust_method = pval_adjust_method, sort_by = sort_by,
             decreasing = decreasing, n_max = n_max,

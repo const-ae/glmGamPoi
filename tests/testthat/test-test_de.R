@@ -22,7 +22,23 @@ test_that("test_de works", {
 
   res5 <- test_de(fit, contrast = "-groupB")
   expect_equal(res4, res5, tolerance = 0.1)
+})
 
+test_that("test_de works with 'fact' specifications", {
+  set.seed(1)
+  Y <- matrix(rnbinom(n = 30 * 10, mu = 4, size = 0.3), nrow = 30, ncol  =10)
+  annot <- data.frame(group = sample(c("A", "B"), size = 10, replace = TRUE),
+                      cont1 = rnorm(10), cont2 = rnorm(10, mean = 30))
+  design <- model.matrix(~ group + cont1 + cont2, data = annot)
+  reduced_des <- model.matrix(~ group + cont1, data = annot)
+  fit <- glm_gp(Y, design = design)
+  # Doesn't work because design is a matrix
+  expect_error(test_de(fit, fact(group = "A") - fact(group = "B")))
+
+  fit <- glm_gp(Y, design = ~ group + cont1 + cont2, col_data = annot)
+  res1 <- test_de(fit, fact(group = "B") - fact(group = "A"))
+  res2 <- test_de(fit, groupB)
+  expect_equal(res1, res2)
 })
 
 
