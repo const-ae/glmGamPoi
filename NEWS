@@ -1,3 +1,15 @@
+Version 1.11 (2023-01-03)
++ Breaking change: rename 'pseudobulk_sce' to 'pseudobulk'
++ Add a new vignette explaining how and why pseudobulking is
+a powerful concept for single cell data analysis
++ Depcreate 'pseudobulk_by' argument in 'test_de'. Use the 'pseudobulk' function
+instead.
++ Add a new argument 'max_lfc' to to 'test_de' to avoid impractically large
+log fold changes for lowly expressed genes.
++ Support rlang quosures for the contrast argument in 'test_de'
++ Add a helper function called 'fact' that simplifies specification
+of contrast for complex experimental designs
+
 Version 1.9
 + Breaking change to the way that non-standard evaluation parameters are handled.
 Variables in arguments such as 'pseudobulk_by' or 'subset_to' which evaluate
