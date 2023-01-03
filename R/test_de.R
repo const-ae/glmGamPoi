@@ -25,7 +25,8 @@
 #'   (e.g. `subset_to = cell_type == "T-cells"`). Note that if this argument is set a new
 #'   the model for the `full_design` is re-fit.\cr
 #'   Default: `NULL` which means that the data is not subset.
-#' @param pseudobulk_by a vector with the same length as `ncol(fit$data)` that is used to
+#' @param pseudobulk_by *DEPRECTATED*, please use the [pseudobulk] function instead. \cr
+#'   A vector with the same length as `ncol(fit$data)` that is used to
 #'   split the columns into different groups (calls [split()]). `pseudobulk_by` can also be an
 #'   expression that evaluates to a vector. The expression can reference columns from `colData(fit$data)`. \cr
 #'   The counts are summed across the groups

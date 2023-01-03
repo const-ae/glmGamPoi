@@ -40,7 +40,8 @@ test_pseudobulk_q <- function(data, design,
                               decreasing = FALSE, n_max = Inf,
                               verbose = FALSE,
                               env = parent.frame()){
-
+  .Deprecated(paste0("Please use the 'pseudobulk' function instead. 'pseudobulk' produces a ",
+                     "summarized 'SingleCellExperiment' object which is passed to `glm_gp()`."))
 
   # Make sure 'subset_to' is valid
   if(is.null(subset_to)){
