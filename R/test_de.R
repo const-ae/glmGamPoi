@@ -42,6 +42,10 @@
 #'   order. Default: `FALSE`.
 #' @param n_max the maximum number of rows to return. Default: `Inf` which means that all
 #'   rows are returned
+#' @param max_lfc set the maximum absolute log fold change that is returned. Large log fold changes
+#'   occur for lowly expressed genes because the ratio of two small numbers can be impractically large. For example, limiting
+#'   the range of log fold changes can clarify the patterns in a volcano plot. Default: `10` which
+#'   corresponds to a thousand-fold (2^10) increase in expression.
 #'
 #' @details
 #' The `fact()` helper function simplifies the specification of a contrast for complex experimental designs.
@@ -130,6 +134,7 @@ test_de <- function(fit,
                     subset_to = NULL, pseudobulk_by = NULL,
                     pval_adjust_method = "BH", sort_by = NULL,
                     decreasing = FALSE, n_max = Inf,
+                    max_lfc = 10,
                     verbose = FALSE){
   # Capture all NSE variables
   subset_to_capture <- substitute(subset_to)
@@ -138,7 +143,7 @@ test_de <- function(fit,
   test_de_q(fit, contrast = {{contrast}}, reduced_design = reduced_design, full_design = full_design,
             subset_to = subset_to_capture, pseudobulk_by = pseudobulk_by_capture,
             pval_adjust_method = pval_adjust_method, sort_by = sort_by_capture,
-            decreasing = decreasing, n_max = n_max,
+            decreasing = decreasing, n_max = n_max, max_lfc = max_lfc,
             verbose = verbose,
             env = parent.frame())
 }
@@ -152,7 +157,7 @@ test_de_q <- function(fit,
                       full_design = fit$model_matrix,
                       subset_to = NULL, pseudobulk_by = NULL,
                       pval_adjust_method = "BH", sort_by = NULL,
-                      decreasing = FALSE, n_max = Inf,
+                      decreasing = FALSE, n_max = Inf, max_lfc = 10,
                       verbose = FALSE,
                       env = parent.frame()){
 
@@ -198,7 +203,7 @@ test_de_q <- function(fit,
     test_res <- test_de_q(fit_subset, contrast = {{contrast}}, reduced_design = reduced_design,
                           subset_to = NULL, pseudobulk_by = NULL,
                           pval_adjust_method = pval_adjust_method, sort_by = sort_by,
-                          decreasing = decreasing, n_max = n_max,
+                          decreasing = decreasing, n_max = n_max, max_lfc = max_lfc,
                           verbose = verbose, env = env)
     return(test_res)
   }
@@ -233,6 +238,8 @@ test_de_q <- function(fit,
       diag(ridge_penalty, nrow = length(ridge_penalty)) %*% rot
     }
     lfc <- fit$Beta %*% cntrst / log(2)
+    lfc[lfc < -max_lfc] <- -max_lfc
+    lfc[lfc > max_lfc] <- max_lfc
   }else{
     # Convert the formula to model matrix
     reduced_design <- handle_design_parameter(reduced_design,  fit$data,
