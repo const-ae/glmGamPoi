@@ -107,8 +107,8 @@ or zero for numerical covariates.
  # Make Data
  Y <- matrix(rnbinom(n = 30 * 100, mu = 4, size = 0.3), nrow = 30, ncol = 100)
  annot <- data.frame(mouse = sample(LETTERS[1:6], size = 100, replace = TRUE),
-                     celltype = sample(c("Tcell", "Bcell", "Macrophages"), size = 100, replace = TRUE),
-                     cont1 = rnorm(100), cont2 = rnorm(100, mean = 30))
+        celltype = sample(c("Tcell", "Bcell", "Macrophages"), size = 100, replace = TRUE),
+        cont1 = rnorm(100), cont2 = rnorm(100, mean = 30))
  annot$condition <- ifelse(annot$mouse \%in\% c("A", "B", "C"), "ctrl", "treated")
  head(annot)
  se <- SummarizedExperiment::SummarizedExperiment(Y, colData = annot)
@@ -146,7 +146,8 @@ or zero for numerical covariates.
                           cont1 = mean(cont1), cont2 = min(cont2))
  fit_reduced <- glm_gp(se_reduced, design = ~ condition + celltype)
  test_de(fit_reduced, contrast = "conditiontreated", n_max = 4)
- test_de(fit_reduced, contrast = fact(condition = "treated", celltype = "Macrophages") - fact(condition = "ctrl", celltype = "Macrophages"),
+ test_de(fit_reduced, contrast = fact(condition = "treated", celltype = "Macrophages") -
+                                      fact(condition = "ctrl", celltype = "Macrophages"),
          n_max = 4)
 
 

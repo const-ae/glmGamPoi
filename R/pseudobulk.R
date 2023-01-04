@@ -20,9 +20,9 @@
 #'
 #' @examples
 #'  library(SingleCellExperiment)
-#'  data <- data.frame(sample = sample(c("sample1", "sample2", "sample3"), size = 50, replace = TRUE),
-#'                     celltype = sample(c("T cells", "B cells", "Macrophages"), size = 50, replace = TRUE),
-#'                     size = rnorm(n = 50, mean = 40, sd = 15))
+#'  data <- data.frame(sample = sample(c("samp1", "samp2", "samp3"), size = 50, replace = TRUE),
+#'        celltype = sample(c("T cells", "B cells", "Macrophages"), size = 50, replace = TRUE),
+#'        size = rnorm(n = 50, mean = 40, sd = 15))
 #'  Y <- matrix(rnbinom(n = 100 * 50, mu = 3, size = 1/3.1), nrow = 100, ncol = 50)
 #'  sce <- SingleCellExperiment(Y, colData = data)
 #'  aggr_sce <- pseudobulk(sce, group_by = vars(sample, celltype), size = mean(size))
