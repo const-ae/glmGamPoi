@@ -504,6 +504,27 @@ test_that("NA's produced by fitBeta_fisher_scoring don't cause problems", {
 
 
 
+test_that("glm_gp can handle full offset matrices correctly", {
+
+
+  data <- data.frame(fav_food = sample(c("apple", "banana", "cherry"), size = 50, replace = TRUE),
+                     city = sample(c("heidelberg", "paris", "new york"), size = 50, replace = TRUE),
+                     age = rnorm(n = 50, mean = 40, sd = 15))
+  Y <- matrix(rnbinom(n = 10 * 50, mu = 3, size = 1/3.1), nrow = 10, ncol = 50)
+  rownames(Y) <- paste0("gene_", seq_len(10))
+  colnames(Y) <- paste0("person_", seq_len(50))
+
+  sf <- rnorm(n = 50, mean = 1, sd = 0.1)
+  mult <- rlnorm(n = 10, meanlog = log(10), sdlog = 1)
+  Offset <- log(matrix(mult, ncol = 1) %*% matrix(sf, nrow = 1))
+
+  se <- SummarizedExperiment::SummarizedExperiment(Y, colData = data)
+  fit <- glm_gp(se, design = ~ fav_food + city + age, size_factors = sf)
+  fit_offset <- glm_gp(se, design = ~ fav_food + city + age, offset = Offset, size_factors = FALSE)
+
+  expect_equal(fit$Beta[,-1], fit_offset$Beta[,-1], tolerance = 1e-3)
+  expect_equal(fit$Beta[,1], fit_offset$Beta[,1] + log(mult), tolerance = 1e-3)
+})
 
 
 

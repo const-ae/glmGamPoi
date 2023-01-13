@@ -69,6 +69,7 @@ combine_size_factors_and_offset <- function(offset, size_factors, Y, verbose = F
   n_samples <- ncol(Y)
 
   make_offset_hdf5_mat <- is(Y, "DelayedMatrix") && is(DelayedArray::seed(Y), "HDF5ArraySeed")
+  zero_offset <- TRUE
 
   if(is.matrix(offset)){
     stopifnot(dim(offset) == c(n_genes, n_samples))
@@ -79,6 +80,7 @@ combine_size_factors_and_offset <- function(offset, size_factors, Y, verbose = F
     offset_matrix <- offset
   }else{
     stopifnot(length(offset) == 1 || length(offset) == n_samples)
+    zero_offset <- all(offset == 0)
     if(make_offset_hdf5_mat){
       offset_matrix <- DelayedArray::DelayedArray(DelayedArray::SparseArraySeed(c(n_genes, n_samples)))
       offset_matrix <- add_vector_to_each_row(offset_matrix, offset)
@@ -87,6 +89,10 @@ combine_size_factors_and_offset <- function(offset, size_factors, Y, verbose = F
     }
   }
   if(isTRUE(size_factors) || is.character(size_factors)){
+    if(! zero_offset){
+      warning("The offset is non zero, nonetheless an additional size factor is estimated. The effective 'offset' is thus 'offset + log(size_factor)'.\n",
+              "To suppress this warning either set 'size_factor = FALSE' or 'offset = 0'.")
+    }
     method <- if(isTRUE(size_factors)){
       if(requireNamespace("scran", quietly = TRUE)){
         "deconvolution"
