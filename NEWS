@@ -9,6 +9,7 @@ log fold changes for lowly expressed genes.
 + Support rlang quosures for the contrast argument in 'test_de'
 + Add a helper function called 'fact' that simplifies specification
 of contrast for complex experimental designs
++ Add 'use_assay' argument to 'glm_gp'
 
 Version 1.9
 + Breaking change to the way that non-standard evaluation parameters are handled.
