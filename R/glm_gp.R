@@ -82,6 +82,8 @@
 #'   Default: `FALSE` which means that the data is not subsampled. If set to `TRUE`, at most 1,000 samples
 #'   are considered. Otherwise the parameter just specifies the number of samples that are considered
 #'   for each gene to estimate the overdispersion.
+#' @param use_assay Specify which assay to use. Default: `NULL`, which means that if available 'counts'
+#'   are used. Otherwise an error is thrown except if there is only a single assay.
 #' @param on_disk a boolean that indicates if the dataset is loaded into memory or if it is kept on disk
 #'   to reduce the memory usage. Processing in memory can be significantly faster than on disk.
 #'   Default: `NULL` which means that the data is only processed in memory if `data` is an in-memory
@@ -223,6 +225,7 @@ glm_gp <- function(data,
                    do_cox_reid_adjustment = TRUE,
                    subsample = FALSE,
                    on_disk = NULL,
+                   use_assay = NULL,
                    verbose = FALSE){
 
   # Validate `data`
@@ -238,7 +241,7 @@ glm_gp <- function(data,
   if(is.vector(data)){
     data <- matrix(data, nrow = 1)
   }
-  data_mat <- handle_data_parameter(data, on_disk)
+  data_mat <- handle_data_parameter(data, use_assay, on_disk ,verbose = verbose)
 
   # Convert the formula to a model_matrix
   col_data <- get_col_data(data, col_data)
@@ -283,7 +286,7 @@ glm_gp <- function(data,
 }
 
 
-handle_data_parameter <- function(data, on_disk){
+handle_data_parameter <- function(data, use_assay, on_disk, verbose = FALSE){
   if(is.matrix(data)){
     if(! is.numeric(data)){
       stop("The data argument must consist of numeric values and not of ", mode(data), " values")
@@ -304,10 +307,36 @@ handle_data_parameter <- function(data, on_disk){
       stop("Illegal argument type for on_disk. Can only handle 'NULL', 'TRUE', or 'FALSE'")
     }
   }else if(is(data, "SummarizedExperiment")){
-    data_mat <- handle_data_parameter(SummarizedExperiment::assay(data), on_disk)
+    use_assay <- if("counts" %in% SummarizedExperiment::assayNames(data)) "counts" else {
+      assay_names <-  SummarizedExperiment::assayNames(data)
+      if(is.null(assay_names)){
+        if(verbose) message("Using unnamed assay")
+        1
+      }else if(length(assay_names) == 1){
+        if(verbose) message("Using assay '", assay_names, "'")
+        1
+      }else{
+        stop("Please specify the assay name.")
+      }
+    }
+    data_mat <- handle_data_parameter(SummarizedExperiment::assay(data, use_assay), use_assay = NULL, on_disk)
   }else if(canCoerce(data, "SummarizedExperiment")){
     se <- as(data, "SummarizedExperiment")
-    data_mat <- handle_data_parameter(SummarizedExperiment::assay(se), on_disk)
+    if(is.null(use_assay)){
+      use_assay <- if("counts" %in% SummarizedExperiment::assayNames(data)) "counts" else {
+        assay_names <-  SummarizedExperiment::assayNames(data)
+        if(is.null(assay_names)){
+          if(verbose) message("Using unnamed assay")
+          1
+        }else if(length(assay_names) == 1){
+          if(verbose) message("Using assay '", assay_names, "'")
+          1
+        }else{
+          stop("Please specify the assay name.")
+        }
+      }
+    }
+    data_mat <- handle_data_parameter(SummarizedExperiment::assay(se, use_assay), use_assay = NULL, on_disk)
   }else if(is(data, "dgCMatrix") || is(data, "dgTMatrix")) {
     if(isTRUE(on_disk)){
       data_mat <- HDF5Array::writeHDF5Array(data)

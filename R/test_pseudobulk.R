@@ -51,7 +51,7 @@ test_pseudobulk_q <- function(data, design,
   if(is.vector(data)){
     data <- matrix(data, nrow = 1)
   }
-  data_mat <- handle_data_parameter(data, on_disk = NULL)
+  data_mat <- handle_data_parameter(data, use_assay = NULL, on_disk = NULL)
 
   # Convert the formula to a model_matrix
   col_data <- get_col_data(data, col_data)

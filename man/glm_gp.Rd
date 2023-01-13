@@ -17,6 +17,7 @@ glm_gp(
   do_cox_reid_adjustment = TRUE,
   subsample = FALSE,
   on_disk = NULL,
+  use_assay = NULL,
   verbose = FALSE
 )
 }
@@ -110,6 +111,9 @@ for each gene to estimate the overdispersion.}
 to reduce the memory usage. Processing in memory can be significantly faster than on disk.
 Default: \code{NULL} which means that the data is only processed in memory if \code{data} is an in-memory
 data structure.}
+
+\item{use_assay}{Specify which assay to use. Default: \code{NULL}, which means that if available 'counts'
+are used. Otherwise an error is thrown except if there is only a single assay.}
 
 \item{verbose}{a boolean that indicates if information about the individual steps are printed
 while fitting the GLM. Default: \code{FALSE}.}
