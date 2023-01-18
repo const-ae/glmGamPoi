@@ -59,5 +59,15 @@ test_that("forming pseudobulk works", {
 })
 
 
+test_that("function labelling works", {
+  res1 <- get_aggregation_function("test", aggregation_functions = list(.default = "rowSums2", test = "rowMeans2"))
+  expect_equal(res1$fnc, MatrixGenerics::rowMeans2)
+  expect_equal(res1$label, "rowMeans2")
 
+  res1 <- get_aggregation_function("test", aggregation_functions = list(.default = "rowSums2", test = rowMeans))
+  expect_equal(res1$fnc, rowMeans)
+  # I don't know if there is anyway to get anything more helpful
+  expect_equal(res1$label, "custom function")
+
+})
 
