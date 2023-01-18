@@ -9,7 +9,8 @@ pseudobulk(
   group_by,
   ...,
   aggregation_functions = list(counts = "rowSums2", .default = "rowMeans2"),
-  col_data = NULL
+  col_data = NULL,
+  verbose = TRUE
 )
 }
 \arguments{
@@ -30,6 +31,8 @@ aggregate the assays in the \code{data}.}
 \item{col_data}{additional data with \code{ncol(data)} rows. The \code{group_by} and named
 arguments can refer to the columns of the \code{col_data} in addition to the columns in
 \code{colData(data)} (assuming \code{data} is a \code{SummarizedExperiment}).}
+
+\item{verbose}{a boolean that indicates if information about the process are printed Default: \code{TRUE}.}
 }
 \value{
 a SingleCellExperiment object

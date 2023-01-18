@@ -14,6 +14,7 @@
 #' @param col_data additional data with `ncol(data)` rows. The `group_by` and named
 #'   arguments can refer to the columns of the `col_data` in addition to the columns in
 #'   `colData(data)` (assuming `data` is a `SummarizedExperiment`).
+#' @param verbose a boolean that indicates if information about the process are printed Default: `TRUE`.
 #'
 #'
 #' @return a SingleCellExperiment object
@@ -32,7 +33,7 @@
 #' @export
 pseudobulk <- function(data, group_by, ...,
                        aggregation_functions = list(counts = "rowSums2", .default = "rowMeans2"),
-                       col_data = NULL){
+                       col_data = NULL, verbose = TRUE){
 
   col_data <- get_col_data(data, col_data)
   if(is.matrix(data)){
@@ -75,7 +76,9 @@ pseudobulk <- function(data, group_by, ...,
     assay_names <- seq_len(length(SummarizedExperiment::assays(data)))
   }
   new_assays <- lapply(assay_names, function(assay_name){
-    aggr_fnc <- get_aggregation_function(assay_name, aggregation_functions)
+    aggr_fnc_res <- get_aggregation_function(assay_name, aggregation_functions)
+    aggr_fnc <- aggr_fnc_res$fnc
+    if(verbose) message("Aggregating assay '", assay_name, "' using '", aggr_fnc_res$label, "'.")
     data_mat <- SummarizedExperiment::assay(data, assay_name)
     new_data_mat <- do.call(cbind, lapply(group_split, function(idx){
       aggr_fnc(data_mat[,idx,drop=FALSE])
@@ -94,7 +97,9 @@ pseudobulk <- function(data, group_by, ...,
       red_assay_names <- seq_len(length(SingleCellExperiment::reducedDims(data)))
     }
     new_red_dims <- lapply(red_assay_names, function(red_name){
-      aggr_fnc <- get_aggregation_function(red_name, aggregation_functions)
+      aggr_fnc_res <- get_aggregation_function(red_name, aggregation_functions)
+      aggr_fnc <- aggr_fnc_res$fnc
+      if(verbose) message("Aggregating reducedDim '", red_name, "' using '", aggr_fnc_res$label, "'.")
       tdata_mat <- SingleCellExperiment::reducedDim(data, red_name)
       if(is(tdata_mat, "LinearEmbeddingMatrix")){
         data_mat <- t(SingleCellExperiment::sampleFactors(tdata_mat))
@@ -171,6 +176,7 @@ get_aggregation_function <- function(assay_name, aggregation_functions){
     aggregation_functions[[".default"]]
   }
   if(is.character(aggr_fnc)){
+    label <- aggr_fnc
     aggr_fnc <- if(aggr_fnc == "rowSums2"){
       MatrixGenerics::rowSums2
     }else if(aggr_fnc == "rowMeans2"){
@@ -178,9 +184,11 @@ get_aggregation_function <- function(assay_name, aggregation_functions){
     }else{
       get(aggr_fnc, envir =  globalenv(), mode = "function")
     }
+  }else{
+    label <- "custom function"
   }
 
-  aggr_fnc
+  list(fnc = aggr_fnc, label = label)
 }
 
 #' Quote grouping variables
