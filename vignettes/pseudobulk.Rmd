@@ -44,7 +44,9 @@ colData(sce)
 The `pseudobulk` functions emulates the `group_by` and `summarize` pattern popularized by the `tidyverse`.
 You provide the columns from the `colData` that you want to use for grouping the data (akin to `group_by`) and named arguments specifiying how you summarize the remaining columns (akin to `summarize`). Using the `aggregation_functions` you can set how the `assay`'s and `reducedDim`'s are summarized with a named list.
 
-Here, I create a pseudobulk sample for each patient, condition, and cell type. This means for example that the counts of the 119 B-cells from patient 101 in the control condition are summed to one column in the reduced dataset.
+Here, I create a pseudobulk sample for each patient, condition, and cell type. This means for example that the counts of the 119 B-cells from patient 101 in the control condition are summed to one column in the reduced dataset. 
+
+The first argument is a `SingleCellExperiment` object. The `group_by` argument uses `vars()` to quote the grouping columns The `fraction_singlet` and `n_cells` arguments demonstrate how additional columns from the `colData` are summarized. For `fraction_singlet`, I use the fact that `mean` automatically coerces a boolean vector to zeros and ones and `n_cells` demonstrates the `n()` function that returns the number of cells that are aggregated for each group.
 ```{r}
 library(glmGamPoi)
 reduced_sce <- pseudobulk(sce, group_by = vars(ind, condition = stim, cell), 
