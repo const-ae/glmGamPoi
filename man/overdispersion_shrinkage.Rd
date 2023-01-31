@@ -47,7 +47,7 @@ local median fit.}
 the dispersion trend, \code{disp_est}, and \code{gene_means}}
 \item{ql_disp_trend}{the \code{ql_disp_estimate} still might show a trend with
 respect to \code{gene_means}. If \code{ql_disp_trend = TRUE} a spline is used to
-remove this secondary trend. If \code{ql_disp_trend = TRUE} it corresponds
+remove this secondary trend. If \code{ql_disp_trend = FALSE} it corresponds
 directly to the dispersion prior}
 \item{ql_disp_shrunken}{the shrunken quasi-likelihood dispersion estimates.
 They are shrunken towards \code{ql_disp_trend}.}

@@ -45,7 +45,7 @@
 #'     the dispersion trend, `disp_est`, and `gene_means`}
 #'   \item{ql_disp_trend}{the `ql_disp_estimate` still might show a trend with
 #'     respect to `gene_means`. If `ql_disp_trend = TRUE` a spline is used to
-#'     remove this secondary trend. If `ql_disp_trend = TRUE` it corresponds
+#'     remove this secondary trend. If `ql_disp_trend = FALSE` it corresponds
 #'     directly to the dispersion prior}
 #'   \item{ql_disp_shrunken}{the shrunken quasi-likelihood dispersion estimates.
 #'     They are shrunken towards `ql_disp_trend`.}
