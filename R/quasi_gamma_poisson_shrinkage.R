@@ -33,7 +33,7 @@
 #' 2. Convert the overdispersion MLE's to quasi-likelihood
 #'  dispersion estimates by fixing the trended dispersion as
 #'  the "true" dispersion value:
-#'  \eqn{disp_ql = (1 + mu * disp_mle) / (1 + mu * disp_trend)}
+#'  \eqn{disp_{ql} = (1 + mu * disp_{mle}) / (1 + mu * disp_{trend})}
 #' 3. Shrink the quasi-likelihood dispersion estimates using
 #'  Empirical Bayesian variance shrinkage (see Smyth 2004).
 #'
