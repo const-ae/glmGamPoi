@@ -307,16 +307,18 @@ handle_data_parameter <- function(data, use_assay, on_disk, verbose = FALSE){
       stop("Illegal argument type for on_disk. Can only handle 'NULL', 'TRUE', or 'FALSE'")
     }
   }else if(is(data, "SummarizedExperiment")){
-    use_assay <- if("counts" %in% SummarizedExperiment::assayNames(data)) "counts" else {
-      assay_names <-  SummarizedExperiment::assayNames(data)
-      if(is.null(assay_names)){
-        if(verbose) message("Using unnamed assay")
-        1
-      }else if(length(assay_names) == 1){
-        if(verbose) message("Using assay '", assay_names, "'")
-        1
-      }else{
-        stop("Please specify the assay name.")
+    if(is.null(use_assay)){
+      use_assay <- if("counts" %in% SummarizedExperiment::assayNames(data)) "counts" else {
+        assay_names <-  SummarizedExperiment::assayNames(data)
+        if(is.null(assay_names)){
+          if(verbose) message("Using unnamed assay")
+          1
+        }else if(length(assay_names) == 1){
+          if(verbose) message("Using assay '", assay_names, "'")
+          1
+        }else{
+          stop("Please specify the assay name.")
+        }
       }
     }
     data_mat <- handle_data_parameter(SummarizedExperiment::assay(data, use_assay), use_assay = NULL, on_disk)
