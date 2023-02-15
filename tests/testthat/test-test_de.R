@@ -33,10 +33,10 @@ test_that("test_de works with 'fact' specifications", {
   reduced_des <- model.matrix(~ group + cont1, data = annot)
   fit <- glm_gp(Y, design = design)
   # Doesn't work because design is a matrix
-  expect_error(test_de(fit, fact(group = "A") - fact(group = "B")))
+  expect_error(test_de(fit, cond(group = "A") - cond(group = "B")))
 
   fit <- glm_gp(Y, design = ~ group + cont1 + cont2, col_data = annot)
-  res1 <- test_de(fit, fact(group = "B") - fact(group = "A"))
+  res1 <- test_de(fit, cond(group = "B") - cond(group = "A"))
   res2 <- test_de(fit, groupB)
   expect_equal(res1, res2)
 })

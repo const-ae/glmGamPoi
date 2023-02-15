@@ -10,7 +10,7 @@
 #'   that is removed from the  full model matrix of `fit`. Or a complex contrast comparing two
 #'   or more columns: e.g. `A - B`, `"A - 3 * B"`, `(A + B) / 2 - C` etc. For complicated
 #'   experimental design that involved nested conditions, you specify the condition level to compare
-#'   using the `fact()` helper function. \cr
+#'   using the `cond()` helper function. \cr
 #'   Only one of `contrast` or `reduced_design` must be specified.
 #' @param reduced_design a specification of the reduced design used as a comparison to see what
 #'   how much better `fit` describes the data.
@@ -49,12 +49,12 @@
 #'   corresponds to a thousand-fold (2^10) increase in expression.
 #'
 #' @details
-#' The `fact()` helper function simplifies the specification of a contrast for complex experimental designs.
+#' The `cond()` helper function simplifies the specification of a contrast for complex experimental designs.
 #' Instead of working out which combination of coefficients corresponds to a research question,
 #' you can simply specify the two conditions that you want to compare.
 #'
-#' You can only call the `fact` function inside the `contrast` argument. The arguments are the selected factor levels
-#' for each covariate. To compare two conditions, simply subtract the two `fact` calls. Internally, the package
+#' You can only call the `cond` function inside the `contrast` argument. The arguments are the selected factor levels
+#' for each covariate. To compare two conditions, simply subtract the two `cond` calls. Internally, the package
 #' calls [model.matrix] using the provided values and the original formula from the fit to produce a vector.
 #' Subtracting two of these vectors produces a contrast vector. Missing covariates are filled with the first factor level
 #' or zero for numerical covariates.
@@ -92,8 +92,8 @@
 #'  head(res2)
 #'  # Test with explicit specification of the conditions
 #'  # The results are still identical
-#'  res3 <- test_de(fit, contrast = fact(condition = "treated", celltype = "Bcell") -
-#'                                     fact(condition = "ctrl", celltype = "Bcell"))
+#'  res3 <- test_de(fit, contrast = cond(condition = "treated", celltype = "Bcell") -
+#'                                     cond(condition = "ctrl", celltype = "Bcell"))
 #'  head(res3)
 #'
 #'
@@ -115,8 +115,8 @@
 #'                           cont1 = mean(cont1), cont2 = min(cont2))
 #'  fit_reduced <- glm_gp(se_reduced, design = ~ condition + celltype)
 #'  test_de(fit_reduced, contrast = "conditiontreated", n_max = 4)
-#'  test_de(fit_reduced, contrast = fact(condition = "treated", celltype = "Macrophages") -
-#'                                       fact(condition = "ctrl", celltype = "Macrophages"),
+#'  test_de(fit_reduced, contrast = cond(condition = "treated", celltype = "Macrophages") -
+#'                                       cond(condition = "ctrl", celltype = "Macrophages"),
 #'          n_max = 4)
 #'
 #'

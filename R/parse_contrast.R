@@ -24,8 +24,8 @@ parse_contrast <- function(contrast, coefficient_names, formula = NULL) {
     covar_indicators[[lvl]] <- ind
   }
   top <- rlang::new_environment(list(
-    fact = function(...){
-      .fact(formula, list(...))
+    cond = function(...){
+      .cond(formula, list(...))
     }))
   bottom <- rlang::new_environment(covar_indicators, parent = top)
   data_mask <- rlang::new_data_mask(bottom = bottom, top = top)
@@ -53,20 +53,20 @@ parse_contrast <- function(contrast, coefficient_names, formula = NULL) {
 
 
 
-.fact <- function(formula, level_sets = list()){
+.cond <- function(formula, level_sets = list()){
   if(is.null(formula)){
-    stop("You called 'fact()' inside the contrast, however the original model ",
-         "was not specified with a formula. Thus 'fact()' doesn't work and you ",
+    stop("You called 'cond()' inside the contrast, however the original model ",
+         "was not specified with a formula. Thus 'cond()' doesn't work and you ",
          "need to specify the contrast using the column names of the design matrix.")
   }
   if(is.null(attr(formula, "xlevels"))){
     warning("The formula has no 'xlevels' attribute. This is supicious and might indicate a bug.")
   }
   if(any(names(level_sets) == "")){
-    stop("All arguments to 'fact()' must be named.")
+    stop("All arguments to 'cond()' must be named.")
   }
   if(any(duplicated(names(level_sets)))){
-    stop("All arguments to 'fact()' must be unique.")
+    stop("All arguments to 'cond()' must be unique.")
   }
 
   covar <- all.vars(formula)
@@ -81,7 +81,7 @@ parse_contrast <- function(contrast, coefficient_names, formula = NULL) {
       stop("Setting the level of '", n, "' failed. You can only set the level of the following variables: ", paste0(covar, collapse = ", "))
     }
     if(length(level_sets[[n]]) != 1){
-      stop("Each argument to 'fact()' must be length one. '", n, "' has length ", length(level_sets[[n]]))
+      stop("Each argument to 'cond()' must be length one. '", n, "' has length ", length(level_sets[[n]]))
     }
     if(n %in% names(xlevels)){
       if(! level_sets[[n]] %in% xlevels[[n]]){

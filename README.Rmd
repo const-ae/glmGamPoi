@@ -250,7 +250,7 @@ In our example, we want to find the genes that change specifically in T cells. F
 ```{r do_pseudobulk}
 # The contrast argument specifies what we want to compare
 # We test the expression difference of stimulated and control T-cells
-de_res <- test_de(fit, contrast = fact(cell = "CD4 T cells", stim = "ctrl") - fact(cell = "CD4 T cells", stim = "stim")) 
+de_res <- test_de(fit, contrast = cond(cell = "CD4 T cells", stim = "ctrl") - cond(cell = "CD4 T cells", stim = "stim")) 
 
 # Most different genes
 head(de_res[order(de_res$pval), ])

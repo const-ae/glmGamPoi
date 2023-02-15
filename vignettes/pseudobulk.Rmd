@@ -59,7 +59,7 @@ For example we can find the genes that change most upon treatment in the B-cells
 
 ```{r}
 fit <- glm_gp(reduced_sce, design = ~ condition*cell + ind, verbose = TRUE)
-res <- test_de(fit, contrast = fact(cell = "B cells", condition = "stim") - fact(cell = "B cells", condition = "ctrl"))
+res <- test_de(fit, contrast = cond(cell = "B cells", condition = "stim") - cond(cell = "B cells", condition = "ctrl"))
 ```
 
 A volcano plot gives a quick impression of the overall distribution of the expression changes.
