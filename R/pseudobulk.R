@@ -166,7 +166,9 @@ pseudobulk <- function(data, group_by, ...,
   }, FUN.VALUE = character(1L))
   new_col_data <- c(id_columns, new_col_data)
 
-  SingleCellExperiment::SingleCellExperiment(new_assays, colData = new_col_data, reducedDims = new_red_dims)
+  SingleCellExperiment::SingleCellExperiment(new_assays, colData = new_col_data,
+                                             reducedDims = new_red_dims,
+                                             rowData = SummarizedExperiment::rowData(data))
 }
 
 get_aggregation_function <- function(assay_name, aggregation_functions){

@@ -5,18 +5,20 @@ test_that("forming pseudobulk works", {
   Y <- matrix(rnbinom(n = 100 * 50, mu = 3, size = 1/3.1), nrow = 100, ncol = 50)
   rownames(Y) <- paste0("gene_", seq_len(100))
   colnames(Y) <- paste0("cell_", seq_len(50))
+  row_dat <- data.frame(id = rownames(Y), chr = sample(1:22, nrow(Y), replace = TRUE))
   sce <- SingleCellExperiment::SingleCellExperiment(list(counts = Y, logcounts = log(Y + 1)),
-                                                    colData  = data)
+                                                    colData  = data, rowData = row_dat)
   expect_error(pseudobulk(sce))
   expect_error(pseudobulk(sce, NULL))
   expect_error(pseudobulk(sce, vars(1:2)))
   expect_error(pseudobulk(sce, group_by = vars(city), age = diff(age)))
 
-  pseudobulk(sce, group_by = vars(city), age = mean(age), head(fav_food, n = 1))
+  psce <- pseudobulk(sce, group_by = vars(city), age = mean(age), head(fav_food, n = 1), verbose = FALSE)
 
-  tmp <- pseudobulk(sce, group_by = vars(city, fav_food))
+  tmp <- pseudobulk(sce, group_by = vars(city, fav_food), verbose = FALSE)
   cd <- SummarizedExperiment::colData(tmp)
   expect_equal(rownames(cd), as.character(paste0(cd$city, ".", cd$fav_food)))
+  expect_equal(SummarizedExperiment::rowData(tmp)$chr, row_dat$chr)
 
   tmp2 <- pseudobulk(sce[,1], group_by = vars(city), age = mean(age), fav_food = head(fav_food, n = 1))
   colnames(tmp2) <- "cell_1"
