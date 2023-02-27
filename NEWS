@@ -10,6 +10,8 @@ log fold changes for lowly expressed genes.
 + Add a helper function called 'fact' that simplifies specification
 of contrast for complex experimental designs
 + Add 'use_assay' argument to 'glm_gp'
++ Add `vctrs` as dependency. The package is necessary to replicate the
+`group_by` behavior from `dplyr`.
 
 Version 1.9
 + Breaking change to the way that non-standard evaluation parameters are handled.
