@@ -10,7 +10,7 @@ glm_gp(
   col_data = NULL,
   reference_level = NULL,
   offset = 0,
-  size_factors = c("normed_sum", "deconvolution", "poscounts"),
+  size_factors = c("normed_sum", "deconvolution", "poscounts", "ratio"),
   overdispersion = TRUE,
   overdispersion_shrinkage = TRUE,
   ridge_penalty = 0,
@@ -55,11 +55,13 @@ correct for this effect.\cr
 \code{size_factors} is either a numeric vector with positive entries that has the same lengths as columns in the data
 that specifies the size factors that are used.
 Or it can be a string that species the method that is used to estimate the size factors
-(one of \code{c("normed_sum", "deconvolution", "poscounts")}).
+(one of \code{c("normed_sum", "deconvolution", "poscounts", "ratio")}).
 Note that \code{"normed_sum"} and \code{"poscounts"} are fairly
-simple methods and can lead to suboptimal results. For the best performance, I recommend to use
+simple methods and can lead to suboptimal results. For the best performance on data with many zeros, I recommend to use
 \code{size_factors = "deconvolution"} which calls \code{scran::calculateSumFactors()}. However, you need
-to separately install the \code{scran} package from Bioconductor for this method to work.
+to separately install the \code{scran} package from Bioconductor for this method to work. For small datasets
+common for bulk RNA-seq experiments, I recommend to use \code{size_factors = "ratio"}, which uses the same
+procedure as DESeq2 and edgeR.
 Also note that \code{size_factors = 1} and \code{size_factors = FALSE} are equivalent. If only a single gene is given,
 no size factor is estimated (ie. \code{size_factors = 1}). Default: \code{"normed_sum"}.}
 
@@ -163,7 +165,8 @@ a slightly adapted version of the procedure proposed by Anders and Huber (2010) 
 equation (5) is used. To handle the large number of zeros the geometric means are calculated for
 \eqn{Y + 0.5} and ignored during the calculation of the median. Columns with all zeros get a
 default size factor of \eqn{0.001}. If \code{size_factors = "deconvolution"}, the method
-\code{scran::calculateSumFactors()} is called.
+\code{scran::calculateSumFactors()} is called. If \code{size_factors = "ratio"}, the unmodified procedure
+from Anders and Huber (2010) in equation (5) is used.
 \item The dispersion estimates are initialized based on the moments of each row of \eqn{Y}.
 \item The coefficients of the model are estimated.\cr
 If all samples belong to the same condition (i.e. \code{design = ~ 1}), the betas are estimated using

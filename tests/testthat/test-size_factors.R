@@ -39,6 +39,13 @@ test_that("estimate size factor works", {
   expect_equal(estimate_size_factors(mat, method = "poscounts"),
                estimate_size_factors(hdf5_mat, method = "poscounts"))
 
+  expect_equal(estimate_size_factors(mat, method = "ratio"),
+               estimate_size_factors(hdf5_mat, method = "ratio"))
+
+  sf <- estimate_size_factors(mat, method = "ratio")
+  sf_deseq <- DESeq2::estimateSizeFactorsForMatrix(mat)
+  sf_deseq <- sf_deseq / exp(mean(log(sf_deseq)))
+  expect_equal(sf, sf_deseq)
 
   mat <- matrix(0, nrow = 8, ncol = 4)
   mat[1,1] <- 7
@@ -55,6 +62,7 @@ test_that("estimate size factor works", {
   expect_equal(estimate_size_factors(mat, method = "poscounts"),
                estimate_size_factors(hdf5_mat, method = "poscounts"))
 
+  expect_error(estimate_size_factors(mat, method = "ratio"))
   expect_error(estimate_size_factors(hdf5_mat, method = "asdf"))
 
 })

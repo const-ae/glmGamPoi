@@ -70,7 +70,8 @@ For example we can find the genes that change most upon treatment in the B-cells
 ```{r}
 # Remove NA's
 reduced_sce <- reduced_sce[,!is.na(reduced_sce$cell)]
-fit <- glm_gp(reduced_sce, design = ~ condition*cell + ind, verbose = TRUE)
+# Use DESeq2's size factor calculation procedure
+fit <- glm_gp(reduced_sce, design = ~ condition*cell + ind, size_factor = "ratio", verbose = TRUE)
 res <- test_de(fit, contrast = cond(cell = "B cells", condition = "stim") - cond(cell = "B cells", condition = "ctrl"))
 ```
 

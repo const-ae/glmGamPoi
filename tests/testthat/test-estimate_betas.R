@@ -378,7 +378,7 @@ test_that("glm_gp_impl can handle all zero columns", {
 test_that("glm_gp_impl can handle all values zero", {
   Y <- matrix(0, nrow = 3, ncol = 10)
   X <- matrix(1, nrow = 10, ncol = 1)
-  res <- glm_gp_impl(Y, X)
+  expect_warning(res <- glm_gp_impl(Y, X))
   expect_equal(res$size_factors, rep(0.001, times = 10))
   expect_equal(res$overdispersions, rep(0, times = 3))
   expect_equal(res$Beta[,1], rep(-1e8, times = 3))

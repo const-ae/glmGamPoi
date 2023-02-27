@@ -44,6 +44,11 @@ estimate_size_factors <- function(Y, method, verbose = FALSE){
     }
   }else if(method == "normed_sum"){
     sf <- DelayedMatrixStats::colSums2(Y)
+  }else if(method == "ratio"){
+    log_geo_means <- DelayedMatrixStats::rowMeans2(log(Y))
+    sf <- apply(Y, 2, function(cnts) {
+      exp(median((log(cnts) - log_geo_means)[is.finite(log_geo_means) & cnts > 0]))
+    })
   }else{
     stop("Unknown size factor estimation method: ", method)
   }
@@ -51,9 +56,13 @@ estimate_size_factors <- function(Y, method, verbose = FALSE){
 
 
   # stabilize size factors to have geometric mean of 1
-  all_zero_column <- is.nan(sf) | sf <= 0
+  all_zero_column <- is.na(sf) | sf <= 0
   sf[all_zero_column] <- NA
+  if(any(all_zero_column) && method == "ratio"){
+    stop("Too many zeros to calculate the size factors. Please use 'size_factors = \"normed_sum\" or 'size_factors = \"deconvolution\".")
+  }
   if(any(all_zero_column)){
+    warning(sum(all_zero_column), " columns contain too many zeros to calculate a size factor. The size factor will be fixed to 0.001")
     sf <- sf/exp(mean(log(sf), na.rm=TRUE))
     sf[all_zero_column] <- 0.001
   }else{
@@ -99,9 +108,9 @@ combine_size_factors_and_offset <- function(offset, size_factors, Y, verbose = F
       }else{
         "normed_sum"
       }
-    }else if(all(size_factors == c("normed_sum", "deconvolution", "poscounts"))){
+    }else if(all(size_factors == c("normed_sum", "deconvolution", "poscounts", "ratio"))){
       "normed_sum"
-    }else if(length(size_factors) == 1 && size_factors %in% c("normed_sum", "deconvolution", "poscounts")){
+    }else if(length(size_factors) == 1 && size_factors %in% c("normed_sum", "deconvolution", "poscounts", "ratio")){
       size_factors
     }else{
       stop("Cannot handle size factor ", paste0(size_factors, collapse = ", "))

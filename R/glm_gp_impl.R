@@ -21,7 +21,7 @@
 #' @keywords internal
 glm_gp_impl <- function(Y, model_matrix,
                         offset = 0,
-                        size_factors = c("normed_sum", "deconvolution", "poscounts"),
+                        size_factors = c("normed_sum", "deconvolution", "poscounts", "ratio"),
                         overdispersion = TRUE,
                         overdispersion_shrinkage = TRUE,
                         ridge_penalty = 0,
