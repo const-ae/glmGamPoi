@@ -10,6 +10,7 @@ pseudobulk(
   ...,
   aggregation_functions = list(counts = "rowSums2", .default = "rowMeans2"),
   col_data = NULL,
+  make_colnames = TRUE,
   verbose = TRUE
 )
 }
@@ -31,6 +32,9 @@ aggregate the assays in the \code{data}.}
 \item{col_data}{additional data with \code{ncol(data)} rows. The \code{group_by} and named
 arguments can refer to the columns of the \code{col_data} in addition to the columns in
 \code{colData(data)} (assuming \code{data} is a \code{SummarizedExperiment}).}
+
+\item{make_colnames}{a boolean that decides if the column names are the concatenated
+values of \code{group_by}. Default: \code{TRUE}}
 
 \item{verbose}{a boolean that indicates if information about the process are printed Default: \code{TRUE}.}
 }

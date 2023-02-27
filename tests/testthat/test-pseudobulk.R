@@ -73,3 +73,28 @@ test_that("function labelling works", {
 
 })
 
+
+
+test_that("NA's don't mess up the results", {
+  data <- data.frame(fav_food = sample(c("apple", "banana", "cherry", NA), size = 50, replace = TRUE),
+                     indicator = sample(1:3, size = 50, replace = TRUE))
+  Y <- matrix(rnbinom(n = 100 * 50, mu = 3, size = 1/3.1), nrow = 100, ncol = 50)
+  rownames(Y) <- paste0("gene_", seq_len(100))
+  colnames(Y) <- paste0("cell_", seq_len(50))
+  row_dat <- data.frame(id = rownames(Y), chr = sample(1:22, nrow(Y), replace = TRUE))
+  sce <- SingleCellExperiment::SingleCellExperiment(list(counts = Y, logcounts = log(Y + 1)),
+                                                    colData  = data, rowData = row_dat)
+  psce <- pseudobulk(sce, group_by = vars(fav_food), make_colnames = TRUE)
+  expect_equal(unique(SummarizedExperiment::colData(sce)$fav_food), unique(SummarizedExperiment::colData(psce)$fav_food))
+
+  psce <- pseudobulk(sce, group_by = vars(fav_food, indicator), make_colnames = FALSE)
+  expect_equal(as.data.frame(SummarizedExperiment::colData(psce)), vctrs::vec_group_loc(data)$key)
+
+
+  psce <- pseudobulk(sce, group_by = vars(fav_food, indicator + 1), make_colnames = FALSE)
+  expect_equal(colnames(SummarizedExperiment::colData(psce)), c("fav_food", "indicator + 1"))
+
+  sce$fav_food <- factor(sce$fav_food, levels = c("apple", "cherry", "banana", "orange"), exclude = FALSE)
+  psce <- pseudobulk(sce, group_by = vars(fav_food), make_colnames = FALSE)
+  expect_equal(SummarizedExperiment::colData(psce)$fav_food, unique(SummarizedExperiment::colData(sce)$fav_food))
+})

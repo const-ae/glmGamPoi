@@ -53,18 +53,30 @@ reduced_sce <- pseudobulk(sce, group_by = vars(ind, condition = stim, cell),
                           fraction_singlet = mean(multiplets == "singlet"), n_cells = n())
 colData(reduced_sce)
 ```
+You can simulate the pseudobulk sample generation and check if you are using the correct arguments by calling `dplyr::group_by`. Note that the order of the output differs because `group_by` automatically sorts the keys.
+```{r}
+library(dplyr, warn.conflicts = FALSE)
+colData(sce) %>%
+  as_tibble() %>%
+  group_by(ind, condition = stim, cell) %>%
+  summarize(n_cells = n(), .groups = "drop") 
+```
+
+
 
 With the reduced data, we can conduct differential expression analysis the same way we would analyze bulk RNA-seq data (using tools like `DESeq2` and `edgeR`).
 For example we can find the genes that change most upon treatment in the B-cells
 
 ```{r}
+# Remove NA's
+reduced_sce <- reduced_sce[,!is.na(reduced_sce$cell)]
 fit <- glm_gp(reduced_sce, design = ~ condition*cell + ind, verbose = TRUE)
 res <- test_de(fit, contrast = cond(cell = "B cells", condition = "stim") - cond(cell = "B cells", condition = "ctrl"))
 ```
 
 A volcano plot gives a quick impression of the overall distribution of the expression changes.
 ```{r}
-library(ggplot2)
+library(ggplot2, warn.conflicts = FALSE)
 ggplot(res, aes(x = lfc, y = - log10(pval))) +
   geom_point(aes(color = adj_pval < 0.01), size = 0.5)
 ```

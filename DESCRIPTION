@@ -30,7 +30,8 @@ Suggests:
     TENxPBMCData,
     muscData,
     scran,
-    Matrix
+    Matrix,
+    dplyr
 LinkingTo: 
     Rcpp,
     RcppArmadillo,
@@ -49,7 +50,8 @@ Imports:
     stats,
     utils,
     splines,
-    rlang
+    rlang,
+    vctrs
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.2.3
 URL: https://github.com/const-ae/glmGamPoi

@@ -14,6 +14,8 @@
 #' @param col_data additional data with `ncol(data)` rows. The `group_by` and named
 #'   arguments can refer to the columns of the `col_data` in addition to the columns in
 #'   `colData(data)` (assuming `data` is a `SummarizedExperiment`).
+#' @param make_colnames a boolean that decides if the column names are the concatenated
+#'   values of `group_by`. Default: `TRUE`
 #' @param verbose a boolean that indicates if information about the process are printed Default: `TRUE`.
 #'
 #'
@@ -33,7 +35,7 @@
 #' @export
 pseudobulk <- function(data, group_by, ...,
                        aggregation_functions = list(counts = "rowSums2", .default = "rowMeans2"),
-                       col_data = NULL, verbose = TRUE){
+                       col_data = NULL, make_colnames = TRUE, verbose = TRUE){
 
   col_data <- get_col_data(data, col_data)
   if(is.matrix(data)){
@@ -67,7 +69,11 @@ pseudobulk <- function(data, group_by, ...,
   if(is.null(groups)){
     stop("'group_by' must not be 'NULL'.")
   }else{
-    group_split <- split(index_seq, groups, drop = TRUE)
+    split_res <- vctrs::vec_group_loc(as.data.frame(groups))
+    group_split <- split_res$loc
+    if(make_colnames){
+      names(group_split) <- do.call(paste, c(split_res$key, sep = "."))
+    }
   }
 
   # Aggregate all assays
@@ -152,11 +158,7 @@ pseudobulk <- function(data, group_by, ...,
   names(new_col_data)[names(new_col_data) == ""] <- vapply(dots_cap[names(new_col_data) == ""], rlang::as_label, FUN.VALUE = character(1L))
 
   # Make id columns
-  row_sel <- vapply(group_split, head, n = 1, FUN.VALUE = integer(1L))
-  id_columns <- as.data.frame(groups)[row_sel,,drop=FALSE]
-  id_columns <- lapply(seq_along(groups), \(idx){
-    factor(id_columns[[idx]], levels = levels(as.factor(groups[[idx]])))
-  })
+  id_columns <- split_res$key
   names(id_columns) <-  vapply(seq_along(group_by), \(idx){
     id_name <- names(group_by)[idx]
     if(is.null(id_name) || id_name == ""){
