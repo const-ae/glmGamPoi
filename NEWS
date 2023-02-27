@@ -12,6 +12,8 @@ of contrast for complex experimental designs
 + Add 'use_assay' argument to 'glm_gp'
 + Add `vctrs` as dependency. The package is necessary to replicate the
 `group_by` behavior from `dplyr`.
++ Add 'size_factors = "ratio"' to emulate the behavior of DESeq2's size
+factor calculation
 
 Version 1.9
 + Breaking change to the way that non-standard evaluation parameters are handled.
