@@ -438,8 +438,7 @@ handle_design_parameter <- function(design, data, col_data, reference_level){
     stop("The model_matrix has more columns (", ncol(model_matrix),
          ") than the there are samples in the data matrix (", n_samples, " columns).\n",
          "Too few replicates / too many coefficients to fit model.\n",
-         "The head of the design matrix: \n", format_matrix(head(model_matrix, n = 3)), "\n",
-         "The head of the data: \n", format_matrix(head(data[,seq_len(min(5, ncol(data))),drop=FALSE], n = 3)))
+         "The head of the design matrix: \n", format_matrix(head(model_matrix, n = 3)))
   }
 
   # Check rank of model_matrix
