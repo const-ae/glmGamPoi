@@ -626,8 +626,8 @@ test_that("penalty allows fitting degenerate design matrices", {
   expect_error(glm_gp(y, design = X_mod, ridge_penalty = NULL))
 
   expect_error(glm_gp(y, design = X, ridge_penalty = 0.4))
-  glm_gp(y, design = X_mod, ridge_penalty = 0.4) # Succeeds
-
+  fit <- glm_gp(y, design = X_mod, ridge_penalty = 0.4) # Succeeds
+  test_de(fit, contrast = c(0, 1, 0, 0))
 })
 
 

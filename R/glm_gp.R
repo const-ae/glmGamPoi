@@ -459,6 +459,9 @@ handle_design_parameter <- function(design, data, col_data, reference_level){
   rownames(model_matrix) <- colnames(data)
   validate_model_matrix(model_matrix, data)
   model_matrix <- add_attr_if_intercept(model_matrix)
+  if(ignore_degeneracy){
+    attr(model_matrix, "ignore_degeneracy") <- TRUE
+  }
   list(model_matrix = model_matrix, design_formula = design_formula)
 }
 

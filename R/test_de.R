@@ -275,6 +275,9 @@ test_de_q <- function(fit,
   if(verbose){message("Fit reduced model")}
   data <- fit$data
   do_on_disk <- is_on_disk.glmGamPoi(fit)
+  if(isTRUE(attr(fit$model_matrix, "ignore_degeneracy"))){
+    attr(reduced_design, "ignore_degeneracy") <- TRUE
+  }
   fit_alt <- glm_gp(data, design = reduced_design,
                     size_factors = FALSE, # size factors are already in offset
                     offset = fit$Offset,

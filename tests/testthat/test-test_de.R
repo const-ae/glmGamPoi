@@ -281,3 +281,17 @@ test_that("ridge_penalty is adapted if reduced_design is specified", {
 })
 
 
+test_that("ignore_degeneracy is propagated", {
+  y <- rnbinom(n = 30, mu = 7, size = 1/2.2)
+  X <- cbind(matrix(rnorm(n = 30 * 3), nrow = 30, ncol = 3), 0)
+  Xmod <- X
+  attr(Xmod, "ignore_degeneracy") <- TRUE
+
+  expect_error(glm_gp(y, design = X, ridge_penalty = 0.1))
+
+  # These succeed
+  fit <- glm_gp(y, design = Xmod, ridge_penalty = 0.1)
+  test_de(fit, contrast = c(0, 1, 0, 0))
+})
+
+
