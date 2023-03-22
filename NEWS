@@ -14,6 +14,7 @@ of contrast for complex experimental designs
 `group_by` behavior from `dplyr`.
 + Add 'size_factors = "ratio"' to emulate the behavior of DESeq2's size
 factor calculation
++ Make sure that the 'ignore_degeneracy' argument is propagated to 'test_de'
 
 Version 1.9
 + Breaking change to the way that non-standard evaluation parameters are handled.
