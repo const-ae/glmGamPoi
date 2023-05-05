@@ -540,5 +540,25 @@ test_that("glm_gp can handle gigantic counts", {
 
 
 
+test_that("providing the col_data explicitly and implicitly doesn't cause issues", {
+  data <- data.frame(fav_food = sample(c("apple", "banana", "cherry"), size = 50, replace = TRUE),
+                     city = sample(c("heidelberg", "paris", "new york"), size = 50, replace = TRUE),
+                     age = rnorm(n = 50, mean = 40, sd = 15))
+  Y <- matrix(rnbinom(n = 10 * 50, mu = 3, size = 1/3.1), nrow = 10, ncol = 50)
+  rownames(Y) <- paste0("gene_", seq_len(10))
+  colnames(Y) <- paste0("person_", seq_len(50))
 
+  se <- SummarizedExperiment::SummarizedExperiment(Y, colData = data)
+
+  fit <- glm_gp(Y, design = ~ fav_food + city + age, col_data = data)
+  fit_se <- glm_gp(se, design = ~ fav_food + city + age, col_data = SummarizedExperiment::colData(se))
+  expect_equal(fit, fit_se)
+  expect_equal(colnames(SummarizedExperiment::colData(fit_se$data)), c("fav_food", "city", "age"))
+
+  cd_mod <- SummarizedExperiment::colData(se)
+  cd_mod$age[1] <- 42
+  expect_warning(
+    fit_se2 <- glm_gp(se, design = ~ fav_food + city + age, col_data = cd_mod)
+  )
+})
 

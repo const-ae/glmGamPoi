@@ -366,7 +366,17 @@ get_col_data <- function(data, col_data){
     col_data <- as.data.frame(matrix(numeric(0), nrow=ncol(data)))
   }
   if(is(data, "SummarizedExperiment")){
-    cbind(col_data, SummarizedExperiment::colData(data))
+    if(! identical(col_data, SummarizedExperiment::colData(data))){
+      if(any(colnames(col_data) %in% colnames(SummarizedExperiment::colData(data)))){
+        warning("The arguments 'col_data' and 'colData(data)' share the following column names: \n",
+                paste0(head(intersect(colnames(col_data), colnames(SummarizedExperiment::colData(data))), n = 5),
+                       collapse = ", "), "\n",
+                "This can cause problem.")
+      }
+      cbind(col_data, SummarizedExperiment::colData(data))
+    }else{
+      col_data
+    }
   }else{
     col_data
   }
