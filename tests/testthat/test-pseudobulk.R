@@ -34,9 +34,9 @@ test_that("forming pseudobulk works", {
   expect_equal(tmp3$age[1], mean(sce$age[sce$fact == tmp3$fact[1]]))
 
   tmp4 <- pseudobulk(sce, group_by = vars(fact), aggregation_functions = list(counts = matrixStats::rowMins))
-  expect_equal(unname(SummarizedExperiment::assay(tmp4, "counts")[,"a"]),
+  expect_equal(SummarizedExperiment::assay(tmp4, "counts")[,"a"],
                matrixStats::rowMins(SummarizedExperiment::assay(sce[,sce$fact == "a"], "counts")))
-  expect_equal(unname(SummarizedExperiment::assay(tmp4, "logcounts")[,"b"]),
+  expect_equal(SummarizedExperiment::assay(tmp4, "logcounts")[,"b"],
                matrixStats::rowMeans2(SummarizedExperiment::assay(sce[,sce$fact == "b"], "logcounts")))
 
   pca <- stats::prcomp(t(SummarizedExperiment::assay(sce,"logcounts")), rank. = 2)
