@@ -136,7 +136,7 @@ test_that("Pseudo bulk produces same results as making it manually", {
     matrixStats::rowSums2(assay(se), cols = idx)
   }))
   pseudo_design_mat <- do.call(rbind, lapply(splitter, function(idx){
-    matrixStats::colMeans2(fit$model_matrix, rows = idx)
+    matrixStats::colMeans2(fit$model_matrix, rows = idx, useNames = FALSE)
   }))
 
 
