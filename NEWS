@@ -1,3 +1,9 @@
+Version 1.13 (2023-07-03)
++ Implement a likelihood ratio test based on the Chi-squared distribution, if
+`test_de` is called after setting `overdispersion_shrinkage = FALSE`. Note that
+this test is less reliable than than the quasi-likelihood F test that is run
+for `overdispersion_shrinkage = TRUE`.
+
 Version 1.11 (2023-01-03)
 + Breaking change: rename 'pseudobulk_sce' to 'pseudobulk'
 + Add a new vignette explaining how and why pseudobulking is
