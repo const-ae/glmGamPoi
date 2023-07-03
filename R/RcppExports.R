@@ -57,6 +57,10 @@ estimate_global_overdispersions_fast <- function(Y, mean_matrix, model_matrix, d
     .Call(`_glmGamPoi_estimate_global_overdispersions_fast`, Y, mean_matrix, model_matrix, do_cox_reid_adjustment, log_thetas)
 }
 
+column_sums <- function(initmat) {
+    .Call(`_glmGamPoi_column_sums`, initmat)
+}
+
 div_zbz_dbl <- function(a, b) {
     .Call(`_glmGamPoi_div_zbz_dbl`, a, b)
 }

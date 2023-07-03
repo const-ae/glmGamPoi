@@ -222,6 +222,16 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// column_sums
+NumericVector column_sums(RObject initmat);
+RcppExport SEXP _glmGamPoi_column_sums(SEXP initmatSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::traits::input_parameter< RObject >::type initmat(initmatSEXP);
+    rcpp_result_gen = Rcpp::wrap(column_sums(initmat));
+    return rcpp_result_gen;
+END_RCPP
+}
 // div_zbz_dbl
 NumericVector div_zbz_dbl(NumericVector a, NumericVector b);
 RcppExport SEXP _glmGamPoi_div_zbz_dbl(SEXP aSEXP, SEXP bSEXP) {
@@ -286,6 +296,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_glmGamPoi_conventional_deriv_score_function_fast", (DL_FUNC) &_glmGamPoi_conventional_deriv_score_function_fast, 7},
     {"_glmGamPoi_estimate_overdispersions_fast", (DL_FUNC) &_glmGamPoi_estimate_overdispersions_fast, 6},
     {"_glmGamPoi_estimate_global_overdispersions_fast", (DL_FUNC) &_glmGamPoi_estimate_global_overdispersions_fast, 5},
+    {"_glmGamPoi_column_sums", (DL_FUNC) &_glmGamPoi_column_sums, 1},
     {"_glmGamPoi_div_zbz_dbl", (DL_FUNC) &_glmGamPoi_div_zbz_dbl, 2},
     {"_glmGamPoi_div_zbz_int", (DL_FUNC) &_glmGamPoi_div_zbz_int, 2},
     {"_glmGamPoi_div_zbz_dbl_mat", (DL_FUNC) &_glmGamPoi_div_zbz_dbl_mat, 2},
