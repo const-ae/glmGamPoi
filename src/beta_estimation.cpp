@@ -2,6 +2,8 @@
 #include <RcppArmadillo.h>
 #include "beachmat/numeric_matrix.h"
 #include "beachmat/integer_matrix.h"
+#include "Rtatami.h"
+#include <vector>
 
 #include <deviance.h>
 #include <fisher_scoring_steps.h>
@@ -340,23 +342,29 @@ List fitBeta_diagonal_fisher_scoring(RObject Y, const arma::mat& model_matrix, R
 
 
 
-// If there is only one group, there is no need to do the full Fisher-scoring
-// Instead a simple Newton-Raphson algorithm will do
-template<class NumericType>
-List fitBeta_one_group_internal(SEXP Y_SEXP, SEXP offsets_SEXP,
-                       NumericVector thetas, NumericVector beta_start_values,
-                       double tolerance, int maxIter) {
-  auto Y_bm = beachmat::create_matrix<NumericType>(Y_SEXP);
+// [[Rcpp::export(rng = false)]]
+List fitBeta_one_group(RObject Y, RObject offset_matrix,
+                        NumericVector thetas, NumericVector beta_start_values,
+                        double tolerance, int maxIter) {
+  Rtatami::BoundNumericPointer Y_parsed(Y);
+  const auto& Y_bm = Y_parsed->ptr;
+  Rtatami::BoundNumericPointer Offset_parsed(offset_matrix);
+  const auto& offsets_bm = Offset_parsed->ptr;
 
-  auto offsets_bm = beachmat::create_numeric_matrix(offsets_SEXP);
-  int n_samples = Y_bm->get_ncol();
-  int n_genes = Y_bm->get_nrow();
+  int n_samples = Y_bm->ncol();
+  int n_genes = Y_bm->nrow();
   NumericVector result(n_genes);
   IntegerVector iterations(n_genes);
   NumericVector deviance(n_genes);
 
   Environment glmGamPoiEnv = Environment::namespace_env("glmGamPoi");
   Function estimate_betas_group_wise_optimize_helper = glmGamPoiEnv["estimate_betas_group_wise_optimize_helper"];
+
+  auto counts_worker = Y_bm->dense_row();
+  std::vector<double> counts_buffer(n_samples);
+  auto off_worker = offsets_bm->dense_column();
+  std::vector<double> off_buffer(n_samples);
+
 
   for(int gene_idx = 0; gene_idx < n_genes; gene_idx++){
     if (gene_idx % 100 == 0) checkUserInterrupt();
@@ -371,10 +379,10 @@ List fitBeta_one_group_internal(SEXP Y_SEXP, SEXP offsets_SEXP,
       continue;
     }
 
-    typename NumericType::vector counts(n_samples);
-    Y_bm->get_row(gene_idx, counts.begin());
-    NumericVector off(n_samples);
-    offsets_bm->get_row(gene_idx, off.begin());
+    const double* counts = counts_worker->fetch(gene_idx, counts_buffer.data());
+    NumericVector counts_vec(n_samples);
+    auto off = off_worker->fetch(gene_idx, off_buffer.data());
+
     // Newton-Raphson
     int iter = 0;
     for(; iter < maxIter; iter++){
@@ -404,7 +412,13 @@ List fitBeta_one_group_internal(SEXP Y_SEXP, SEXP offsets_SEXP,
     }
     if(iter == maxIter || Rcpp::traits::is_nan<REALSXP>(beta)){
       // Not converged -> try again with optimize()
-      beta =  Rcpp::as<double>(estimate_betas_group_wise_optimize_helper(counts, off, theta));
+      NumericVector counts_vec(n_samples);
+      NumericVector off_vec(n_samples);
+      for(int i = 0; i < n_samples; ++i){
+        counts_vec[i] = counts[i];
+        off_vec[i] = off[i];
+      }
+      beta =  Rcpp::as<double>(estimate_betas_group_wise_optimize_helper(counts_vec, off_vec, theta));
     }
     result(gene_idx) = beta;
     iterations(gene_idx) = iter;
@@ -419,20 +433,6 @@ List fitBeta_one_group_internal(SEXP Y_SEXP, SEXP offsets_SEXP,
     Named("iter", iterations),
     Named("deviance", deviance)
   );
-}
-
-// [[Rcpp::export(rng = false)]]
-List fitBeta_one_group(RObject Y, RObject offset_matrix,
-                        NumericVector thetas, NumericVector beta_start_values,
-                        double tolerance, int maxIter) {
-  auto mattype=beachmat::find_sexp_type(Y);
-  if (mattype==INTSXP) {
-    return fitBeta_one_group_internal<beachmat::integer_matrix>(Y, offset_matrix, thetas, beta_start_values, tolerance, maxIter);
-  } else if (mattype==REALSXP) {
-    return fitBeta_one_group_internal<beachmat::numeric_matrix>(Y, offset_matrix, thetas, beta_start_values, tolerance, maxIter);
-  } else {
-    throw std::runtime_error("unacceptable matrix type");
-  }
 }
 
 
