@@ -210,10 +210,10 @@ test_de_q <- function(fit,
     return(test_res)
   }
   if(is.null(fit$overdispersion_shrinkage_list)){
-    stop("fit$overdispersion_shrinkage_list is NULL. Run 'glm_gp' with ",
-         "'overdispersion_shrinkage = TRUE'.")
+    disp_trend <- fit$overdispersions
+  }else{
+    disp_trend <- fit$overdispersion_shrinkage_list$dispersion_trend
   }
-  disp_trend <- fit$overdispersion_shrinkage_list$dispersion_trend
   if(!rlang::quo_is_missing(rlang::enquo(contrast))){
     # e.g. a vector with c(1, 0, -1, 0) for contrast = A - C
     cntrst <- parse_contrast({{contrast}}, coefficient_names = colnames(fit$model_matrix), formula = fit$design_formula)
@@ -293,9 +293,15 @@ test_de_q <- function(fit,
   lr <- (fit_alt$deviances - fit$deviances)
   df_test <- ncol(fit$model_matrix) - ncol(fit_alt$model_matrix)
   df_test <- ifelse(df_test == 0, NA, df_test)
-  df_fit <- fit$overdispersion_shrinkage_list$ql_df0 + (ncol(data) - ncol(fit$model_matrix))
-  f_stat <- lr / df_test / fit$overdispersion_shrinkage_list$ql_disp_shrunken
-  pval <- pf(f_stat, df_test, df_fit, lower.tail = FALSE, log.p = FALSE)
+  if(is.null(fit$overdispersion_shrinkage_list)){
+    df_fit <- NA_real_
+    f_stat <- lr / df_test
+    pval <-  pchisq(lr, df = df_test, lower.tail = FALSE, log.p = FALSE)
+  }else{
+    df_fit <- fit$overdispersion_shrinkage_list$ql_df0 + (ncol(data) - ncol(fit$model_matrix))
+    f_stat <- lr / df_test / fit$overdispersion_shrinkage_list$ql_disp_shrunken
+    pval <- pf(f_stat, df_test, df_fit, lower.tail = FALSE, log.p = FALSE)
+  }
   adj_pval <- p.adjust(pval, method = pval_adjust_method)
 
   names <- rownames(data)

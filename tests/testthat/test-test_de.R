@@ -295,3 +295,22 @@ test_that("ignore_degeneracy is propagated", {
 })
 
 
+test_that("test_de works without shrinkage", {
+  set.seed(1)
+  Y <- matrix(rnbinom(n = 30 * 10, mu = 4, size = 0.3), nrow = 30, ncol  =10)
+  annot <- data.frame(group = sample(c("A", "B"), size = 10, replace = TRUE),
+                      cont1 = rnorm(10), cont2 = rnorm(10, mean = 30))
+  fit <- glm_gp(Y, design = ~ group + cont1, col_data = annot)
+  res <- test_de(fit, reduced_design = ~ group)
+
+  fit2 <- glm_gp(Y, design = ~ group + cont1, col_data = annot, overdispersion_shrinkage = FALSE)
+  res2 <- test_de(fit2, reduced_design = ~ group)
+
+  expect_equal(colnames(res), colnames(res2))
+  expect_equal(res$name, res2$name)
+  expect_equal(res$df1, res2$df1)
+  expect_equal(res2$df2, rep(NA_real_, 30))
+  expect_gt(cor(res$pval, res2$pval), 0.9)
+})
+
+
