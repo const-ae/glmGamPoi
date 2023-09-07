@@ -19,9 +19,11 @@ parse_contrast <- function(contrast, coefficient_names, formula = NULL) {
 
   covar_indicators <- list()
   for(lvl in coefficient_names){
-    ind <- indicators[, lvl]
-    names(ind) <- coefficient_names
-    covar_indicators[[lvl]] <- ind
+    if(lvl != ""){
+      ind <- indicators[, lvl]
+      names(ind) <- coefficient_names
+      covar_indicators[[lvl]] <- ind
+    }
   }
   top <- rlang::new_environment(list(
     cond = function(...){
