@@ -1,3 +1,6 @@
+Version 1.15 (2023-11-04)
++ Fix typo in `quasi_gamma_poisson_shrinkage` example (thanks to @nlubock)
+
 Version 1.13 (2023-07-03)
 + Implement a likelihood ratio test based on the Chi-squared distribution, if
 `test_de` is called after setting `overdispersion_shrinkage = FALSE`. Note that
