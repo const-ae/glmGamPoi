@@ -64,10 +64,10 @@ loc_median_fit <- function(x, y, fraction = 0.1, npoints = max(1, round(length(x
 
   if(end < start){
     if(weighted){
-      wm <- matrixStats::weightedMedian(y, w =  dnorm(seq(-3, 3, length.out = length(x))))
+      wm <- matrixStats::weightedMedian(ordered_y, w =  dnorm(seq(-3, 3, length.out = length(x))))
       return(rep(wm, length(x)))
     }else{
-      return(rep(median(y), length(x)))
+      return(rep(median(ordered_y), length(x)))
     }
   }
 
@@ -95,8 +95,8 @@ loc_median_fit <- function(x, y, fraction = 0.1, npoints = max(1, round(length(x
   }
 
   # Fill up NA's at the beginning and the end
-  res[seq(1, start - 1)] <- res[start]
-  res[seq(length(x), end+1)] <- res[end]
+  res[seq(1, max(1, start - 1))] <- res[start]
+  res[seq(min(length(x), end+1), length(x))] <- res[end]
 
   if (sample_fraction == 1){
     res[order(order(x))]
