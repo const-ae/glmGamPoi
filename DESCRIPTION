@@ -1,9 +1,11 @@
 Package: glmGamPoi
 Type: Package
 Title: Fit a Gamma-Poisson Generalized Linear Model
-Version: 1.15.1
+Version: 1.15.2
 Authors@R: c(person("Constantin", "Ahlmann-Eltze", email = "artjom31415@googlemail.com", 
                     role = c("aut", "cre"), comment = c(ORCID = "0000-0002-3762-068X")),
+             person("Nathan", "Lubock", email="lubock.nathan@gmail.com", role = "ctb", 
+                    comment = c(ORCID = "0000-0001-8064-2465")),
              person("Michael", "Love", email="michaelisaiahlove@gmail.com", role = "ctb"))
 Description: Fit linear models to overdispersed count data.
      The package can estimate the overdispersion and fit repeated models
