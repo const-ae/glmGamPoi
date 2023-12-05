@@ -31,5 +31,35 @@ test_that("loc_median_fit works", {
 })
 
 
+test_that("loc_median_fit works with subsampling", {
+  x <- sample(1:10)
+  y <- rnorm(n = 10)
+  expect_equal(loc_median_fit(x, y, npoints = 1, sample_fraction = 0.9999),
+               loc_median_fit(x, y, npoints = 1, sample_fraction = 1))
+  expect_equal(loc_median_fit(x, y, npoints = 2, sample_fraction = 0.9999),
+               loc_median_fit(x, y, npoints = 2, sample_fraction = 1))
+  expect_equal(loc_median_fit(x, y, npoints = 10, sample_fraction = 0.9999, weighted = TRUE),
+               loc_median_fit(x, y, npoints = 10, sample_fraction = 1, weighted = TRUE))
+  expect_equal(loc_median_fit(x, y, npoints = 20, sample_fraction = 0.9999),
+               loc_median_fit(x, y, npoints = 20, sample_fraction = 1))
+
+
+  expect_equal(length(loc_median_fit(x, y, fraction = 1, sample_fraction = 1, weighted = FALSE)), 10)
+  expect_equal(length(loc_median_fit(x, y, fraction = 1, sample_fraction = 0.9999, weighted = FALSE)), 10)
+  expect_equal(length(loc_median_fit(x, y, fraction = 1, sample_fraction = 0.5, weighted = FALSE)), 10)
+  expect_equal(length(loc_median_fit(x, y, fraction = 1, sample_fraction = 0.00001, weighted = FALSE)), 10)
+
+  expect_equal(length(loc_median_fit(x, y, npoints = 4, sample_fraction = 1, weighted = FALSE)), 10)
+  expect_equal(length(loc_median_fit(x, y, npoints = 4, sample_fraction = 0.9999, weighted = FALSE)), 10)
+  expect_equal(length(loc_median_fit(x, y, npoints = 4, sample_fraction = 0.5, weighted = FALSE)), 10)
+  expect_equal(length(loc_median_fit(x, y, npoints = 4, sample_fraction = 0.00001, weighted = FALSE)), 10)
+
+  expect_equal(length(loc_median_fit(x[0], y[0], npoints = 4, sample_fraction = 1, weighted = FALSE)), 0)
+  expect_equal(length(loc_median_fit(x[0], y[0], npoints = 4, sample_fraction = 0.9999, weighted = FALSE)), 0)
+  expect_equal(length(loc_median_fit(x[0], y[0], npoints = 4, sample_fraction = 0.5, weighted = FALSE)), 0)
+  expect_equal(length(loc_median_fit(x[0], y[0], npoints = 4, sample_fraction = 0.00001, weighted = FALSE)), 0)
+})
+
+
 
 
