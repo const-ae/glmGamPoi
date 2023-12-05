@@ -49,11 +49,13 @@ loc_median_fit <- function(x, y, fraction = 0.1, npoints = max(1, round(length(x
     stop("sample_fraction must be a numeric value between 0 and 1.")
   }
   if(sample_fraction != 1){
-    subset_size <- round(sample_fraction * length(x))
+    subset_size <- max((length(x) != 0) * 1.0, round(sample_fraction * length(x)))
     sample_indices <- sample.int(length(x), size = subset_size)
     x_orig <- x
     x <- x[sample_indices]
     y <- y[sample_indices]
+  }else{
+    x_orig <- x
   }
   ordered_indices <- order(x)
   ordered_y <- y[ordered_indices]
@@ -65,9 +67,9 @@ loc_median_fit <- function(x, y, fraction = 0.1, npoints = max(1, round(length(x
   if(end < start){
     if(weighted){
       wm <- matrixStats::weightedMedian(ordered_y, w =  dnorm(seq(-3, 3, length.out = length(x))))
-      return(rep(wm, length(x)))
+      return(rep(wm, length(x_orig)))
     }else{
-      return(rep(median(ordered_y), length(x)))
+      return(rep(median(ordered_y), length(x_orig)))
     }
   }
 
