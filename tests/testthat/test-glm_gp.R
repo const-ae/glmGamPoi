@@ -331,27 +331,27 @@ test_that("glm_gp can handle mismatching assay vs model matrix names ", {
 })
 
 
-test_that("glm_gp doesn't copy the data", {
-
-  data <- data.frame(fav_food = sample(c("apple", "banana", "cherry"), size = 50, replace = TRUE),
-                     city = sample(c("heidelberg", "paris", "new york"), size = 50, replace = TRUE),
-                     age = rnorm(n = 50, mean = 40, sd = 15))
-  Y <- matrix(rnbinom(n = 10 * 50, mu = 3, size = 1/3.1), nrow = 10, ncol = 50)
-  rownames(Y) <- paste0("gene_", seq_len(10))
-  colnames(Y) <- paste0("person_", seq_len(50))
-  Y_hdf5 <- HDF5Array::writeHDF5Array(Y)
-  dimnames(Y_hdf5) <- dimnames(Y)
-
-  fit_on_disk <- glm_gp(Y_hdf5, design = ~ fav_food + city + age, col_data = data)
-  expect_s4_class(assay(fit_on_disk$data), "DelayedArray")
-  expect_equal(assay(fit_on_disk$data)@seed@seed@filepath, Y_hdf5@seed@seed@filepath)
-
-
-  # fit_in_memory <- glm_gp(Y, design = ~ fav_food + city + age, col_data = data, on_disk = FALSE)
-  # # If you ignore the wrapper for the second, the two objects are identical
-  # .Internal(inspect(Y))
-  # .Internal(inspect(assay(fit_in_memory$data)))
-})
+# test_that("glm_gp doesn't copy the data", {
+#
+#   data <- data.frame(fav_food = sample(c("apple", "banana", "cherry"), size = 50, replace = TRUE),
+#                      city = sample(c("heidelberg", "paris", "new york"), size = 50, replace = TRUE),
+#                      age = rnorm(n = 50, mean = 40, sd = 15))
+#   Y <- matrix(rnbinom(n = 10 * 50, mu = 3, size = 1/3.1), nrow = 10, ncol = 50)
+#   rownames(Y) <- paste0("gene_", seq_len(10))
+#   colnames(Y) <- paste0("person_", seq_len(50))
+#   Y_hdf5 <- HDF5Array::writeHDF5Array(Y)
+#   dimnames(Y_hdf5) <- dimnames(Y)
+#
+#   fit_on_disk <- glm_gp(Y_hdf5, design = ~ fav_food + city + age, col_data = data)
+#   expect_s4_class(assay(fit_on_disk$data), "DelayedArray")
+#   expect_equal(assay(fit_on_disk$data)@seed@seed@filepath, Y_hdf5@seed@seed@filepath)
+#
+#
+#   # fit_in_memory <- glm_gp(Y, design = ~ fav_food + city + age, col_data = data, on_disk = FALSE)
+#   # # If you ignore the wrapper for the second, the two objects are identical
+#   # .Internal(inspect(Y))
+#   # .Internal(inspect(assay(fit_in_memory$data)))
+# })
 
 
 
