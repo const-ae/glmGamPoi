@@ -10,7 +10,8 @@ loc_median_fit(
   fraction = 0.1,
   npoints = max(1, round(length(x) * fraction)),
   weighted = TRUE,
-  ignore_zeros = FALSE
+  ignore_zeros = FALSE,
+  sample_fraction = 1
 )
 }
 \arguments{
@@ -24,6 +25,9 @@ end it is at least one. Default: \code{fraction = 0.1} and
 \item{weighted}{a boolean that indicates if a weighted median is calculated.}
 
 \item{ignore_zeros}{should the zeros be excluded from the fit}
+
+\item{sample_fraction}{use a fraction of the data to estimate the local
+median. Useful for extremely large datasets where the trend is well-sampled}
 }
 \description{
 This function fits y based on x through a (weighted) median using
@@ -39,7 +43,9 @@ called by the user.
 
   plot(x, y)
   fit <- loc_median_fit(x, y, fraction = 0.1)
+  fit2 <- loc_median_fit(x, y, fraction = 0.1, sample_fraction = 0.75)
   points(x, fit, col = "red")
+  points(x, fit2, col = "blue")
 
 
 }

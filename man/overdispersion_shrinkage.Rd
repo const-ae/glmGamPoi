@@ -75,7 +75,7 @@ Empirical Bayesian variance shrinkage (see Smyth 2004).
 }
 }
 \examples{
- Y <- matrix(rnbinom(n = 300 * 4, mu = 6, size = 1/4.2), nrow = 30, ncol = 4)
+ Y <- matrix(rnbinom(n = 300 * 4, mu = 6, size = 1/4.2), nrow = 300, ncol = 4)
  disps <- sapply(seq_len(nrow(Y)), function(idx){
    overdispersion_mle(Y[idx, ])$estimate
  })
