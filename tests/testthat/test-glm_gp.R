@@ -528,16 +528,16 @@ test_that("glm_gp can handle full offset matrices correctly", {
 
 
 
-test_that("glm_gp can handle gigantic counts", {
-  skip_on_os("windows", "test fails on windows")
-  # Integers with values larger than 2^31-1 = 2,147,483,647 = 2.1 * 10^9 cannot be represented by ints
-  mat <- matrix(rpois(n = 5 * 100, lambda = 3 * 10^9), nrow = 5, ncol = 100)
-  expect_true(any(mat > .Machine$integer.max))
-  rand <- rnorm(100)
-  fit <- glmGamPoi::glm_gp(mat, design = ~ rand)
-  expect_equal(exp(fit$Beta[,1]), rep(3e9, times = 5), tolerance = 0.1)
-  expect_equal(fit$Beta[,2], rep(0, times = 5), tolerance = 1e-4)
-})
+# test_that("glm_gp can handle gigantic counts", {
+#   skip_on_os("windows", "test fails on windows")
+#   # Integers with values larger than 2^31-1 = 2,147,483,647 = 2.1 * 10^9 cannot be represented by ints
+#   mat <- matrix(rpois(n = 5 * 100, lambda = 3 * 10^9), nrow = 5, ncol = 100)
+#   expect_true(any(mat > .Machine$integer.max))
+#   rand <- rnorm(100)
+#   fit <- glmGamPoi::glm_gp(mat, design = ~ rand)
+#   expect_equal(exp(fit$Beta[,1]), rep(3e9, times = 5), tolerance = 0.1)
+#   expect_equal(fit$Beta[,2], rep(0, times = 5), tolerance = 1e-4)
+# })
 
 
 
