@@ -35,6 +35,7 @@ knitr::include_graphics("img/kang_data_overview.png")
 I load a `SingleCellExperiment` object containing gene expression counts from eight Lupus patient before and after interferon beta stimulation. The creator of the dataset has already annotated the cell types and if cell is a singlet.
 
 ```{r}
+library(SingleCellExperiment)
 sce <- muscData::Kang18_8vs8() 
 # Keep only genes with more than 5 counts
 sce <- sce[rowSums(counts(sce)) > 5,]
