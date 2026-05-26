@@ -3,3 +3,4 @@
 ^README\.Rmd$
 tmp_scripts
 .github
+^LICENSE\.md$

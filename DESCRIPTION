@@ -11,7 +11,7 @@ Description: Fit linear models to overdispersed count data.
      The package can estimate the overdispersion and fit repeated models
      for matrix input. It is designed to handle large input datasets as they
      typically occur in single cell RNA-seq experiments.
-License: GPL-3
+License: MIT + file LICENSE
 Encoding: UTF-8
 SystemRequirements: C++17
 Suggests: 
