@@ -31,6 +31,9 @@ parameters for this option include:
 
   **warning**: while initial testing shows that the method overall yields highly concordant results w/ the reference overdispersion estimation method, further testing/benchmarking is still ongoing and thus it should be considered to be in an unstable/beta status.
 
+  **note**: switching to using the NR-based overdispersion estimator causes one (1) test to fail which previously passed:
+  - [`test-overdispersion.R:149:3`](./tests/testthat/test-overdispersion.R#L149): yields a larger than 1e08 (1e10) value for "weird" input
+
 by default, none of these options are enabled, as an explicit goal is that no changes should affect user outputs after having upgraded unless explicitly desired.
 
 ## internal changes
@@ -54,14 +57,6 @@ a test suite for relevant changes has also been added at [`test-perf_optim.R`](.
 
 moreover, a file to drive benchmarking / regression analysis is provided at [`test_fork.R`](./tests/test_fork.R).
 it will most likely be deleted and maybe moved to a separate repo prior to upstreaming.
-
-> [!IMPORTANT]
-> switching to using the NR-based overdispersion estimator causes four (4) tests to fail which previously passed:
->
-> - [`test-estimate_betas.R:582:3`](./tests/testthat/test-estimate_betas.R#L582): mean relative diff of `-2.1e-05` in `deviances` (existing tolerance is `1.490116e-08`, testthat default)
-> - [`test-estimate_betas.R:583:3`](./tests/testthat/test-estimate_betas.R#L583): mean relative diff of `8.62e-07` in `overdispersions` (existing tolerance is `1.490116e-08`, testthat default)
-> - [`test-estimate_betas.R:584:3`](./tests/testthat/test-estimate_betas.R#L584): mean relative diff of `2.850992e-07` in `dispersion_trend` (existing tolerance is `1.490116e-08`, testthat default)
-> - [`test-test_de.R:24:3`](./tests/testthat/test-test_de.R#L24): mean relative diff of `0.1576794` (existing tolerance is `0.1`)
 
 ## miscleanea
 
