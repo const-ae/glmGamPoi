@@ -27,7 +27,9 @@ parameters for this option include:
 
 - `use_nr_overdisp_impl`: utilize an alternative implementation for overdispersion estimation, which is written in C++ and is thread safe, allowing for parallelization of this step
 
-  **note**: due to being specificially aware of the possibility between inconsistencies between the objective and analytic gradient functions for overdispersion estimation, it often succeeds in finding cox-reid adjusted estimations of theta which the original implementation fails to find, leading to non-insignificant changes in output values (including resulting model betas) when the cox-reid adjustment is enabled.
+  **note**: due to being specificially aware of the possibility between inconsistencies between the objective and analytic gradient functions for overdispersion estimation, it often succeeds in finding cox-reid adjusted estimations of overdispersion which the original implementation fails to find, leading to non-insignificant changes in output values (including resulting model betas) when the cox-reid adjustment is enabled.
+
+  **warning**: while initial testing shows that the method overall yields highly concordant results w/ the reference overdispersion estimation method, further testing/benchmarking is still ongoing and thus it should be considered to be in an unstable/beta status.
 
 by default, none of these options are enabled, as an explicit goal is that no changes should affect user outputs after having upgraded unless explicitly desired.
 
