@@ -406,11 +406,7 @@ inline void overdispersion_mle_NR_impl(double &est_out, int &iters_out, CharStar
     succ = estimate_theta(log_theta_out, iters_out, y, mean_vec_clamp, model_matrix, false, tol, unique_counts, count_frequencies);
   }
 
-  if (succ) {
-    est_out = std::exp(log_theta_out);
-  } else {
-    est_out = NAN;
-  }
+  est_out = std::exp(log_theta_out);
 }
 
 #endif
