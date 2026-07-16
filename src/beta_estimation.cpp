@@ -33,7 +33,7 @@ Eigen::MatrixXd fisher_scoring_diagonal_step_mask(const Eigen::Map<Eigen::Matrix
 // Check how many unique rows are in a matrix and if this number is less than or equal to n
 // This is important to determine if the model can be solved by group averages
 // (ie. the numer of unique rows == number of columns)
-// [[Rcpp::export]]
+// [[Rcpp::export(rng = false)]]
 bool lte_n_equal_rows(const NumericMatrix &matrix, const int n, const double tolerance = 1e-10) {
   NumericMatrix reference_matrix(n, matrix.ncol());
   size_t n_matches = 0;
@@ -58,7 +58,7 @@ bool lte_n_equal_rows(const NumericMatrix &matrix, const int n, const double tol
   return true;
 }
 
-// [[Rcpp::export]]
+// [[Rcpp::export(rng = false)]]
 IntegerVector get_row_groups(const NumericMatrix &matrix, const int n_groups, const double tolerance = 1e-10) {
   NumericMatrix reference_matrix(n_groups, matrix.ncol());
   IntegerVector groups(matrix.nrow());
@@ -170,7 +170,7 @@ List fitBeta_fisher_scoring_impl(const RObject Y, const Eigen::Map<Eigen::Matrix
   return List::create(_["beta_mat"] = beta_mat, _["iter"] = iterations, _["deviance"] = deviance);
 }
 
-// [[Rcpp::export]]
+// [[Rcpp::export(rng = false)]]
 List fitBeta_fisher_scoring(const RObject Y, const Eigen::Map<Eigen::MatrixXd> model_matrix, const RObject exp_offset_matrix,
                             const NumericVector thetas, const Eigen::Map<Eigen::MatrixXd> &beta_mat_v, const Nullable<NumericMatrix> ridge_penalty_nl,
                             const double tolerance, const double max_rel_mu_change, const int max_iter, const bool try_recov_w_optim = false,
@@ -205,7 +205,7 @@ List fitBeta_fisher_scoring(const RObject Y, const Eigen::Map<Eigen::MatrixXd> m
                                      try_recov_w_optim, do_parallel);
 }
 
-// [[Rcpp::export]]
+// [[Rcpp::export(rng = false)]]
 List fitBeta_diagonal_fisher_scoring(const RObject Y, const Eigen::Map<Eigen::MatrixXd> model_matrix, const RObject exp_offset_matrix,
                                      const NumericVector thetas, const Eigen::Map<Eigen::MatrixXd> &beta_mat_v, const double tolerance,
                                      const double max_rel_mu_change, const int max_iter, const bool try_recov_w_optim = false,

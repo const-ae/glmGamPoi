@@ -10,7 +10,7 @@ using namespace Rcpp;
  * than having to create a mask to check for those cases afterwards.
  */
 
-// [[Rcpp::export]]
+// [[Rcpp::export(rng = false)]]
 NumericVector div_zbz_dbl(const NumericVector a, const NumericVector b) {
   int as = a.size();
   int bs = b.size();
@@ -30,7 +30,7 @@ NumericVector div_zbz_dbl(const NumericVector a, const NumericVector b) {
   return res;
 }
 
-// [[Rcpp::export]]
+// [[Rcpp::export(rng = false)]]
 NumericVector div_zbz_int(const IntegerVector a, const IntegerVector b) {
   int as = a.size();
   int bs = b.size();
@@ -50,7 +50,7 @@ NumericVector div_zbz_int(const IntegerVector a, const IntegerVector b) {
   return res;
 }
 
-// [[Rcpp::export]]
+// [[Rcpp::export(rng = false)]]
 NumericMatrix div_zbz_dbl_mat(const NumericMatrix a, const NumericMatrix b) {
   if (a.nrow() != b.nrow() || a.ncol() != b.ncol()) {
     stop("The dimensions of the matrices must match");
@@ -60,7 +60,7 @@ NumericMatrix div_zbz_dbl_mat(const NumericMatrix a, const NumericMatrix b) {
   return res;
 }
 
-// [[Rcpp::export]]
+// [[Rcpp::export(rng = false)]]
 NumericMatrix div_zbz_int_mat(const IntegerMatrix a, const IntegerMatrix b) {
   if (a.nrow() != b.nrow() || a.ncol() != b.ncol()) {
     stop("The dimensions of the matrices must match");

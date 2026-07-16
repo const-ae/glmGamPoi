@@ -61,7 +61,6 @@ bool lte_n_equal_rows(const NumericMatrix& matrix, const int n, const double tol
 RcppExport SEXP _glmGamPoi2_lte_n_equal_rows(SEXP matrixSEXP, SEXP nSEXP, SEXP toleranceSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< const NumericMatrix& >::type matrix(matrixSEXP);
     Rcpp::traits::input_parameter< const int >::type n(nSEXP);
     Rcpp::traits::input_parameter< const double >::type tolerance(toleranceSEXP);
@@ -74,7 +73,6 @@ IntegerVector get_row_groups(const NumericMatrix& matrix, const int n_groups, co
 RcppExport SEXP _glmGamPoi2_get_row_groups(SEXP matrixSEXP, SEXP n_groupsSEXP, SEXP toleranceSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< const NumericMatrix& >::type matrix(matrixSEXP);
     Rcpp::traits::input_parameter< const int >::type n_groups(n_groupsSEXP);
     Rcpp::traits::input_parameter< const double >::type tolerance(toleranceSEXP);
@@ -87,7 +85,6 @@ List fitBeta_fisher_scoring(const RObject Y, const Eigen::Map<Eigen::MatrixXd> m
 RcppExport SEXP _glmGamPoi2_fitBeta_fisher_scoring(SEXP YSEXP, SEXP model_matrixSEXP, SEXP exp_offset_matrixSEXP, SEXP thetasSEXP, SEXP beta_mat_vSEXP, SEXP ridge_penalty_nlSEXP, SEXP toleranceSEXP, SEXP max_rel_mu_changeSEXP, SEXP max_iterSEXP, SEXP try_recov_w_optimSEXP, SEXP do_parallelSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< const RObject >::type Y(YSEXP);
     Rcpp::traits::input_parameter< const Eigen::Map<Eigen::MatrixXd> >::type model_matrix(model_matrixSEXP);
     Rcpp::traits::input_parameter< const RObject >::type exp_offset_matrix(exp_offset_matrixSEXP);
@@ -108,7 +105,6 @@ List fitBeta_diagonal_fisher_scoring(const RObject Y, const Eigen::Map<Eigen::Ma
 RcppExport SEXP _glmGamPoi2_fitBeta_diagonal_fisher_scoring(SEXP YSEXP, SEXP model_matrixSEXP, SEXP exp_offset_matrixSEXP, SEXP thetasSEXP, SEXP beta_mat_vSEXP, SEXP toleranceSEXP, SEXP max_rel_mu_changeSEXP, SEXP max_iterSEXP, SEXP try_recov_w_optimSEXP, SEXP do_parallelSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< const RObject >::type Y(YSEXP);
     Rcpp::traits::input_parameter< const Eigen::Map<Eigen::MatrixXd> >::type model_matrix(model_matrixSEXP);
     Rcpp::traits::input_parameter< const RObject >::type exp_offset_matrix(exp_offset_matrixSEXP);
@@ -200,7 +196,6 @@ List make_table_if_small(const NumericVector x, int stop_if_larger);
 RcppExport SEXP _glmGamPoi2_make_table_if_small(SEXP xSEXP, SEXP stop_if_largerSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< const NumericVector >::type x(xSEXP);
     Rcpp::traits::input_parameter< int >::type stop_if_larger(stop_if_largerSEXP);
     rcpp_result_gen = Rcpp::wrap(make_table_if_small(x, stop_if_larger));
@@ -212,7 +207,6 @@ double conventional_loglikelihood_fast(const NumericVector y, const Eigen::Map<E
 RcppExport SEXP _glmGamPoi2_conventional_loglikelihood_fast(SEXP ySEXP, SEXP muSEXP, SEXP log_thetaSEXP, SEXP model_matrixSEXP, SEXP do_cr_adjSEXP, SEXP unique_countsSEXP, SEXP count_frequenciesSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< const NumericVector >::type y(ySEXP);
     Rcpp::traits::input_parameter< const Eigen::Map<Eigen::VectorXd>& >::type mu(muSEXP);
     Rcpp::traits::input_parameter< double >::type log_theta(log_thetaSEXP);
@@ -229,7 +223,6 @@ double conventional_score_function_fast(const NumericVector y, const Eigen::Map<
 RcppExport SEXP _glmGamPoi2_conventional_score_function_fast(SEXP ySEXP, SEXP muSEXP, SEXP log_thetaSEXP, SEXP model_matrixSEXP, SEXP do_cr_adjSEXP, SEXP unique_countsSEXP, SEXP count_frequenciesSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< const NumericVector >::type y(ySEXP);
     Rcpp::traits::input_parameter< const Eigen::Map<Eigen::VectorXd>& >::type mu(muSEXP);
     Rcpp::traits::input_parameter< double >::type log_theta(log_thetaSEXP);
@@ -246,7 +239,6 @@ double conventional_deriv_score_function_fast(const NumericVector y, const Eigen
 RcppExport SEXP _glmGamPoi2_conventional_deriv_score_function_fast(SEXP ySEXP, SEXP muSEXP, SEXP log_thetaSEXP, SEXP model_matrixSEXP, SEXP do_cr_adjSEXP, SEXP unique_countsSEXP, SEXP count_frequenciesSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< const NumericVector >::type y(ySEXP);
     Rcpp::traits::input_parameter< const Eigen::Map<Eigen::VectorXd>& >::type mu(muSEXP);
     Rcpp::traits::input_parameter< double >::type log_theta(log_thetaSEXP);
@@ -263,7 +255,6 @@ List NR_overdispersion_mle(const NumericVector y, const Eigen::Map<Eigen::Vector
 RcppExport SEXP _glmGamPoi2_NR_overdispersion_mle(SEXP ySEXP, SEXP mu_vectorSEXP, SEXP model_matrixSEXP, SEXP do_cox_reid_adjustmentSEXP, SEXP max_iterSEXP, SEXP toleranceSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< const NumericVector >::type y(ySEXP);
     Rcpp::traits::input_parameter< const Eigen::Map<Eigen::VectorXd>& >::type mu_vector(mu_vectorSEXP);
     Rcpp::traits::input_parameter< const Eigen::Map<Eigen::MatrixXd>& >::type model_matrix(model_matrixSEXP);
@@ -279,7 +270,6 @@ List estimate_overdispersions_fast(const RObject Y, const RObject mean_matrix, c
 RcppExport SEXP _glmGamPoi2_estimate_overdispersions_fast(SEXP YSEXP, SEXP mean_matrixSEXP, SEXP model_matrixSEXP, SEXP do_cox_reid_adjustmentSEXP, SEXP n_subsamplesSEXP, SEXP max_iterSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< const RObject >::type Y(YSEXP);
     Rcpp::traits::input_parameter< const RObject >::type mean_matrix(mean_matrixSEXP);
     Rcpp::traits::input_parameter< const NumericMatrix >::type model_matrix(model_matrixSEXP);
@@ -295,7 +285,6 @@ List estimate_overdispersions_fast_delayed(const RObject Y, const NumericMatrix 
 RcppExport SEXP _glmGamPoi2_estimate_overdispersions_fast_delayed(SEXP YSEXP, SEXP model_matrixSEXP, SEXP offset_matrixSEXP, SEXP beta_mat_vSEXP, SEXP do_cox_reid_adjustmentSEXP, SEXP n_subsamplesSEXP, SEXP max_iterSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< const RObject >::type Y(YSEXP);
     Rcpp::traits::input_parameter< const NumericMatrix >::type model_matrix(model_matrixSEXP);
     Rcpp::traits::input_parameter< const RObject >::type offset_matrix(offset_matrixSEXP);
@@ -312,7 +301,6 @@ NumericVector estimate_global_overdispersions_fast(const RObject Y, const RObjec
 RcppExport SEXP _glmGamPoi2_estimate_global_overdispersions_fast(SEXP YSEXP, SEXP mean_matrixSEXP, SEXP model_matrixSEXP, SEXP do_cox_reid_adjustmentSEXP, SEXP log_thetasSEXP, SEXP do_parallelSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< const RObject >::type Y(YSEXP);
     Rcpp::traits::input_parameter< const RObject >::type mean_matrix(mean_matrixSEXP);
     Rcpp::traits::input_parameter< const Eigen::Map<Eigen::MatrixXd>& >::type model_matrix(model_matrixSEXP);
@@ -328,7 +316,6 @@ NumericVector estimate_global_overdispersions_fast_delayed(const RObject Y, cons
 RcppExport SEXP _glmGamPoi2_estimate_global_overdispersions_fast_delayed(SEXP YSEXP, SEXP model_matrixSEXP, SEXP offset_matrixSEXP, SEXP beta_mat_vSEXP, SEXP do_cox_reid_adjustmentSEXP, SEXP log_thetasSEXP, SEXP do_parallelSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< const RObject >::type Y(YSEXP);
     Rcpp::traits::input_parameter< const Eigen::Map<Eigen::MatrixXd>& >::type model_matrix(model_matrixSEXP);
     Rcpp::traits::input_parameter< const RObject >::type offset_matrix(offset_matrixSEXP);
@@ -382,7 +369,6 @@ NumericVector div_zbz_dbl(const NumericVector a, const NumericVector b);
 RcppExport SEXP _glmGamPoi2_div_zbz_dbl(SEXP aSEXP, SEXP bSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< const NumericVector >::type a(aSEXP);
     Rcpp::traits::input_parameter< const NumericVector >::type b(bSEXP);
     rcpp_result_gen = Rcpp::wrap(div_zbz_dbl(a, b));
@@ -394,7 +380,6 @@ NumericVector div_zbz_int(const IntegerVector a, const IntegerVector b);
 RcppExport SEXP _glmGamPoi2_div_zbz_int(SEXP aSEXP, SEXP bSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< const IntegerVector >::type a(aSEXP);
     Rcpp::traits::input_parameter< const IntegerVector >::type b(bSEXP);
     rcpp_result_gen = Rcpp::wrap(div_zbz_int(a, b));
@@ -406,7 +391,6 @@ NumericMatrix div_zbz_dbl_mat(const NumericMatrix a, const NumericMatrix b);
 RcppExport SEXP _glmGamPoi2_div_zbz_dbl_mat(SEXP aSEXP, SEXP bSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< const NumericMatrix >::type a(aSEXP);
     Rcpp::traits::input_parameter< const NumericMatrix >::type b(bSEXP);
     rcpp_result_gen = Rcpp::wrap(div_zbz_dbl_mat(a, b));
@@ -418,7 +402,6 @@ NumericMatrix div_zbz_int_mat(const IntegerMatrix a, const IntegerMatrix b);
 RcppExport SEXP _glmGamPoi2_div_zbz_int_mat(SEXP aSEXP, SEXP bSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< const IntegerMatrix >::type a(aSEXP);
     Rcpp::traits::input_parameter< const IntegerMatrix >::type b(bSEXP);
     rcpp_result_gen = Rcpp::wrap(div_zbz_int_mat(a, b));

@@ -16,7 +16,7 @@ using Eigen::VectorXd;
 
 #include "Rtatami.h"
 
-// [[Rcpp::export]]
+// [[Rcpp::export(rng = false)]]
 List make_table_if_small(const NumericVector x, int stop_if_larger) {
   VectorXd keys, values;
 
@@ -27,7 +27,7 @@ List make_table_if_small(const NumericVector x, int stop_if_larger) {
 // we take y as a NumericVector and not a Map<VectorXd> to allow for implicit conversions when y is given as integers if this is called directly from
 // R all numerical methods on the C++ side work assuming floating point inputs, so these copies are theoretically unavoidable (TODO: find way of maybe
 // avoiding this?)
-// [[Rcpp::export]]
+// [[Rcpp::export(rng = false)]]
 double conventional_loglikelihood_fast(const NumericVector y, const Eigen::Map<Eigen::VectorXd> &mu, double log_theta,
                                        const Eigen::Map<Eigen::MatrixXd> &model_matrix, bool do_cr_adj,
                                        NumericVector unique_counts = NumericVector::create(),
@@ -36,7 +36,7 @@ double conventional_loglikelihood_fast(const NumericVector y, const Eigen::Map<E
       count_frequencies_v(count_frequencies.begin(), count_frequencies.size()), y_v(y.begin(), y.size());
   return conventional_loglikelihood_fast_impl(y_v, mu, log_theta, model_matrix, do_cr_adj, unique_counts_v, count_frequencies_v);
 }
-// [[Rcpp::export]]
+// [[Rcpp::export(rng = false)]]
 double conventional_score_function_fast(const NumericVector y, const Eigen::Map<Eigen::VectorXd> &mu, double log_theta,
                                         const Eigen::Map<Eigen::MatrixXd> &model_matrix, bool do_cr_adj,
                                         NumericVector unique_counts = NumericVector::create(),
@@ -45,7 +45,7 @@ double conventional_score_function_fast(const NumericVector y, const Eigen::Map<
       count_frequencies_v(count_frequencies.begin(), count_frequencies.size()), y_v(y.begin(), y.size());
   return conventional_score_function_fast_impl(y_v, mu, log_theta, model_matrix, do_cr_adj, unique_counts_v, count_frequencies_v);
 }
-// [[Rcpp::export]]
+// [[Rcpp::export(rng = false)]]
 double conventional_deriv_score_function_fast(const NumericVector y, const Eigen::Map<Eigen::VectorXd> &mu, double log_theta,
                                               const Eigen::Map<Eigen::MatrixXd> &model_matrix, bool do_cr_adj,
                                               const NumericVector unique_counts = NumericVector::create(),
@@ -54,7 +54,7 @@ double conventional_deriv_score_function_fast(const NumericVector y, const Eigen
       count_frequencies_v(count_frequencies.begin(), count_frequencies.size()), y_v(y.begin(), y.size());
   return conventional_deriv_score_function_fast_impl(y_v, mu, log_theta, model_matrix, do_cr_adj, unique_counts_v, count_frequencies_v);
 }
-// [[Rcpp::export]]
+// [[Rcpp::export(rng = false)]]
 List NR_overdispersion_mle(const NumericVector y, const Eigen::Map<Eigen::VectorXd> &mu_vector, const Eigen::Map<Eigen::MatrixXd> &model_matrix,
                            const bool do_cox_reid_adjustment, const int max_iter, const double tolerance = 1e-8) {
   const Map<const VectorXd> y_v(y.begin(), y.size());
@@ -67,7 +67,7 @@ List NR_overdispersion_mle(const NumericVector y, const Eigen::Map<Eigen::Vector
   return List::create(_["estimate"] = est, _["iterations"] = iters, _["message"] = msg);
 }
 
-// [[Rcpp::export]]
+// [[Rcpp::export(rng = false)]]
 List estimate_overdispersions_fast(const RObject Y, const RObject mean_matrix, const NumericMatrix model_matrix, const bool do_cox_reid_adjustment,
                                    const double n_subsamples, const int max_iter) {
   Rtatami::BoundNumericPointer Y_bm_ptr(Y);
@@ -118,7 +118,7 @@ List estimate_overdispersions_fast(const RObject Y, const RObject mean_matrix, c
   return List::create(_["estimate"] = estimates, _["iterations"] = iterations, _["message"] = messages);
 }
 
-// [[Rcpp::export]]
+// [[Rcpp::export(rng = false)]]
 List estimate_overdispersions_fast_delayed(const RObject Y, const NumericMatrix model_matrix, const RObject offset_matrix,
                                            const Eigen::Map<Eigen::MatrixXd> &beta_mat_v, const bool do_cox_reid_adjustment, const int n_subsamples,
                                            const int max_iter) {
@@ -181,7 +181,7 @@ List estimate_overdispersions_fast_delayed(const RObject Y, const NumericMatrix 
   return List::create(_["estimate"] = estimates, _["iterations"] = iterations, _["message"] = messages);
 }
 
-// [[Rcpp::export]]
+// [[Rcpp::export(rng = false)]]
 NumericVector estimate_global_overdispersions_fast(const RObject Y, const RObject mean_matrix, const Eigen::Map<Eigen::MatrixXd> &model_matrix,
                                                    const bool do_cox_reid_adjustment, const NumericVector log_thetas, const int do_parallel = 0) {
   Rtatami::BoundNumericPointer Y_bm_ptr(Y);
@@ -237,7 +237,7 @@ NumericVector estimate_global_overdispersions_fast(const RObject Y, const RObjec
   return log_likelihoods;
 }
 
-// [[Rcpp::export]]
+// [[Rcpp::export(rng = false)]]
 NumericVector estimate_global_overdispersions_fast_delayed(const RObject Y, const Eigen::Map<Eigen::MatrixXd> &model_matrix,
                                                            const RObject offset_matrix, const Eigen::Map<Eigen::MatrixXd> &beta_mat_v,
                                                            const bool do_cox_reid_adjustment, const NumericVector log_thetas,
@@ -304,7 +304,7 @@ NumericVector estimate_global_overdispersions_fast_delayed(const RObject Y, cons
   return log_likelihoods;
 }
 
-// [[Rcpp::export]]
+// [[Rcpp::export(rng = true)]]
 List estimate_overdispersions_nr_fast(const RObject Y, const RObject mean_matrix, const Eigen::Map<Eigen::MatrixXd> &model_matrix,
                                       const bool do_cox_reid_adjustment, const int n_subsamples, const int max_iter, const double tolerance = 1e-8,
                                       const int do_parallel = 0) {
@@ -322,6 +322,8 @@ List estimate_overdispersions_nr_fast(const RObject Y, const RObject mean_matrix
 
   const bool do_sub = n_subsamples < n_samples;
 
+  const unsigned int seed = do_sub ? (int)Rcpp::runif(1, 0., (double)INT_MAX)[0] : 0;
+
   const auto run = [&](const int start, const int length, auto &estimates, auto &iterations, auto &messages) -> void {
     auto Y_ext = tatami::consecutive_extractor<false>(Y_bm, true, start, length);
     auto mean_mat_ext = tatami::consecutive_extractor<false>(mean_mat_bm, true, start, length);
@@ -331,9 +333,8 @@ List estimate_overdispersions_nr_fast(const RObject Y, const RObject mean_matrix
     std::unique_ptr<std::default_random_engine> gen;
     std::unique_ptr<std::vector<int>> idx;
     if (do_sub) {
-      gen = std::unique_ptr<std::default_random_engine>(new std::default_random_engine);
       // seed rng w/ value from R RNG to ensure reproducibility w/ set.seed from R
-      gen->seed((int)Rcpp::runif(1, 0., (double)INT_MAX)(0));
+      gen = std::unique_ptr<std::default_random_engine>(new std::default_random_engine(seed + ((unsigned int)(start))));
 
       idx = std::unique_ptr<std::vector<int>>(new std::vector<int>(n_samples));
       std::iota(idx->begin(), idx->end(), 0);
@@ -411,7 +412,7 @@ List estimate_overdispersions_nr_fast(const RObject Y, const RObject mean_matrix
   }
 }
 
-// [[Rcpp::export]]
+// [[Rcpp::export(rng = true)]]
 List estimate_overdispersions_nr_fast_delayed(const RObject Y, const Eigen::Map<Eigen::MatrixXd> &model_matrix, const RObject offset_matrix,
                                               const Eigen::Map<Eigen::MatrixXd> &beta_mat_v, const bool do_cox_reid_adjustment,
                                               const int n_subsamples, const int max_iter, const double tolerance = 1e-8, const int do_parallel = 0) {
@@ -430,6 +431,8 @@ List estimate_overdispersions_nr_fast_delayed(const RObject Y, const Eigen::Map<
 
   const bool do_sub = n_subsamples < n_samples;
 
+  const unsigned int seed = do_sub ? (unsigned int)Rcpp::runif(1, 0., (double)UINT_MAX)[0] : 0;
+
   const auto run = [&](const int start, const int length, auto &estimates, auto &iterations, auto &messages) -> void {
     auto Y_ext = tatami::consecutive_extractor<false>(Y_bm, true, start, length);
     std::unique_ptr<tatami::OracularDenseExtractor<double, int>> offsets_ext;
@@ -444,9 +447,8 @@ List estimate_overdispersions_nr_fast_delayed(const RObject Y, const Eigen::Map<
     std::unique_ptr<std::default_random_engine> gen;
     std::unique_ptr<std::vector<int>> idx;
     if (do_sub) {
-      gen = std::unique_ptr<std::default_random_engine>(new std::default_random_engine);
       // seed rng w/ value from R RNG to ensure reproducibility w/ set.seed from R
-      gen->seed((int)Rcpp::runif(1, 0., (double)INT_MAX)(0));
+      gen = std::unique_ptr<std::default_random_engine>(new std::default_random_engine(seed + ((unsigned int)(start))));
 
       idx = std::unique_ptr<std::vector<int>>(new std::vector<int>(n_samples));
       std::iota(idx->begin(), idx->end(), 0);

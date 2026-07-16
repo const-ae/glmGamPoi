@@ -69,7 +69,7 @@ local({
                     ))
 
                     test_that(sprintf("%s : perf_optim$use_nr_overdisp_impl generates at worst deviances larger by 0.01%%", templ), {
-                      expect_all_true(((res_alt[["deviances"]] - res[["deviances"]]) / abs(res[["deviances"]])) <= 1e-4)
+                      expect_all_true(((res_alt[["deviances"]] - res[["deviances"]]) <= (1e-4 * abs(res[["deviances"]]))))
                     })
                     test_that(sprintf("%s : perf_optim$use_nr_overdisp_impl generates at worst loglikehoods smaller by 0.01%%", templ), {
                       liks.ref <- logliks.fn(res[["Mu"]], res[["overdispersions"]], res[["model_matrix"]])
@@ -77,7 +77,7 @@ local({
                       mask <- !is.na(liks.ref)
                       liks.ref <- liks.ref[mask]
                       liks.alt <- liks.alt[mask]
-                      expect_all_true(((liks.ref - liks.alt) / abs(liks.ref)) <= 1e-4)
+                      expect_all_true(((liks.ref - liks.alt)) <= (1e-4 * abs(liks.ref)))
                     })
                     test_that(sprintf("%s : perf_optim$use_nr_overdisp_impl doesn't significantly change resulting Beta values", templ), {
                       skip_if(cr_adj, "known issue, default overdispersion estimator often ends up falling back to version w/o cox-reid adjustment, which is not true for C++ NR-based estimator")
@@ -105,25 +105,26 @@ local({
   off <- combine_size_factors_and_offset(0, "normed_sum", y)$offset_matrix
   beta <- estimate_betas_roughly(y, mm, off)
 
-  test_w_mu <- function(mu) {
-    r1 <- overdispersion_mle(y, mu, mm, use_nr_overdisp_impl = TRUE)
+  test_w_mu <- function(mu, n) {
+    r1 <- overdispersion_mle(y, mu, mm, use_nr_overdisp_impl = TRUE, do_parallel = n)
 
     set.seed(1)
-    r2 <- overdispersion_mle(y, mu, mm, subsample = 1000, use_nr_overdisp_impl = TRUE)
+    r2 <- overdispersion_mle(y, mu, mm, subsample = 1000, use_nr_overdisp_impl = TRUE, do_parallel = n)
     # check that shuffle respects seeding
     set.seed(1)
-    r3 <- overdispersion_mle(y, mu, mm, subsample = 1000, use_nr_overdisp_impl = TRUE)
+    r3 <- overdispersion_mle(y, mu, mm, subsample = 1000, use_nr_overdisp_impl = TRUE, do_parallel = n)
 
     expect_equal(r1$estimate, r2$estimate, tolerance = 0.1)
     expect_equal(r2$estimate, r3$estimate, tolerance = 0)
   }
-
-  test_that("use_nr_overdisp_impl w/ n_subsamples parameter works", {
-    test_w_mu(calculate_mu(beta, mm, off))
-  })
-  test_that("use_nr_overdisp_impl w/ n_subsamples parameter works (w/ delayed Mu)", {
-    test_w_mu(mk_delayed_mu(beta, mm, off))
-  })
+  for (p in c(0L, 1L, 2L, 32L)) {
+    test_that(sprintf("use_nr_overdisp_impl w/ n_subsamples parameter works (do_parallel=%s)", p), {
+      test_w_mu(calculate_mu(beta, mm, off), p)
+    })
+    test_that(sprintf("use_nr_overdisp_impl w/ n_subsamples parameter works w/ delayed Mu (do_parallel=%s)", p), {
+      test_w_mu(mk_delayed_mu(beta, mm, off), p)
+    })
+  }
 })
 
 
