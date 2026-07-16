@@ -256,41 +256,83 @@ inline bool estimate_theta(double &log_theta_out, int &iters_out, const EMB<D1> 
                            const bool do_cox_reid_adjustment, const double tol, const EMB<D4> &unique_counts, const EMB<D5> &count_frequencies) {
   const int max_iter = iters_out;
 
-  double step, abs_hess;
+  double step = NAN;
   bool use_analytic_grad = true;
 
   double cur_val =
       conventional_loglikelihood_fast_impl(y, mu_vec, log_theta_out, model_matrix, do_cox_reid_adjustment, unique_counts, count_frequencies);
+  double suff_inc = tol * std::abs(cur_val);
 
-  for (iters_out = 0; iters_out < max_iter; iters_out++) {
-    double suff_inc = tol * std::abs(cur_val);
+  const auto ls_inc = [&step, &cv = std::as_const(cur_val), &lt = std::as_const(log_theta_out), &y = std::as_const(y), &mu = std::as_const(mu_vec),
+                       &mm = std::as_const(model_matrix), &cr = std::as_const(do_cox_reid_adjustment), &uc = std::as_const(unique_counts),
+                       &cf = std::as_const(count_frequencies)](double &cand, double &new_val) -> bool {
+    if (new_val < cv) {
+      bool switch_meth = false;
+      do {
+        step *= 0.5;
 
-    // TODO: check generated assembly to see if it's worth "lifting" this if out of the for-loop
-    if (use_analytic_grad) {
-      const double grad =
-          conventional_score_function_fast_impl(y, mu_vec, log_theta_out, model_matrix, do_cox_reid_adjustment, unique_counts, count_frequencies);
-      abs_hess = std::abs(conventional_deriv_score_function_fast_impl(y, mu_vec, log_theta_out, model_matrix, do_cox_reid_adjustment, unique_counts,
-                                                                      count_frequencies));
-      step = std::clamp(grad / abs_hess, NR_STEP_MIN, NR_STEP_MAX);
+        if (std::abs(step) < DBL_EPSILON) {
+          return true;
+        }
+
+        cand = lt + step;
+        new_val = conventional_loglikelihood_fast_impl(y, mu, cand, mm, cr, uc, cf);
+      } while (new_val < cv);
+      step *= 0.95;
+    }
+    return false;
+  };
+
+  iters_out = 0;
+  for (; iters_out < max_iter; iters_out++) {
+    const double grad =
+        conventional_score_function_fast_impl(y, mu_vec, log_theta_out, model_matrix, do_cox_reid_adjustment, unique_counts, count_frequencies);
+    const double abs_hess = std::abs(conventional_deriv_score_function_fast_impl(y, mu_vec, log_theta_out, model_matrix, do_cox_reid_adjustment,
+                                                                                 unique_counts, count_frequencies));
+    step = std::clamp(grad / abs_hess, NR_STEP_MIN, NR_STEP_MAX);
+
+    if (std::isnan(step)) {
+      return false;
+    }
+
+    double cand = log_theta_out + step;
+    double new_val = conventional_loglikelihood_fast_impl(y, mu_vec, cand, model_matrix, do_cox_reid_adjustment, unique_counts, count_frequencies);
+
+    const bool ls_failed = ls_inc(cand, new_val);
+    if (ls_failed) {
+      // initializing the step value for the numeric derivative driven steps
+      // we "cheat" by just using the existing hessian value
+      // (with a clamp since this should be an adjustment)
+      step = std::abs(2. / abs_hess);
+      step = std::min(GA_STEP_MAX, step);
+      break;
+    }
+
+    log_theta_out = cand;
+    if ((new_val - cur_val) < suff_inc) {
+      return true;
+    }
+    cur_val = new_val;
+    suff_inc = tol * std::abs(cur_val);
+  }
+  for (; iters_out < max_iter; iters_out++) {
+    const double step_bwd = conventional_loglikelihood_fast_impl(y, mu_vec, log_theta_out - GA_EPS, model_matrix, do_cox_reid_adjustment,
+                                                                 unique_counts, count_frequencies);
+    const double step_fwd = conventional_loglikelihood_fast_impl(y, mu_vec, log_theta_out + GA_EPS, model_matrix, do_cox_reid_adjustment,
+                                                                 unique_counts, count_frequencies);
+
+    // addition to insure sufficient increase (otherwise some steps can be ill-behaved)
+    const double cur_val_inc = cur_val + suff_inc;
+
+    if (step_bwd > cur_val_inc) {
+      step = -std::abs(step);
+    } else if (step_fwd > cur_val_inc) {
+      step = std::abs(step);
+      const double exp_clamp = std::log1p(GA_STEP_EXP_MAX * std::exp(-log_theta_out));
+      step = std::min(step, exp_clamp);
     } else {
-      const double step_bwd = conventional_loglikelihood_fast_impl(y, mu_vec, log_theta_out - GA_EPS, model_matrix, do_cox_reid_adjustment,
-                                                                   unique_counts, count_frequencies);
-      const double step_fwd = conventional_loglikelihood_fast_impl(y, mu_vec, log_theta_out + GA_EPS, model_matrix, do_cox_reid_adjustment,
-                                                                   unique_counts, count_frequencies);
-
-      // addition to insure sufficient increase (otherwise some steps can be ill-behaved)
-      const double cur_val_inc = cur_val + suff_inc;
-
-      if (step_bwd > cur_val_inc) {
-        step = -std::abs(step);
-      } else if (step_fwd > cur_val_inc) {
-        step = std::abs(step);
-        const double exp_clamp = std::log1p(GA_STEP_EXP_MAX * std::exp(-log_theta_out));
-        step = std::min(step, exp_clamp);
-      } else {
-        // no sufficient increase in either direction, bail
-        return true;
-      }
+      // no sufficient increase in either direction, bail
+      return true;
     }
 
     if (std::isnan(step)) {
@@ -300,50 +342,17 @@ inline bool estimate_theta(double &log_theta_out, int &iters_out, const EMB<D1> 
     double cand = log_theta_out + step;
     double new_val = conventional_loglikelihood_fast_impl(y, mu_vec, cand, model_matrix, do_cox_reid_adjustment, unique_counts, count_frequencies);
 
-    if (new_val < cur_val) {
-      bool switch_meth = false;
-      do {
-        step *= 0.5;
-
-        if (std::abs(step) < DBL_EPSILON) {
-          // we've shrunk our step size by _a lot_
-          if (use_analytic_grad) {
-            // if we're using the analytic gradient and it doesn't find an increase,
-            // it means our gradient and objective disagree
-            // so we continue w/ the numeric approximation method instead
-            switch_meth = true;
-            break;
-          }
-          // we're already using the numeric approximation method and we've:
-          // we've shrunk our relative tolerance and still not found a
-          // value that increases the objective, which should never happen given that
-          // we know that for estimate +/- eps, we saw an increase g.t. cur_val * tol
-          // this would indicate that the objective function is very ill-behaved around our estimate, so we bail
-          return false;
-        }
-
-        cand = log_theta_out + step;
-        new_val = conventional_loglikelihood_fast_impl(y, mu_vec, cand, model_matrix, do_cox_reid_adjustment, unique_counts, count_frequencies);
-      } while (new_val < cur_val);
-
-      if (switch_meth) {
-        // initializing the step value for the numeric derivative driven steps
-        // we "cheat" by just using the existing hessian value (with a clamp since this should be an adjustment)
-        step = std::abs(2. / abs_hess);
-        step = std::min(GA_STEP_MAX, step);
-        use_analytic_grad = false;
-        continue;
-      }
-
-      step *= 0.95;
+    const bool ls_failed = ls_inc(cand, new_val);
+    if (ls_failed) {
+      return false;
     }
 
     log_theta_out = cand;
-
     if ((new_val - cur_val) < suff_inc) {
       return true;
     }
     cur_val = new_val;
+    suff_inc = tol * std::abs(cur_val);
   }
 
   return false;
