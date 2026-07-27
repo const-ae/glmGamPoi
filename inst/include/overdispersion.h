@@ -224,11 +224,11 @@ inline double conventional_deriv_score_function_fast_impl(const EMB<D1> &y, cons
 }
 
 // not using Eigen::MatrixBase as base class here to have access to resize method
-template <class V1, class V2, class V3> inline void make_map_if_small(V1 &unique_counts_out, V2 &freqs_out, const V3 &x, const int stop_if_larger) {
-  std::unordered_map<long, double> count_tab;
+template <class V1, class V2, class V3> inline void make_map_if_small(V1 &unique_counts_out, V2 &freqs_out, const V3 &x, const size_t stop_if_larger) {
+  std::unordered_map<double, double> count_tab;
   count_tab.reserve(stop_if_larger);
   for (auto v : x) {
-    ++count_tab[(long)v];
+    ++count_tab[v];
     if (count_tab.size() > stop_if_larger) {
       return;
     }
@@ -238,7 +238,7 @@ template <class V1, class V2, class V3> inline void make_map_if_small(V1 &unique
   unique_counts_out.resize(count_tab.size());
   freqs_out.resize(count_tab.size());
 
-  int i = 0;
+  size_t i = 0;
   for (auto p : count_tab) {
     unique_counts_out[i] = p.first;
     freqs_out[i] = p.second;
@@ -254,7 +254,7 @@ const double GA_STEP_EXP_MAX = 2048.;
 template <class D1, class D2, class D3, class D4, class D5>
 inline bool estimate_theta(double &log_theta_out, int &iters_out, const EMB<D1> &y, const EMB<D2> &mu_vec, const EMB<D3> &model_matrix,
                            const bool do_cox_reid_adjustment, const double tol, const EMB<D4> &unique_counts, const EMB<D5> &count_frequencies) {
-  const int max_iter = iters_out;
+  const auto max_iter = iters_out;
 
   double step = NAN;
   bool use_analytic_grad = true;

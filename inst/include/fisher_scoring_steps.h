@@ -53,7 +53,7 @@ inline VectorXd fisher_scoring_qr_step(const EMB<D1> &model_matrix, const EMB<D2
 template <class D1, class D2, class D3, class D4, class D5, class D6, class D7>
 inline VectorXd fisher_scoring_qr_ridge_step(const EMB<D1> &model_matrix, const EMB<D2> &counts, const EMB<D3> &mu, const EMB<D4> &theta_times_mu,
                                              const EMB<D5> &ridge_penalty, const EMB<D6> &ridge_target, const EMB<D7> &beta_hat) {
-  const int extra = ridge_penalty.rows();
+  const size_t extra = ridge_penalty.rows();
 
   // the sqrt(n) is important to scale the ridge_penalty by the number of samples
   // i.e. pen = sum dev(y, mu) + n * b^t Lambda^t Lambda b^t

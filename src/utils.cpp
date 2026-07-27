@@ -12,13 +12,13 @@ using namespace Rcpp;
 
 // [[Rcpp::export(rng = false)]]
 NumericVector div_zbz_dbl(const NumericVector a, const NumericVector b) {
-  int as = a.size();
-  int bs = b.size();
+  size_t as = a.size();
+  size_t bs = b.size();
   if (as != bs) {
     stop("Size of a and b must match");
   }
   NumericVector res(as);
-  for (int idx = 0; idx < as; idx++) {
+  for (size_t idx = 0; idx < as; idx++) {
     double ai = a[idx];
     double bi = b[idx];
     if (ai == 0 && bi == 0) {
@@ -32,15 +32,15 @@ NumericVector div_zbz_dbl(const NumericVector a, const NumericVector b) {
 
 // [[Rcpp::export(rng = false)]]
 NumericVector div_zbz_int(const IntegerVector a, const IntegerVector b) {
-  int as = a.size();
-  int bs = b.size();
+  size_t as = a.size();
+  size_t bs = b.size();
   if (as != bs) {
     stop("Size of a and b must match");
   }
   NumericVector res(as);
-  for (int idx = 0; idx < as; idx++) {
-    int ai = a[idx];
-    int bi = b[idx];
+  for (size_t idx = 0; idx < as; idx++) {
+    size_t ai = a[idx];
+    size_t bi = b[idx];
     if (ai == 0 && bi == 0) {
       res[idx] = 0;
     } else {

@@ -112,8 +112,8 @@ List fitBeta_fisher_scoring_impl(const RObject Y, const Eigen::Map<Eigen::Matrix
   Rtatami::BoundNumericPointer exp_offsets_bm_ptr(exp_offset_matrix);
   const auto &exp_offsets_bm = *(exp_offsets_bm_ptr->ptr);
 
-  const int n_samples = Y_bm.ncol();
-  const int n_genes = Y_bm.nrow();
+  const auto n_samples = Y_bm.ncol();
+  const auto n_genes = Y_bm.nrow();
 
   // out matrix, initialized as copy from view of initial betas matrix
   MatrixXd beta_mat = beta_mat_v;
@@ -125,9 +125,9 @@ List fitBeta_fisher_scoring_impl(const RObject Y, const Eigen::Map<Eigen::Matrix
   Map<VectorXi> iterations_v(iterations.begin(), iterations.size());
   Map<VectorXd> deviance_v(deviance.begin(), deviance.size());
 
-  const auto run = [&](const int start, const int length) -> void {
+  const auto run = [&](const auto start, const auto length) -> void {
     auto Y_ext = tatami::consecutive_extractor<false>(Y_bm, true, start, length);
-    std::unique_ptr<tatami::OracularDenseExtractor<double, int>> exp_offsets_ext;
+    std::unique_ptr<tatami::OracularDenseExtractor<double, tatami::NumericMatrix::index_type>> exp_offsets_ext;
     if (exp_offsets_bm.nrow() > 1) {
       exp_offsets_ext = tatami::consecutive_extractor<false>(exp_offsets_bm, true, start, length);
     } else {
@@ -137,7 +137,7 @@ List fitBeta_fisher_scoring_impl(const RObject Y, const Eigen::Map<Eigen::Matrix
     VectorXd counts(n_samples), exp_off(n_samples);
 
     const auto grp_max_id = start + length;
-    for (int gene_idx = start; gene_idx < grp_max_id; gene_idx++) {
+    for (size_t gene_idx = start; gene_idx < grp_max_id; gene_idx++) {
       if (gene_idx % 100 == 0) {
         if (check_interrupt()) {
           return;
@@ -182,7 +182,7 @@ List fitBeta_fisher_scoring(const RObject Y, const Eigen::Map<Eigen::MatrixXd> m
     if (model_matrix.cols() != nc) {
       stop("Number of columns in model_matrix does not match the columns of the ridge_penalty");
     }
-    const auto n_samples = (double)model_matrix.rows();
+    const auto n_samples = static_cast<double>(model_matrix.rows());
 
     if (tmp.hasAttribute("target")) {
       const NumericVector ridge_target_buf = tmp.attr("target");
@@ -224,8 +224,8 @@ List fitBeta_optim_impl(const RObject Y, const Eigen::Map<Eigen::MatrixXd> &mode
   Rtatami::BoundNumericPointer exp_offsets_bm_ptr(exp_offset_matrix);
   const auto &exp_offsets_bm = *(exp_offsets_bm_ptr->ptr);
 
-  const int n_samples = Y_bm.ncol();
-  const int n_genes = Y_bm.nrow();
+  const auto n_samples = Y_bm.ncol();
+  const auto n_genes = Y_bm.nrow();
 
   MatrixXd beta_mat = beta_mat_v;
 
@@ -235,9 +235,9 @@ List fitBeta_optim_impl(const RObject Y, const Eigen::Map<Eigen::MatrixXd> &mode
   Map<VectorXi> iterations_v(iterations.begin(), iterations.size());
   Map<VectorXd> deviance_v(deviance.begin(), deviance.size());
 
-  const auto run = [&](const int start, const int length) -> void {
+  const auto run = [&](const auto start, const auto length) -> void {
     auto Y_ext = tatami::consecutive_extractor<false>(Y_bm, true, start, length);
-    std::unique_ptr<tatami::OracularDenseExtractor<double, int>> exp_offsets_ext;
+    std::unique_ptr<tatami::OracularDenseExtractor<double, tatami::NumericMatrix::index_type>> exp_offsets_ext;
     if (exp_offsets_bm.nrow() > 1) {
       exp_offsets_ext = tatami::consecutive_extractor<false>(exp_offsets_bm, true, start, length);
     } else {
@@ -247,7 +247,7 @@ List fitBeta_optim_impl(const RObject Y, const Eigen::Map<Eigen::MatrixXd> &mode
     VectorXd counts(n_samples), exp_off(n_samples);
 
     const auto grp_max_id = start + length;
-    for (int gene_idx = start; gene_idx < grp_max_id; gene_idx++) {
+    for (size_t gene_idx = start; gene_idx < grp_max_id; gene_idx++) {
       if (gene_idx % 100 == 0) {
         if (check_interrupt()) {
           return;
@@ -291,7 +291,7 @@ List fitBeta_optim(const RObject Y, const Eigen::Map<Eigen::MatrixXd> &model_mat
     if (model_matrix.cols() != nc) {
       stop("Number of columns in model_matrix does not match the columns of the ridge_penalty");
     }
-    const auto n_samples = (double)model_matrix.rows();
+    const auto n_samples = static_cast<double>(model_matrix.rows());
 
     if (tmp.hasAttribute("target")) {
       const NumericVector ridge_target_buf = tmp.attr("target");
@@ -323,8 +323,8 @@ List fitBeta_one_group(const RObject Y, const RObject offset_matrix, const Numer
   Rtatami::BoundNumericPointer offsets_bm_ptr(offset_matrix);
   const auto &offsets_bm = *(offsets_bm_ptr->ptr);
 
-  const int n_samples = Y_bm.ncol();
-  const int n_genes = Y_bm.nrow();
+  const auto n_samples = Y_bm.ncol();
+  const auto n_genes = Y_bm.nrow();
 
   NumericVector result = Rcpp::clone(beta_start_values);
   NumericVector deviance(n_genes);
@@ -333,9 +333,9 @@ List fitBeta_one_group(const RObject Y, const RObject offset_matrix, const Numer
   Map<VectorXd> result_v(result.begin(), result.size()), deviance_v(deviance.begin(), deviance.size());
   Map<VectorXi> iterations_v(iterations.begin(), iterations.size());
 
-  const auto run = [&](const int start, const int length) -> void {
+  const auto run = [&](const auto start, const auto length) -> void {
     auto Y_ext = tatami::consecutive_extractor<false>(Y_bm, true, start, length);
-    std::unique_ptr<tatami::OracularDenseExtractor<double, int>> offset_ext;
+    std::unique_ptr<tatami::OracularDenseExtractor<double, tatami::NumericMatrix::index_type>> offset_ext;
     if (offsets_bm.nrow() > 1) {
       offset_ext = tatami::consecutive_extractor<false>(offsets_bm, true, start, length);
     } else {
@@ -344,7 +344,7 @@ List fitBeta_one_group(const RObject Y, const RObject offset_matrix, const Numer
     VectorXd counts_vec(n_samples), off_vec(n_samples);
 
     const auto grp_max_id = start + length;
-    for (int gene_idx = start; gene_idx < grp_max_id; gene_idx++) {
+    for (size_t gene_idx = start; gene_idx < grp_max_id; gene_idx++) {
       if (gene_idx % 100 == 0) {
         if (check_interrupt()) {
           return;

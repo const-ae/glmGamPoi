@@ -10,8 +10,8 @@ double compute_gp_deviance_mask(const double y, const double mu,const double the
 // [[Rcpp::export(name = "compute_gp_deviance_sum")]]
 double compute_gp_deviance_sum_mask(const NumericVector y,const NumericVector mu,const double theta) {
   double dev = 0.0;
-  const int n_elem = y.size();
-  for (int i = 0; i < n_elem; i++) {
+  const size_t n_elem = y.size();
+  for (size_t i = 0; i < n_elem; i++) {
     dev += compute_gp_deviance(y[i], mu[i], theta);
   }
   return dev;

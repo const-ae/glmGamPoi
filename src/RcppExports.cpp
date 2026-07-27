@@ -192,12 +192,12 @@ BEGIN_RCPP
 END_RCPP
 }
 // make_table_if_small
-List make_table_if_small(const NumericVector x, int stop_if_larger);
+List make_table_if_small(const NumericVector x, size_t stop_if_larger);
 RcppExport SEXP _glmGamPoi2_make_table_if_small(SEXP xSEXP, SEXP stop_if_largerSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::traits::input_parameter< const NumericVector >::type x(xSEXP);
-    Rcpp::traits::input_parameter< int >::type stop_if_larger(stop_if_largerSEXP);
+    Rcpp::traits::input_parameter< size_t >::type stop_if_larger(stop_if_largerSEXP);
     rcpp_result_gen = Rcpp::wrap(make_table_if_small(x, stop_if_larger));
     return rcpp_result_gen;
 END_RCPP
@@ -281,7 +281,7 @@ BEGIN_RCPP
 END_RCPP
 }
 // estimate_overdispersions_fast_delayed
-List estimate_overdispersions_fast_delayed(const RObject Y, const NumericMatrix model_matrix, const RObject offset_matrix, const Eigen::Map<Eigen::MatrixXd>& beta_mat_v, const bool do_cox_reid_adjustment, const int n_subsamples, const int max_iter);
+List estimate_overdispersions_fast_delayed(const RObject Y, const NumericMatrix model_matrix, const RObject offset_matrix, const Eigen::Map<Eigen::MatrixXd>& beta_mat_v, const bool do_cox_reid_adjustment, const size_t n_subsamples, const int max_iter);
 RcppExport SEXP _glmGamPoi2_estimate_overdispersions_fast_delayed(SEXP YSEXP, SEXP model_matrixSEXP, SEXP offset_matrixSEXP, SEXP beta_mat_vSEXP, SEXP do_cox_reid_adjustmentSEXP, SEXP n_subsamplesSEXP, SEXP max_iterSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
@@ -290,7 +290,7 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const RObject >::type offset_matrix(offset_matrixSEXP);
     Rcpp::traits::input_parameter< const Eigen::Map<Eigen::MatrixXd>& >::type beta_mat_v(beta_mat_vSEXP);
     Rcpp::traits::input_parameter< const bool >::type do_cox_reid_adjustment(do_cox_reid_adjustmentSEXP);
-    Rcpp::traits::input_parameter< const int >::type n_subsamples(n_subsamplesSEXP);
+    Rcpp::traits::input_parameter< const size_t >::type n_subsamples(n_subsamplesSEXP);
     Rcpp::traits::input_parameter< const int >::type max_iter(max_iterSEXP);
     rcpp_result_gen = Rcpp::wrap(estimate_overdispersions_fast_delayed(Y, model_matrix, offset_matrix, beta_mat_v, do_cox_reid_adjustment, n_subsamples, max_iter));
     return rcpp_result_gen;
@@ -328,7 +328,7 @@ BEGIN_RCPP
 END_RCPP
 }
 // estimate_overdispersions_nr_fast
-List estimate_overdispersions_nr_fast(const RObject Y, const RObject mean_matrix, const Eigen::Map<Eigen::MatrixXd>& model_matrix, const bool do_cox_reid_adjustment, const int n_subsamples, const int max_iter, const double tolerance, const int do_parallel);
+List estimate_overdispersions_nr_fast(const RObject Y, const RObject mean_matrix, const Eigen::Map<Eigen::MatrixXd>& model_matrix, const bool do_cox_reid_adjustment, const size_t n_subsamples, const int max_iter, const double tolerance, const int do_parallel);
 RcppExport SEXP _glmGamPoi2_estimate_overdispersions_nr_fast(SEXP YSEXP, SEXP mean_matrixSEXP, SEXP model_matrixSEXP, SEXP do_cox_reid_adjustmentSEXP, SEXP n_subsamplesSEXP, SEXP max_iterSEXP, SEXP toleranceSEXP, SEXP do_parallelSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
@@ -337,7 +337,7 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const RObject >::type mean_matrix(mean_matrixSEXP);
     Rcpp::traits::input_parameter< const Eigen::Map<Eigen::MatrixXd>& >::type model_matrix(model_matrixSEXP);
     Rcpp::traits::input_parameter< const bool >::type do_cox_reid_adjustment(do_cox_reid_adjustmentSEXP);
-    Rcpp::traits::input_parameter< const int >::type n_subsamples(n_subsamplesSEXP);
+    Rcpp::traits::input_parameter< const size_t >::type n_subsamples(n_subsamplesSEXP);
     Rcpp::traits::input_parameter< const int >::type max_iter(max_iterSEXP);
     Rcpp::traits::input_parameter< const double >::type tolerance(toleranceSEXP);
     Rcpp::traits::input_parameter< const int >::type do_parallel(do_parallelSEXP);
@@ -346,7 +346,7 @@ BEGIN_RCPP
 END_RCPP
 }
 // estimate_overdispersions_nr_fast_delayed
-List estimate_overdispersions_nr_fast_delayed(const RObject Y, const Eigen::Map<Eigen::MatrixXd>& model_matrix, const RObject offset_matrix, const Eigen::Map<Eigen::MatrixXd>& beta_mat_v, const bool do_cox_reid_adjustment, const int n_subsamples, const int max_iter, const double tolerance, const int do_parallel);
+List estimate_overdispersions_nr_fast_delayed(const RObject Y, const Eigen::Map<Eigen::MatrixXd>& model_matrix, const RObject offset_matrix, const Eigen::Map<Eigen::MatrixXd>& beta_mat_v, const bool do_cox_reid_adjustment, const size_t n_subsamples, const int max_iter, const double tolerance, const int do_parallel);
 RcppExport SEXP _glmGamPoi2_estimate_overdispersions_nr_fast_delayed(SEXP YSEXP, SEXP model_matrixSEXP, SEXP offset_matrixSEXP, SEXP beta_mat_vSEXP, SEXP do_cox_reid_adjustmentSEXP, SEXP n_subsamplesSEXP, SEXP max_iterSEXP, SEXP toleranceSEXP, SEXP do_parallelSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
@@ -356,7 +356,7 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const RObject >::type offset_matrix(offset_matrixSEXP);
     Rcpp::traits::input_parameter< const Eigen::Map<Eigen::MatrixXd>& >::type beta_mat_v(beta_mat_vSEXP);
     Rcpp::traits::input_parameter< const bool >::type do_cox_reid_adjustment(do_cox_reid_adjustmentSEXP);
-    Rcpp::traits::input_parameter< const int >::type n_subsamples(n_subsamplesSEXP);
+    Rcpp::traits::input_parameter< const size_t >::type n_subsamples(n_subsamplesSEXP);
     Rcpp::traits::input_parameter< const int >::type max_iter(max_iterSEXP);
     Rcpp::traits::input_parameter< const double >::type tolerance(toleranceSEXP);
     Rcpp::traits::input_parameter< const int >::type do_parallel(do_parallelSEXP);

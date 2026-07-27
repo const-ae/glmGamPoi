@@ -4,14 +4,14 @@
 #include "tatami/tatami.hpp"
 
 // Oracle sub-class which just always fetches a compile-time constant index
-template <int IndexValue> class ConstIndexOracle final : public tatami::Oracle<int> {
+template <tatami::NumericMatrix::index_type IndexValue> class ConstIndexOracle final : public tatami::Oracle<tatami::NumericMatrix::index_type> {
 private:
   tatami::PredictionIndex length_;
 
 public:
-  ConstIndexOracle(const int length) : length_(sanisizer::cast<tatami::PredictionIndex>(length)) {}
+  ConstIndexOracle(const tatami::NumericMatrix::index_type length) : length_(sanisizer::cast<tatami::PredictionIndex>(length)) {}
   tatami::PredictionIndex total() const { return length_; }
-  int get(const tatami::PredictionIndex i) const { return IndexValue; }
+  tatami::NumericMatrix::index_type get(const tatami::PredictionIndex i) const { return IndexValue; }
 };
 
 #endif

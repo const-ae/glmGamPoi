@@ -5,7 +5,7 @@
 
 #include <algorithm> // for std::shuffle
 #include <numeric>   // for std::iota
-#include <random>    // for std::default_random_engine
+#include <random>
 
 // [[Rcpp::depends(RcppEigen)]]
 #include <RcppEigen.h>
@@ -17,7 +17,7 @@ using Eigen::VectorXd;
 #include "Rtatami.h"
 
 // [[Rcpp::export(rng = false)]]
-List make_table_if_small(const NumericVector x, int stop_if_larger) {
+List make_table_if_small(const NumericVector x, size_t stop_if_larger) {
   VectorXd keys, values;
 
   make_map_if_small(keys, values, x, stop_if_larger);
@@ -75,8 +75,8 @@ List estimate_overdispersions_fast(const RObject Y, const RObject mean_matrix, c
   Rtatami::BoundNumericPointer mean_mat_bm_ptr(mean_matrix);
   const auto &mean_mat_bm = *(mean_mat_bm_ptr->ptr);
 
-  const int n_samples = Y_bm.ncol();
-  const int n_genes = Y_bm.nrow();
+  const auto n_samples = Y_bm.ncol();
+  const auto n_genes = Y_bm.nrow();
 
   NumericVector estimates(n_genes);
   IntegerVector iterations(n_genes);
@@ -93,7 +93,7 @@ List estimate_overdispersions_fast(const RObject Y, const RObject mean_matrix, c
   // This is calling back to R, which simplifies my code a lot
   Environment glmGamPoiEnv = Environment::namespace_env("glmGamPoi2");
   Function overdispersion_mle_impl = glmGamPoiEnv["overdispersion_mle_impl"];
-  for (int gene_idx = 0; gene_idx < n_genes; gene_idx++) {
+  for (size_t gene_idx = 0; gene_idx < n_genes; gene_idx++) {
     if (gene_idx % 100 == 0)
       checkUserInterrupt();
 
@@ -120,23 +120,23 @@ List estimate_overdispersions_fast(const RObject Y, const RObject mean_matrix, c
 
 // [[Rcpp::export(rng = false)]]
 List estimate_overdispersions_fast_delayed(const RObject Y, const NumericMatrix model_matrix, const RObject offset_matrix,
-                                           const Eigen::Map<Eigen::MatrixXd> &beta_mat_v, const bool do_cox_reid_adjustment, const int n_subsamples,
-                                           const int max_iter) {
+                                           const Eigen::Map<Eigen::MatrixXd> &beta_mat_v, const bool do_cox_reid_adjustment,
+                                           const size_t n_subsamples, const int max_iter) {
   Rtatami::BoundNumericPointer Y_bm_ptr(Y);
   const auto &Y_bm = *(Y_bm_ptr->ptr);
 
   Rtatami::BoundNumericPointer offsets_bm_ptr(offset_matrix);
   const auto &offsets_bm = *(offsets_bm_ptr->ptr);
 
-  const int n_samples = Y_bm.ncol();
-  const int n_genes = Y_bm.nrow();
+  const auto n_samples = Y_bm.ncol();
+  const auto n_genes = Y_bm.nrow();
 
   NumericVector estimates(n_genes);
   IntegerVector iterations(n_genes);
   CharacterVector messages(n_genes);
 
   auto Y_ext = tatami::consecutive_extractor<false>(Y_bm, true, 0, n_genes);
-  std::unique_ptr<tatami::OracularDenseExtractor<double, int>> offsets_ext;
+  std::unique_ptr<tatami::OracularDenseExtractor<double, tatami::NumericMatrix::index_type>> offsets_ext;
   if (offsets_bm.nrow() > 1) {
     offsets_ext = tatami::consecutive_extractor<false>(offsets_bm, true, 0, n_genes);
   } else {
@@ -151,7 +151,7 @@ List estimate_overdispersions_fast_delayed(const RObject Y, const NumericMatrix 
 
   const Map<const MatrixXd> model_matrix_m(model_matrix.cbegin(), model_matrix.nrow(), model_matrix.ncol());
 
-  for (int gene_idx = 0; gene_idx < n_genes; gene_idx++) {
+  for (size_t gene_idx = 0; gene_idx < n_genes; gene_idx++) {
     if (gene_idx % 100 == 0)
       Rcpp::checkUserInterrupt();
 
@@ -189,19 +189,19 @@ NumericVector estimate_global_overdispersions_fast(const RObject Y, const RObjec
   Rtatami::BoundNumericPointer mean_mat_bm_ptr(mean_matrix);
   const auto &mean_mat_bm = *(mean_mat_bm_ptr->ptr);
 
-  const int n_samples = Y_bm.ncol();
-  const int n_genes = Y_bm.nrow();
-  const int n_spline_points = log_thetas.size();
+  const auto n_samples = Y_bm.ncol();
+  const auto n_genes = Y_bm.nrow();
+  const auto n_spline_points = log_thetas.size();
 
   NumericVector log_likelihoods(n_spline_points);
 
-  const auto run = [&](const int start, const int length) -> void {
+  const auto run = [&](const auto start, const auto length) -> void {
     auto Y_ext = tatami::consecutive_extractor<false>(Y_bm, true, start, length);
     auto mean_mat_ext = tatami::consecutive_extractor<false>(mean_mat_bm, true, start, length);
     VectorXd counts(n_samples), mu(n_samples);
 
     const auto grp_max_id = start + length;
-    for (int gene_idx = start; gene_idx < grp_max_id; gene_idx++) {
+    for (size_t gene_idx = start; gene_idx < grp_max_id; gene_idx++) {
       if (gene_idx % 100 == 0) {
         if (check_interrupt()) {
           return;
@@ -216,7 +216,7 @@ NumericVector estimate_global_overdispersions_fast(const RObject Y, const RObjec
       VectorXd unique_counts, count_frequencies;
       make_map_if_small(unique_counts, count_frequencies, counts_v, /*stop_if_larger = */ n_samples / 2);
 
-      for (int point_idx = 0; point_idx < n_spline_points; point_idx++) {
+      for (size_t point_idx = 0; point_idx < n_spline_points; point_idx++) {
         log_likelihoods[point_idx] += conventional_loglikelihood_fast_impl(counts_v, mu_v, log_thetas[point_idx], model_matrix,
                                                                            do_cox_reid_adjustment, unique_counts, count_frequencies);
       }
@@ -247,15 +247,15 @@ NumericVector estimate_global_overdispersions_fast_delayed(const RObject Y, cons
   Rtatami::BoundNumericPointer offsets_bm_ptr(offset_matrix);
   const auto &offsets_bm = *(offsets_bm_ptr->ptr);
 
-  const int n_samples = Y_bm.ncol();
-  const int n_genes = Y_bm.nrow();
-  const int n_spline_points = log_thetas.size();
+  const auto n_samples = Y_bm.ncol();
+  const auto n_genes = Y_bm.nrow();
+  const auto n_spline_points = log_thetas.size();
 
   NumericVector log_likelihoods(n_spline_points);
 
-  const auto run = [&](const int start, const int length) -> void {
+  const auto run = [&](const auto start, const auto length) -> void {
     auto Y_ext = tatami::consecutive_extractor<false>(Y_bm, true, start, length);
-    std::unique_ptr<tatami::OracularDenseExtractor<double, int>> offsets_ext;
+    std::unique_ptr<tatami::OracularDenseExtractor<double, tatami::NumericMatrix::index_type>> offsets_ext;
     if (offsets_bm.nrow() > 1) {
       offsets_ext = tatami::consecutive_extractor<false>(offsets_bm, true, start, length);
     } else {
@@ -264,7 +264,7 @@ NumericVector estimate_global_overdispersions_fast_delayed(const RObject Y, cons
     VectorXd counts(n_samples), off(n_samples);
 
     const auto grp_max_id = start + length;
-    for (int gene_idx = start; gene_idx < grp_max_id; gene_idx++) {
+    for (size_t gene_idx = start; gene_idx < grp_max_id; gene_idx++) {
       if (gene_idx % 100 == 0) {
         if (check_interrupt()) {
           return;
@@ -284,7 +284,7 @@ NumericVector estimate_global_overdispersions_fast_delayed(const RObject Y, cons
       VectorXd unique_counts, count_frequencies;
       make_map_if_small(unique_counts, count_frequencies, counts_v, /*stop_if_larger = */ n_samples / 2);
 
-      for (int point_idx = 0; point_idx < n_spline_points; point_idx++) {
+      for (size_t point_idx = 0; point_idx < n_spline_points; point_idx++) {
         log_likelihoods[point_idx] += conventional_loglikelihood_fast_impl(counts_v, mu, log_thetas[point_idx], model_matrix, do_cox_reid_adjustment,
                                                                            unique_counts, count_frequencies);
       }
@@ -306,15 +306,15 @@ NumericVector estimate_global_overdispersions_fast_delayed(const RObject Y, cons
 
 // [[Rcpp::export(rng = true)]]
 List estimate_overdispersions_nr_fast(const RObject Y, const RObject mean_matrix, const Eigen::Map<Eigen::MatrixXd> &model_matrix,
-                                      const bool do_cox_reid_adjustment, const int n_subsamples, const int max_iter, const double tolerance = 1e-8,
+                                      const bool do_cox_reid_adjustment, const size_t n_subsamples, const int max_iter, const double tolerance = 1e-8,
                                       const int do_parallel = 0) {
   Rtatami::BoundNumericPointer Y_bm_ptr(Y);
   const auto &Y_bm = *(Y_bm_ptr->ptr);
   Rtatami::BoundNumericPointer mean_mat_bm_ptr(mean_matrix);
   const auto &mean_mat_bm = *(mean_mat_bm_ptr->ptr);
 
-  const int n_samples = Y_bm.ncol();
-  const int n_genes = Y_bm.nrow();
+  const auto n_samples = Y_bm.ncol();
+  const auto n_genes = Y_bm.nrow();
 
   if (n_genes != mean_mat_bm.nrow() || n_samples != mean_mat_bm.ncol()) {
     throw std::runtime_error("Dimensions of Y and mean_matrix do not match");
@@ -322,26 +322,26 @@ List estimate_overdispersions_nr_fast(const RObject Y, const RObject mean_matrix
 
   const bool do_sub = n_subsamples < n_samples;
 
-  const unsigned int seed = do_sub ? (int)Rcpp::runif(1, 0., (double)INT_MAX)[0] : 0;
+  const size_t seed = do_sub ? static_cast<size_t>(Rcpp::sample(INT_MAX, 1)[0]) : 0;
 
-  const auto run = [&](const int start, const int length, auto &estimates, auto &iterations, auto &messages) -> void {
+  const auto run = [&](const auto start, const auto length, auto &estimates, auto &iterations, auto &messages) -> void {
     auto Y_ext = tatami::consecutive_extractor<false>(Y_bm, true, start, length);
     auto mean_mat_ext = tatami::consecutive_extractor<false>(mean_mat_bm, true, start, length);
     VectorXd counts(n_samples), mu(n_samples);
 
     // use pointers to avoid initializing an RNG when not subsampling
-    std::unique_ptr<std::default_random_engine> gen;
-    std::unique_ptr<std::vector<int>> idx;
+    std::unique_ptr<std::minstd_rand> gen;
+    std::unique_ptr<std::vector<size_t>> idx;
     if (do_sub) {
       // seed rng w/ value from R RNG to ensure reproducibility w/ set.seed from R
-      gen = std::unique_ptr<std::default_random_engine>(new std::default_random_engine(seed + ((unsigned int)(start))));
+      gen = std::unique_ptr<std::minstd_rand>(new std::minstd_rand(seed + static_cast<size_t>(start)));
 
-      idx = std::unique_ptr<std::vector<int>>(new std::vector<int>(n_samples));
+      idx = std::unique_ptr<std::vector<size_t>>(new std::vector<size_t>(n_samples));
       std::iota(idx->begin(), idx->end(), 0);
     }
 
     const auto grp_max_id = start + length;
-    for (int gene_idx = start; gene_idx < grp_max_id; gene_idx++) {
+    for (size_t gene_idx = start; gene_idx < grp_max_id; gene_idx++) {
       if (gene_idx % 100 == 0) {
         if (check_interrupt()) {
           return;
@@ -369,7 +369,7 @@ List estimate_overdispersions_nr_fast(const RObject Y, const RObject mean_matrix
       if (do_sub) {
         // dereferencing gen & idx is safe when gated against do_sub
         std::shuffle(idx->begin(), idx->end(), *gen);
-        const std::vector<int> idx_s(idx->begin(), idx->begin() + n_subsamples);
+        const std::vector<size_t> idx_s(idx->begin(), idx->begin() + n_subsamples);
 
         const VectorXd counts_s = counts_v(idx_s);
         const VectorXd mu_s = mu_v(idx_s);
@@ -388,7 +388,7 @@ List estimate_overdispersions_nr_fast(const RObject Y, const RObject mean_matrix
     std::vector<int> iterations(n_genes);
     std::vector<std::string> messages(n_genes);
 
-    const auto run_w = [&run, &estimates, &iterations, &messages](const int start, const int length) -> void {
+    const auto run_w = [&run, &estimates, &iterations, &messages](const auto start, const auto length) -> void {
       run(start, length, estimates, iterations, messages);
     };
 
@@ -415,15 +415,16 @@ List estimate_overdispersions_nr_fast(const RObject Y, const RObject mean_matrix
 // [[Rcpp::export(rng = true)]]
 List estimate_overdispersions_nr_fast_delayed(const RObject Y, const Eigen::Map<Eigen::MatrixXd> &model_matrix, const RObject offset_matrix,
                                               const Eigen::Map<Eigen::MatrixXd> &beta_mat_v, const bool do_cox_reid_adjustment,
-                                              const int n_subsamples, const int max_iter, const double tolerance = 1e-8, const int do_parallel = 0) {
+                                              const size_t n_subsamples, const int max_iter, const double tolerance = 1e-8,
+                                              const int do_parallel = 0) {
   Rtatami::BoundNumericPointer Y_bm_ptr(Y);
   const auto &Y_bm = *(Y_bm_ptr->ptr);
 
   Rtatami::BoundNumericPointer offsets_bm_ptr(offset_matrix);
   const auto &offsets_bm = *(offsets_bm_ptr->ptr);
 
-  const int n_samples = Y_bm.ncol();
-  const int n_genes = Y_bm.nrow();
+  const auto n_samples = Y_bm.ncol();
+  const auto n_genes = Y_bm.nrow();
 
   std::vector<double> estimates(n_genes);
   std::vector<int> iterations(n_genes);
@@ -431,11 +432,11 @@ List estimate_overdispersions_nr_fast_delayed(const RObject Y, const Eigen::Map<
 
   const bool do_sub = n_subsamples < n_samples;
 
-  const unsigned int seed = do_sub ? (unsigned int)Rcpp::runif(1, 0., (double)UINT_MAX)[0] : 0;
+  const size_t seed = do_sub ? static_cast<size_t>(Rcpp::sample(INT_MAX, 1)[0]) : 0;
 
-  const auto run = [&](const int start, const int length, auto &estimates, auto &iterations, auto &messages) -> void {
+  const auto run = [&](const auto start, const auto length, auto &estimates, auto &iterations, auto &messages) -> void {
     auto Y_ext = tatami::consecutive_extractor<false>(Y_bm, true, start, length);
-    std::unique_ptr<tatami::OracularDenseExtractor<double, int>> offsets_ext;
+    std::unique_ptr<tatami::OracularDenseExtractor<double, tatami::NumericMatrix::index_type>> offsets_ext;
     if (offsets_bm.nrow() > 1) {
       offsets_ext = tatami::consecutive_extractor<false>(offsets_bm, true, start, length);
     } else {
@@ -444,18 +445,18 @@ List estimate_overdispersions_nr_fast_delayed(const RObject Y, const Eigen::Map<
     VectorXd counts(n_samples), off(n_samples);
 
     // use pointers to avoid initializing an RNG when not subsampling
-    std::unique_ptr<std::default_random_engine> gen;
-    std::unique_ptr<std::vector<int>> idx;
+    std::unique_ptr<std::minstd_rand> gen;
+    std::unique_ptr<std::vector<size_t>> idx;
     if (do_sub) {
       // seed rng w/ value from R RNG to ensure reproducibility w/ set.seed from R
-      gen = std::unique_ptr<std::default_random_engine>(new std::default_random_engine(seed + ((unsigned int)(start))));
+      gen = std::unique_ptr<std::minstd_rand>(new std::minstd_rand(seed + static_cast<size_t>(start)));
 
-      idx = std::unique_ptr<std::vector<int>>(new std::vector<int>(n_samples));
+      idx = std::unique_ptr<std::vector<size_t>>(new std::vector<size_t>(n_samples));
       std::iota(idx->begin(), idx->end(), 0);
     }
 
     const auto grp_max_id = start + length;
-    for (int gene_idx = start; gene_idx < grp_max_id; gene_idx++) {
+    for (size_t gene_idx = start; gene_idx < grp_max_id; gene_idx++) {
       if (gene_idx % 100 == 0) {
         if (check_interrupt()) {
           return;
@@ -476,7 +477,7 @@ List estimate_overdispersions_nr_fast_delayed(const RObject Y, const Eigen::Map<
       if (do_sub) {
         // dereferencing gen & idx is safe when gated against do_sub
         std::shuffle(idx->begin(), idx->end(), *gen);
-        const std::vector<int> idx_s(idx->begin(), idx->begin() + n_subsamples);
+        const std::vector<size_t> idx_s(idx->begin(), idx->begin() + n_subsamples);
 
         const VectorXd counts_s = counts_v(idx_s);
         const VectorXd off_s = off_v(idx_s);
@@ -510,7 +511,7 @@ List estimate_overdispersions_nr_fast_delayed(const RObject Y, const Eigen::Map<
     std::vector<int> iterations(n_genes);
     std::vector<std::string> messages(n_genes);
 
-    const auto run_w = [&run, &estimates, &iterations, &messages](const int start, const int length) -> void {
+    const auto run_w = [&run, &estimates, &iterations, &messages](const auto start, const auto length) -> void {
       run(start, length, estimates, iterations, messages);
     };
 
