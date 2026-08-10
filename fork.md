@@ -1,6 +1,6 @@
 # glmGamPoi(2/fork) explainer
 
-code in this repo after commit [`8d9a005`](https://github.com/goeva-lab/glmGamPoi/compare/8d9a005..perf_optim_eigen) represents work done to optimize glmGamPoi for enhanced compatibility w/ large-scale sparse/scRNA-seq data.
+code in this repo after commit [`8d9a005`](https://github.com/goeva-lab/glmGamPoi/compare/8d9a005..perf_optim_eigen) represents work done to optimize glmGamPoi for enhanced compatibility w/ large-scale sparse/single-cell RNA-seq data.
 
 an explicit aim of this project has been to allow for upstream-ing of the relevant code into the upstream ([`const-ae/glmGamPoi`](https://github.com/const-ae/glmGamPoi)) repo.
 
@@ -29,7 +29,7 @@ parameters for this option include:
 
   **note**: due to being specificially aware of the possibility between inconsistencies between the objective and analytic gradient functions for overdispersion estimation, it often succeeds in finding cox-reid adjusted estimations of overdispersion which the original implementation fails to find, leading to non-insignificant changes in output values (including resulting model betas) when the cox-reid adjustment is enabled.
 
-  **warning**: while initial testing shows that the method overall yields highly concordant results w/ the reference overdispersion estimation method, further testing/benchmarking is still ongoing and thus it should be considered to be in an unstable/beta status.
+  **warning**: while initial testing shows that the method overall yields highly concordant results w/ the reference overdispersion estimation method, further testing/benchmarking is still ongoing and thus it should be considered to be in an experimental/unstable/beta status.
 
   **note**: switching to using the NR-based overdispersion estimator causes one (1) test to fail which previously passed:
   - [`test-overdispersion.R:149:3`](./tests/testthat/test-overdispersion.R#L149): yields a larger than 1e08 (1e10) value for "weird" input
@@ -40,7 +40,7 @@ by default, none of these options are enabled, as an explicit goal is that no ch
 
 internally, these changes have required relatively significant changes to package internals (R and C++), with the main changes being:
 
-- a re-write of C++ internals to utilize [Eigen](https://libeigen.gitlab.io/) (via [RcppEigen](https://cran.r-project.org/web/packages/RcppEigen/index.html)) instead of [Armadillo](https://arma.sourceforge.net/) (via [RcppArmadillo](https://cran.r-project.org/web/packages/RcppArmadillo/index.html))for algebraic/matrix operations
+- a re-write of C++ internals to utilize [Eigen](https://libeigen.gitlab.io/) (via [RcppEigen](https://cran.r-project.org/web/packages/RcppEigen/index.html)) instead of [Armadillo](https://arma.sourceforge.net/) (via [RcppArmadillo](https://cran.r-project.org/web/packages/RcppArmadillo/index.html)) for algebraic/matrix operations
   - the reasoning for this is that Eigen makes stronger guarantees around thread-safety of its data structures ([c.f.](https://libeigen.gitlab.io/eigen/docs-nightly/TopicMultiThreading.html)) compared to Armadillo, which was necessary for this project given the aim to enable cross-gene parallelization of beta/overdispersion estimation steps
   - while Armadillo offers some inherent parallelization (by using OPENMP for specific operations), it appears heavily dependent on system configuration (e.g. OPENMP presence, etc.), leading to difficulties w/ consistent benchmarking, further motivating this design decision, given our interest in direct control of parallelization levels
 - a general refactoring of the C++ internals to move R-unaware logic into header files in [`inst/include`](./inst/include/)
