@@ -92,6 +92,31 @@ test_that("C++ implementation of score and score_deriv match", {
 })
 
 
+test_that("Cox-Reid derivatives match objective for ill-conditioned design", {
+  y <- rep(20, 8)
+  mu <- rep(20, 8)
+  modelMatrix <- cbind(1, rep(c(0, 1, 2, 4), each = 2) * 1e-6)
+  logTheta <- log(0.2)
+
+  crObjective <- function(value){
+    conventional_loglikelihood_fast(y, mu, value, modelMatrix, do_cr_adj = TRUE) -
+      conventional_loglikelihood_fast(y, mu, value, modelMatrix, do_cr_adj = FALSE)
+  }
+  crScore <- conventional_score_function_fast(y, mu, logTheta, modelMatrix, do_cr_adj = TRUE) -
+    conventional_score_function_fast(y, mu, logTheta, modelMatrix, do_cr_adj = FALSE)
+  crHessian <- conventional_deriv_score_function_fast(y, mu, logTheta, modelMatrix, do_cr_adj = TRUE) -
+    conventional_deriv_score_function_fast(y, mu, logTheta, modelMatrix, do_cr_adj = FALSE)
+
+  stepSize <- 1e-3
+  objectiveValues <- vapply(logTheta + c(-stepSize, 0, stepSize), crObjective, numeric(1))
+  numericScore <- (objectiveValues[3] - objectiveValues[1]) / (2 * stepSize)
+  numericHessian <- (objectiveValues[3] - 2 * objectiveValues[2] + objectiveValues[1]) / stepSize^2
+
+  expect_equal(crScore, numericScore, tolerance = 1e-6)
+  expect_equal(crHessian, numericHessian, tolerance = 1e-6)
+})
+
+
 
 
 test_that("Estimation methods can handle under-dispersion", {
@@ -340,7 +365,6 @@ test_that("global overdispersion estimation works", {
   expect_equal(res3, res2)
 
 })
-
 
 
 

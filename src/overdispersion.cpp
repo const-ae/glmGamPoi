@@ -75,14 +75,12 @@ double conventional_loglikelihood_fast(NumericVector y, NumericVector mu, double
   if(do_cr_adj){
     arma::vec w_diag = 1.0 / (1.0 / mu + theta);
     arma::mat b = model_matrix.t() * (model_matrix.each_col() % w_diag);
-    // cr_term = -0.5 * log(det(b)) * cr_correction_factor;
-    arma::mat L, U, P;
-    arma::lu(L, U, P, b);
-    double ld = sum(log(arma::diagvec(L)));
-    arma::vec u_diag = arma::diagvec(U);
-    for(double e : u_diag){
-      ld += e < 1e-50 ? log(1e-50) : log(e);
-    }
+
+    // pair the objective w/ the small ridge pad=1.0e-6 that is used in the score/hessian
+    // (conventional_score_function_fast(), conventional_deriv_score_function_fast())
+    b.diag() += 1e-6;
+
+    double ld = arma::log_det_sympd(b);
     cr_term = -0.5 * ld * cr_correction_factor;
   }
   double theta_neg1 = R_pow_di(theta, -1);
