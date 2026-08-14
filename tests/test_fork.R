@@ -188,7 +188,7 @@ fn.w.env <- function(fn, env) {
 }
 
 # using clang as default instead of gcc because clang's error messages are more readable
-load.fork <- function(cc = "clang++", quiet = TRUE, compile = TRUE) {
+load.fork <- function(cc = "clang++", quiet = TRUE, compile = TRUE, attach = FALSE) {
   if (isTRUE(compile)) {
     pkgbuild::clean_dll()
   }
@@ -200,7 +200,7 @@ load.fork <- function(cc = "clang++", quiet = TRUE, compile = TRUE) {
       CXX17FLAGS = "-O3 -march=native",
       LDFLAGS = "-L/usr/lib64/R/lib -Wl,-O2 -Wl,--sort-common -Wl,--as-needed -Wl,-z,relro -Wl,-z,now -Wl,-z,pack-relative-relocs"
     ),
-    pkgload::load_all(quiet = quiet, compile = compile, debug = FALSE, attach = FALSE)
+    pkgload::load_all(quiet = quiet, compile = compile, attach = attach, debug = FALSE)
   )
 }
 load.fork()
