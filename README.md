@@ -10,8 +10,13 @@
 
 > Fit Gamma-Poisson Generalized Linear Models Reliably.
 
+>[!IMPORTANT]
+> this repo is a fork of upstream [glmGamPoi](https://github.com/const-ae/glmGamPoi).
+> it is specifically designed to optimize memory use and runtime, without sacrificing the library's existing accuracy or features.
+> more details regarding using the fork, its scope, and relevant modifications are discussed in [fork.md](./fork.md).
+
 Pronounciation:
-[`dʒi əl əm ɡam ˈpwɑ`](http://ipa-reader.xyz/?text=d%CA%92i%20%C9%99l%20%C9%99m%20%C9%A1am%20%CB%88pw%C9%91)
+[`dʒi əl əm ɡam ˈpwɑ`](http://ipa-reader.com/?text=d%CA%92i%20%C9%99l%20%C9%99m%20%C9%A1am%20%CB%88pw%C9%91)
 
 The core design aims of `glmGamPoi` are:
 

@@ -5,6 +5,8 @@
 #'   `glm_gp()`.
 #' @param type the type of residual that is calculated. See details for more information.
 #'   Default: `"deviance"`.
+#' @param feat.sub subset of features to compute residuals for, ignored if `NULL`. Default: `NULL`
+#' @param obs.sub subset of observations to compute residuals for, ignored if `NULL`. Default: `NULL`
 #' @param ... currently ignored.
 #'
 #' @details
@@ -28,10 +30,48 @@
 #'
 #' @seealso [glm_gp()] and `stats::residuals.glm()
 #' @export
-residuals.glmGamPoi <- function(object, type = c("deviance", "pearson", "randomized_quantile", "working", "response"), ...){
+residuals.glmGamPoi2 <- function(
+  object, type = c("deviance", "pearson", "randomized_quantile", "working", "response"),
+  feat.sub = NULL, obs.sub = NULL,
+  ...
+) {
   type <- match.arg(type, c("deviance", "pearson", "randomized_quantile", "working", "response"))
   Y <- assay(object$data)
-  make_resid_hdf5_mat <- is_on_disk.glmGamPoi(object)
+  if (type == "randomized_quantile") {
+    if(!is.null(feat.sub)) {
+      feat.sub <- NULL
+      warning("feat.sub argument is not supported when type is randomized_quantile, ignoring it.")
+    }
+    if(!is.null(obs.sub)) {
+      obs.sub <- NULL
+      warning("obs.sub argument is not supported when type is randomized_quantile, ignoring it.")
+    }
+  }
+
+  if(!is.null(feat.sub)) {
+    feat.sub <- handle_sub_param(rownames(object$data), feat.sub)
+    Y <- Y[feat.sub, , drop=FALSE]
+    object$overdispersions <- object$overdispersions[feat.sub]
+  }
+  if(!is.null(obs.sub)) {
+    obs.sub <- handle_sub_param(colnames(object$data), obs.sub)
+    Y <- Y[, obs.sub, drop=FALSE]
+  }
+  if (is.function(object$Mu)) {
+    object$Mu <- object$Mu(obs = obs.sub, feat = feat.sub)
+  } else {
+    if (!is.null(feat.sub)) {
+      object$Mu <- object$Mu[feat.sub, , drop=FALSE]
+    }
+    if (!is.null(obs.sub)) {
+      object$Mu <- object$Mu[, obs.sub, drop=FALSE]
+    }
+  }
+
+  make_resid_hdf5_mat <- is_on_disk.glmGamPoi2(object)
+  if(!make_resid_hdf5_mat && is(Y, "sparseMatrix")) { # densify matrix if currently sparse (residuals are dense anyways)
+    Y <- as.matrix(Y)
+  }
   ret <- if(type == "deviance"){
     if(! make_resid_hdf5_mat){
       compute_gp_deviance_residuals_matrix(Y, object$Mu, object$overdispersions)

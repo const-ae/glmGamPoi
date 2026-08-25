@@ -27,6 +27,7 @@ glm_gp_impl <- function(Y, model_matrix,
                         ridge_penalty = 0,
                         do_cox_reid_adjustment = TRUE,
                         subsample = FALSE,
+                        perf_optim = handle_perf_optim_parameter(FALSE),
                         verbose = FALSE){
   if(is.vector(Y)){
     Y <- matrix(Y, nrow = 1)
@@ -39,7 +40,7 @@ glm_gp_impl <- function(Y, model_matrix,
   ridge_penalty <- handle_ridge_penalty_parameter(ridge_penalty, model_matrix, verbose = verbose)
 
   # Combine offset and size factor
-  off_and_sf <- combine_size_factors_and_offset(offset, size_factors, Y, verbose = verbose)
+  off_and_sf <- combine_size_factors_and_offset(offset, size_factors, Y, verbose = verbose, offset_as_vec = perf_optim[["offset_as_vec"]])
   offset_matrix <- off_and_sf$offset_matrix
   size_factors <- off_and_sf$size_factors
   if(is(offset_matrix, "DelayedMatrix") && ! is(Y, "DelayedMatrix")){
@@ -76,6 +77,10 @@ glm_gp_impl <- function(Y, model_matrix,
     }
   }
 
+  if(perf_optim[["cast_dgC_Y_to_dgR"]] && is(Y, "CsparseMatrix")){
+    # cast Y to row-major format to improve (?) row-wise memory access when accessing per-gene data
+    Y <- as(Y, "RsparseMatrix")
+  }
 
   # Estimate the betas
   if(! is.null(groups)){
@@ -83,39 +88,48 @@ glm_gp_impl <- function(Y, model_matrix,
     beta_group_init <- estimate_betas_roughly_group_wise(Y, offset_matrix, groups)
     if(verbose){ message("Estimate beta") }
     beta_res <- estimate_betas_group_wise(Y, offset_matrix = offset_matrix,
-                                         dispersions = disp_init, beta_group_init = beta_group_init,
-                                         groups = groups, model_matrix = model_matrix)
+                                          dispersions = disp_init, beta_group_init = beta_group_init,
+                                          groups = groups, model_matrix = model_matrix, do_parallel = perf_optim[["do_parallel"]])
   }else{
     # Init beta with reasonable values
     if(verbose){ message("Make initial beta estimate") }
     beta_init <- estimate_betas_roughly(Y, model_matrix, offset_matrix = offset_matrix, ridge_penalty = ridge_penalty)
     if(verbose){ message("Estimate beta") }
     beta_res <- estimate_betas_fisher_scoring(Y, model_matrix = model_matrix, offset_matrix = offset_matrix,
-                                              dispersions = disp_init, beta_mat_init = beta_init, ridge_penalty = ridge_penalty)
+                                              dispersions = disp_init, beta_mat_init = beta_init, ridge_penalty = ridge_penalty,
+                                              do_parallel = perf_optim[["do_parallel"]])
   }
   Beta <- beta_res$Beta
 
   # Calculate corresponding predictions
   # Mu <- exp(Beta %*% t(model_matrix) + offset_matrix)
-  Mu <- calculate_mu(Beta, model_matrix, offset_matrix)
+  Mu <- if(perf_optim[["delay_mu"]]){
+    mk_delayed_mu(Beta, model_matrix, offset_matrix)
+  }else{
+    calculate_mu(Beta, model_matrix, offset_matrix)
+  }
 
   # Make estimate of over-disperion
   if(isTRUE(overdispersion) || (is.character(overdispersion) && overdispersion == "global")){
     if(verbose){ message("Estimate dispersion") }
+
     if(isTRUE(overdispersion)){
+
       disp_est <- overdispersion_mle(Y, Mu, model_matrix = model_matrix,
                                      do_cox_reid_adjustment = do_cox_reid_adjustment,
-                                     subsample = subsample, verbose = verbose)$estimate
+                                     subsample = subsample, verbose = verbose,
+                                     do_parallel = perf_optim[["do_parallel"]], use_nr_overdisp_impl = perf_optim[["use_nr_overdisp_impl"]])$estimate
     }else if(is.character(overdispersion) && overdispersion == "global"){
       disp_est <- overdispersion_mle(Y, Mu, model_matrix = model_matrix,
                                      do_cox_reid_adjustment = do_cox_reid_adjustment,
                                      global_estimate = TRUE,
-                                     subsample = subsample, verbose = verbose)$estimate
+                                     subsample = subsample, verbose = verbose,
+                                     do_parallel = perf_optim[["do_parallel"]], use_nr_overdisp_impl = perf_optim[["use_nr_overdisp_impl"]])$estimate
       disp_est <- rep(disp_est, times = nrow(Y))
     }
 
     if(isTRUE(overdispersion_shrinkage)){
-      dispersion_shrinkage <- overdispersion_shrinkage(disp_est, gene_means = DelayedMatrixStats::rowMeans2(Mu),
+      dispersion_shrinkage <- overdispersion_shrinkage(disp_est, gene_means = handle_Mu_rowmeans(Mu, rownames(Y)),
                                                    df = subsample - ncol(model_matrix),
                                                    ql_disp_trend  = length(disp_est) >= 100,
                                                    npoints = max(0.1 * length(disp_est), 100),
@@ -130,35 +144,44 @@ glm_gp_impl <- function(Y, model_matrix,
     if(verbose){ message("Estimate beta again") }
     if(! is.null(groups)){
       beta_res <- estimate_betas_group_wise(Y, offset_matrix = offset_matrix,
-                                       dispersions = disp_latest, beta_mat_init = Beta,
-                                       groups = groups, model_matrix = model_matrix)
+                                            dispersions = disp_latest, beta_mat_init = Beta,
+                                            groups = groups, model_matrix = model_matrix, do_parallel = perf_optim[["do_parallel"]])
     }else{
       beta_res <- estimate_betas_fisher_scoring(Y, model_matrix = model_matrix, offset_matrix = offset_matrix,
-                                            dispersions = disp_latest, beta_mat_init = Beta, ridge_penalty = ridge_penalty)
+                                                dispersions = disp_latest, beta_mat_init = Beta, ridge_penalty = ridge_penalty, do_parallel = perf_optim[["do_parallel"]])
+
     }
     Beta <- beta_res$Beta
 
     # Calculate corresponding predictions
-    Mu <- calculate_mu(Beta, model_matrix, offset_matrix)
+    Mu <- if(perf_optim[["delay_mu"]]){
+      mk_delayed_mu(Beta, model_matrix, offset_matrix)
+    }else{
+      calculate_mu(Beta, model_matrix, offset_matrix)
+    }
   }else if(isTRUE(overdispersion_shrinkage) || is.numeric(overdispersion_shrinkage)){
     # Given predefined disp_est shrink them
     disp_est <- disp_init
-    dispersion_shrinkage <- overdispersion_shrinkage(disp_est, gene_means = DelayedMatrixStats::rowMeans2(Mu),
+    dispersion_shrinkage <- overdispersion_shrinkage(disp_est, gene_means = handle_Mu_rowmeans(Mu, rownames(Y)),
                                                      df = subsample - ncol(model_matrix),
                                                      disp_trend = overdispersion_shrinkage, verbose = verbose)
     disp_latest <- dispersion_shrinkage$dispersion_trend
     if(verbose){ message("Estimate beta again") }
     if(! is.null(groups)){
       beta_res <- estimate_betas_group_wise(Y, offset_matrix = offset_matrix,
-                                       dispersions = disp_latest, beta_mat_init = Beta,
-                                       groups = groups, model_matrix = model_matrix)
+                                            dispersions = disp_latest, beta_mat_init = Beta,
+                                            groups = groups, model_matrix = model_matrix, do_parallel = perf_optim[["do_parallel"]])
     }else{
       beta_res <- estimate_betas_fisher_scoring(Y, model_matrix = model_matrix, offset_matrix = offset_matrix,
-                                            dispersions = disp_latest, beta_mat_init = Beta, ridge_penalty = ridge_penalty)
+                                                dispersions = disp_latest, beta_mat_init = Beta, ridge_penalty = ridge_penalty, do_parallel = perf_optim[["do_parallel"]])
     }
     Beta <- beta_res$Beta
     # Calculate corresponding predictions
-    Mu <- calculate_mu(Beta, model_matrix, offset_matrix)
+    Mu <- if(perf_optim[["delay_mu"]]){
+      mk_delayed_mu(Beta, model_matrix, offset_matrix)
+    }else{
+      calculate_mu(Beta, model_matrix, offset_matrix)
+    }
   }else{
     # Use disp_init, because it is already in vector shape
     disp_est <- disp_init

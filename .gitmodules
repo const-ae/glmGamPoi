@@ -1,0 +1,3 @@
+[submodule "inst/include/LBFGSpp"]
+	path = inst/include/LBFGSpp
+	url = https://github.com/yixuan/LBFGSpp

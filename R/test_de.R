@@ -141,6 +141,7 @@ test_de <- function(fit,
                     decreasing = FALSE, n_max = Inf,
                     max_lfc = 10,
                     compute_lfc_se = FALSE,
+                    perf_optim = attr(fit, "perf_optim"),
                     verbose = FALSE){
   # Capture all NSE variables
   subset_to_capture <- substitute(subset_to)
@@ -151,6 +152,7 @@ test_de <- function(fit,
             pval_adjust_method = pval_adjust_method, sort_by = sort_by_capture,
             decreasing = decreasing, n_max = n_max, max_lfc = max_lfc,
             compute_lfc_se = compute_lfc_se,
+            perf_optim = perf_optim,
             verbose = verbose,
             env = parent.frame())
 }
@@ -166,6 +168,7 @@ test_de_q <- function(fit,
                       pval_adjust_method = "BH", sort_by = NULL,
                       decreasing = FALSE, n_max = Inf, max_lfc = 10,
                       compute_lfc_se = FALSE,
+                      perf_optim = attr(fit, "perf_optim"),
                       verbose = FALSE,
                       env = parent.frame()){
 
@@ -208,12 +211,12 @@ test_de_q <- function(fit,
     size_factor_subset <- fit$size_factors[subset_to_e]
 
     fit_subset <- glm_gp(data_subset, design = model_matrix_subset, size_factors = size_factor_subset,
-                  overdispersion = fit$overdispersions, on_disk = is_on_disk.glmGamPoi(fit), verbose = verbose)
+                  overdispersion = fit$overdispersions, on_disk = is_on_disk.glmGamPoi2(fit), perf_optim = perf_optim, verbose = verbose)
     test_res <- test_de_q(fit_subset, contrast = {{contrast}}, reduced_design = reduced_design,
                           subset_to = NULL, pseudobulk_by = NULL,
                           pval_adjust_method = pval_adjust_method, sort_by = sort_by,
                           decreasing = decreasing, n_max = n_max, max_lfc = max_lfc,
-                          verbose = verbose, env = env)
+                          verbose = verbose, env = env, perf_optim = perf_optim)
     return(test_res)
   }
   if(is.null(fit$overdispersion_shrinkage_list)){
@@ -254,7 +257,9 @@ test_de_q <- function(fit,
     if (compute_lfc_se) {
       pred <- predict(fit, se.fit=TRUE, type='link',
                       offset=0, #for asserting equality with lfc
-                      newdata=matrix(cntrst, nrow=1))
+                      newdata=matrix(cntrst, nrow=1),
+                      verbose = verbose,
+                      perf_optim = perf_optim)
 
       lfc_se <- pred$se.fit[,1] / log(2)
     }
@@ -293,7 +298,7 @@ test_de_q <- function(fit,
   }
   if(verbose){message("Fit reduced model")}
   data <- fit$data
-  do_on_disk <- is_on_disk.glmGamPoi(fit)
+  do_on_disk <- is_on_disk.glmGamPoi2(fit)
   if(isTRUE(attr(fit$model_matrix, "ignore_degeneracy"))){
     attr(reduced_design, "ignore_degeneracy") <- TRUE
   }
@@ -303,7 +308,9 @@ test_de_q <- function(fit,
                     overdispersion = disp_trend,
                     overdispersion_shrinkage = FALSE,
                     ridge_penalty = reduced_ridge_penalty,
-                    on_disk = do_on_disk)
+                    on_disk = do_on_disk,
+                    perf_optim = perf_optim,
+                    verbose = verbose)
 
 
 

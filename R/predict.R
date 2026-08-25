@@ -41,6 +41,9 @@
 #'   the result is calculated on disk depending if `offset` is stored on disk.
 #' @param verbose a boolean that indicates if information about the individual steps are
 #'   printed while predicting. Default: `FALSE`.
+#' @param perf_optim see [glm_gp()] parameter of same name
+#' @param feat.sub subset of features to compute residuals for, ignored if `NULL`. Default: `NULL`
+#' @param obs.sub subset of observations to compute residuals for, ignored if `NULL`. Default: `NULL`
 #' @param ... currently ignored.
 #'
 #' @details
@@ -106,20 +109,52 @@
 #'
 #'
 #' @export
-predict.glmGamPoi <- function(object, newdata = NULL,
+predict.glmGamPoi2 <- function(object, newdata = NULL,
                               type = c("link", "response"),
                               se.fit = FALSE,
                               offset = mean(object$Offset),
+                              perf_optim = attr(object, "perf_optim"),
                               on_disk = NULL, verbose = FALSE,
+                              feat.sub = NULL, obs.sub = NULL,
                               ...){
 
   type <- match.arg(type, c("link", "response"))
+  if (se.fit) {
+    if(!is.null(feat.sub)) {
+      feat.sub <- NULL
+      warning("feat.sub argument is not supported when se.fit is TRUE, ignoring it.")
+    }
+    if(!is.null(obs.sub)) {
+      obs.sub <- NULL
+      warning("obs.sub argument is not supported when se.fit is TRUE, ignoring it.")
+    }
+  }
+  if(!is.null(feat.sub)) {
+    feat.sub <- handle_sub_param(rownames(object$data), feat.sub)
+    if (!is.vector(offset)) { offset <- offset[feat.sub, , drop=FALSE] }
+    object$overdispersions <- object$overdispersions[feat.sub]
+  }
+  if(!is.null(obs.sub)) {
+    obs.sub <- handle_sub_param(colnames(object$data), obs.sub)
+    object$model_matrix <- object$model_matrix[obs.sub, , drop=FALSE]
+    offset <- if (is.vector(offset)) { offset[obs.sub] } else { offset[, obs.sub, drop=FALSE] }
+  }
   if(is.null(newdata)){
     # Easy, just return mu
     if(verbose) message("'newdata' is NULL, use 'Mu = object$Mu'")
     Mu <- object$Mu
+    if (is.function(Mu)) {
+      Mu <- Mu(feat = feat.sub, obs = obs.sub)
+    } else {
+      if (!is.null(feat.sub)) { Mu <- Mu[feat.sub, , drop=FALSE] }
+      if (!is.null(obs.sub)) { Mu <- Mu[, obs.sub, drop=FALSE] }
+    }
     design_matrix <- object$model_matrix
   }else{
+    if (!is.null(feat.sub)) {
+      object$Beta <- object$Beta[feat.sub, , drop=FALSE]
+    }
+
     # Do something with newdata
     if(is.matrix(newdata)){
       if(verbose) message("'newdata' is a matrix, set 'design_matrix = newdata'")
@@ -158,7 +193,7 @@ predict.glmGamPoi <- function(object, newdata = NULL,
     }
 
     offset_matrix <- handle_offset_param_for_predict(offset, nrow = nrow(object$Beta),
-                                    ncol = nrow(design_matrix), on_disk = on_disk)
+                                    ncol = nrow(design_matrix), on_disk = on_disk, offset_as_vec = perf_optim[["offset_as_vec"]])
     if(verbose) message("Calculate 'Mu = exp(object$Beta %*% t(design_matrix) + Offset)'")
     Mu <- calculate_mu(object$Beta, design_matrix, offset_matrix)
     rownames(Mu) <- rownames(object$Beta)
@@ -222,7 +257,7 @@ predict.glmGamPoi <- function(object, newdata = NULL,
           # This is an optimized implementation that is numerically more robust
           Xwave <- rbind(weighted_Design, sqrt(nrow(weighted_Design)) * ridge_penalty)
           Rinv <- qr.solve(qr.R(qr(Xwave)))
-          lhs <- design_matrix %*% (Rinv %*% t(Rinv)) %*% t(weighted_Design)
+          lhs <- design_matrix %*% Matrix::tcrossprod(Matrix::tcrossprod(Rinv), weighted_Design)
           sqrt(matrixStats::rowSums2(lhs^2))
         }
       }, error = function(err){
@@ -245,7 +280,7 @@ predict.glmGamPoi <- function(object, newdata = NULL,
 
 
 make_model_matrix_for_predict <- function(object, newdata){
-  stopifnot("glmGamPoi" %in% class(object))
+  stopifnot("glmGamPoi2" %in% class(object))
   form <- object$design_formula
   if(is.null(form)){
     stop("predict.glmGamPoi was called with 'newdata' that is not a matrix. ",
@@ -291,9 +326,10 @@ make_model_matrix_for_predict <- function(object, newdata){
 
 
 
-handle_offset_param_for_predict <- function(offset, nrow, ncol, on_disk){
+handle_offset_param_for_predict <- function(offset, nrow, ncol, on_disk, offset_as_vec = FALSE){
   if(is.numeric(offset)){
     stopifnot(length(offset) == 1 || length(offset) == ncol)
+    if(offset_as_vec){ return(offset) }
     offset <- matrix(offset, nrow = nrow, ncol = ncol, byrow = TRUE)
   }
   # Check that offset is correctly sized

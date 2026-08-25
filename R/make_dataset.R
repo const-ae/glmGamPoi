@@ -7,7 +7,7 @@ make_dataset <- function(n_genes = 1000, n_samples = 30){
   X <- matrix(1, nrow = n_samples)  # Only intercept
   Betas <- matrix(rnorm(n = n_genes, mean = 0, sd = 3), nrow = n_genes)
 
-  Q <- Betas %*% t(X)
+  Q <- Matrix::tcrossprod(Betas, X)
 
   Y <- t(vapply(seq_len(n_genes), function(i){
     rnbinom(n_samples, mu = sf * exp(Q[i, ]), size = 1/dispersions[i])

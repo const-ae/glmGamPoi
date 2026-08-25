@@ -168,7 +168,7 @@ variance_prior <- function(s2, df, covariate = NULL, abundance_trend = NULL){
 
   # Fit an intercept to s2
   opt_res <- optim(par=c(log_variance0=0, log_df0_inv=0), function(par){
-    -sum(df(s2_sub/exp(par[1]), df1=df, df2=exp(par[2]), log=TRUE) - par[1], na.rm=TRUE)
+    -sum(stats::df(s2_sub/exp(par[1]), df1=df, df2=exp(par[2]), log=TRUE) - par[1], na.rm=TRUE)
   })
   variance0 <- rep(exp(unname(opt_res$par[1])), times = length(s2_sub))
   df0 <- exp(unname(opt_res$par[2]))
@@ -196,7 +196,7 @@ variance_prior <- function(s2, df, covariate = NULL, abundance_trend = NULL){
       opt_res <- optim(par=c(betas = init_fit$coefficients, log_df0_inv=0), function(par){
         variance0 <- exp(design %*% par[1:4])
         df0 <- exp(par[5])
-        -sum(df(s2_sub[not_zero]/variance0, df1=df, df2=df0, log=TRUE) - log(variance0), na.rm=TRUE)
+        -sum(stats::df(s2_sub[not_zero]/variance0, df1=df, df2=df0, log=TRUE) - log(variance0), na.rm=TRUE)
       }, control = list(maxit = 5000))
       variance0[not_zero] <- c(exp(design %*% opt_res$par[1:4]))
       df0 <- exp(unname(opt_res$par[5]))

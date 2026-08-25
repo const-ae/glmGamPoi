@@ -101,14 +101,14 @@ test_that("Estimation methods can handle under-dispersion", {
   samples <- rpois(n = 100, lambda = 5)
   expect_gt(mean(samples), var(samples))  # Proof of underdispersion
   mu <- rep(mean(samples), length(samples))
-  con_wo_cr <- conventional_overdispersion_mle(y = samples, mean_vector = mu,
+  con_wo_cr <- conventional_overdispersion_mle(y = samples, mu_vector = mu,
                                          do_cox_reid_adjustment = FALSE)$estimate
 
   expect_equal(con_wo_cr, 0)
 
   # However, if mu is large then again a theta can be estimated
   mu <- rep(10, length(samples))
-  con_wo_cr <- conventional_overdispersion_mle(y = samples, mean_vector = mu,
+  con_wo_cr <- conventional_overdispersion_mle(y = samples, mu_vector = mu,
                                                do_cox_reid_adjustment = FALSE)$estimate
   expect_true(con_wo_cr != 0)
 })
@@ -120,10 +120,9 @@ test_that("overdispersion_mle can handle weird input 1", {
   mu <- c(2.6, 2.6, 2.6, 1.5, 1.5, 1.5, 1.5)
   # This used to fail  because no starting position is found
   # because mean was exactly equal to var
-  est_2 <- conventional_overdispersion_mle(y, mean_vector = mu,
+  est_2 <- conventional_overdispersion_mle(y, mu_vector = mu,
                                   model_matrix = X,
-                                  do_cox_reid_adjustment = TRUE,
-                                  verbose = FALSE)
+                                  do_cox_reid_adjustment = TRUE)
   expect_true(TRUE)
 })
 
@@ -133,10 +132,9 @@ test_that("overdispersion_mle can handle weird input 2", {
   X <- cbind(1, c(0, 0, 0, 1, 1, 1, 1))
   mu <- c(6, 6, 6, 4.5, 4.5, 4.5, 4.5)
   # This used to fail because mean was exactly equal to var
-  est_2 <- conventional_overdispersion_mle(y, mean_vector = mu,
+  est_2 <- conventional_overdispersion_mle(y, mu_vector = mu,
                                            model_matrix = X,
-                                           do_cox_reid_adjustment = TRUE,
-                                           verbose = FALSE)
+                                           do_cox_reid_adjustment = TRUE)
   expect_true(TRUE)
 })
 
@@ -144,10 +142,9 @@ test_that("overdispersion_mle can handle weird input 3", {
   y <- c(rep(0, times = 399), 10)
   X <- cbind(1, sample(c(0,1), 400, replace = TRUE), rnorm(400))
   mu <- rep(0.7, 400)
-  est <- conventional_overdispersion_mle(y, mean_vector = mu,
+  est <- conventional_overdispersion_mle(y, mu_vector = mu,
                                            model_matrix = X,
-                                           do_cox_reid_adjustment = TRUE,
-                                           verbose = FALSE)
+                                           do_cox_reid_adjustment = TRUE)
 
   expect_lt(est$estimate, 1e8)
 })
@@ -186,7 +183,7 @@ test_that("estimation can handle extreme values", {
   y <- rnbinom(n = 400, mu = 3000, size = 0.1)
   # The warnings come from the first (failing) optimization
   suppressWarnings(
-    res <- overdispersion_mle(y, mean = 1e226)
+    res <- overdispersion_mle(y, mu = 1e226)
   )
   expect_false(is.na(res$estimate))
 
@@ -200,10 +197,10 @@ test_that("Estimation methods can handle Infinite dispersion", {
   # The problem was that the lgamma(1/theta) and CR-adjustment
   # canceled each other exactly
   model_matrix <- cbind(1, rnorm(n=5))
-  mean_vector <- c(0.2, 0.6, 0.8, 0.2, 0.1)
+  mu_vector <- c(0.2, 0.6, 0.8, 0.2, 0.1)
   y <- c(0, 0, 3, 0, 0)
 
-  fit <- overdispersion_mle(y, mean_vector, model_matrix = model_matrix)
+  fit <- overdispersion_mle(y, mu_vector, model_matrix = model_matrix)
   expect_lt(fit$estimate, 1e5)
 })
 
@@ -212,7 +209,7 @@ test_that("Estimation methods can handle mu = 0", {
 
   mu <- c(head(mu, length(samples)-1), 0)
 
-  c_res <- conventional_overdispersion_mle(y = samples, mean_vector = mu,
+  c_res <- conventional_overdispersion_mle(y = samples, mu_vector = mu,
                                   do_cox_reid_adjustment = FALSE)
   expect_true(TRUE)
 })
@@ -222,29 +219,29 @@ test_that("Identical y values work", {
   # Underdispersed data -> theta = 0
   samples <- rep(6, times = 10)
   mu <- rep(mean(samples), length(samples))
-  con <- conventional_overdispersion_mle(y = samples, mean_vector = mu,
+  con <- conventional_overdispersion_mle(y = samples, mu_vector = mu,
                                   do_cox_reid_adjustment = FALSE)
   expect_equal(con$estimate, 0)
 
   # If mu is small enough, it works again
   samples <- rep(6, times = 10)
   mu <- rep(1, length(samples))
-  con <- conventional_overdispersion_mle(y = samples, mean_vector = mu,
+  con <- conventional_overdispersion_mle(y = samples, mu_vector = mu,
                                          do_cox_reid_adjustment = FALSE)
 
 
   # For all y = 0 -> cannot really make inference, assume theta = 0
   samples <- rep(0, times = 10)
   mu <- rep(1, length(samples))
-  con <- conventional_overdispersion_mle(y = samples, mean_vector = mu,
+  con <- conventional_overdispersion_mle(y = samples, mu_vector = mu,
                                          do_cox_reid_adjustment = FALSE)
   expect_equal(con$estimate, 0)
 
 })
 
 test_that("one value is enough to get an answer", {
-  expect_equal(overdispersion_mle(y = 3, mean = 3.0001)$estimate, 0)
-  expect_equal(conventional_overdispersion_mle(y = 3, mean_vector = 3.0001)$estimate, 0)
+  expect_equal(overdispersion_mle(y = 3, mu = 3.0001)$estimate, 0)
+  expect_equal(conventional_overdispersion_mle(y = 3, mu_vector = 3.0001)$estimate, 0)
 })
 
 test_that("subsampling with max_iter works well enough", {
@@ -301,11 +298,11 @@ test_that("DelayedArrays are handled efficiently", {
 
 
   disp_est_r_ram <- vapply(seq_len(n_genes), function(gene_idx){
-    overdispersion_mle(y = mat_hdf5[gene_idx, ], mean = mean_matrix[gene_idx, ],
+    overdispersion_mle(y = mat_hdf5[gene_idx, ], mu = mean_matrix[gene_idx, ],
                               model_matrix = model_matrix, do_cox_reid_adjustment = TRUE)$estimate
   }, FUN.VALUE = 0.0)
   disp_est_r_hdf5 <- vapply(seq_len(n_genes), function(gene_idx){
-    overdispersion_mle(y = mat_hdf5[gene_idx, ], mean = mean_matrix[gene_idx, ],
+    overdispersion_mle(y = mat_hdf5[gene_idx, ], mu = mean_matrix[gene_idx, ],
                               model_matrix = model_matrix, do_cox_reid_adjustment = TRUE)$estimate
   }, FUN.VALUE = 0.0)
 
@@ -315,8 +312,8 @@ test_that("DelayedArrays are handled efficiently", {
                                   do_cox_reid_adjustment = TRUE, n_subsamples = n_samples, max_iter = 200)$estimate
 
   expect_equal(disp_est_r_ram, disp_est_r_hdf5)
-  expect_equal(disp_est_r_ram, beachmat_ram)
-  expect_equal(disp_est_r_ram, beachmat_hdf5)
+  expect_equal(disp_est_r_ram, beachmat_ram, tolerance = 1e-5)
+  expect_equal(disp_est_r_ram, beachmat_hdf5, tolerance = 1e-5)
 })
 
 

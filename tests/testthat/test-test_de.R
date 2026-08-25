@@ -68,7 +68,7 @@ test_that("test_de works with a matrix as contrast", {
   # expect_equal(res1, res2)
   contr_mat <- limma::makeContrasts(contrasts = c("groupA-groupB", "groupA - groupC", "groupB - groupC"), levels = colnames(fit$Beta))
 
-  test_de(fit, contrast = contr_mat)
+  expect_no_error(test_de(fit, contrast = contr_mat))
 })
 
 
@@ -99,23 +99,24 @@ test_that("NSE works", {
   head(annot)
   se <- SummarizedExperiment::SummarizedExperiment(Y, colData = annot)
   fit <- glm_gp(se, design = ~ condition + cont1 + cont2 + cell_type - 1, overdispersion = FALSE, size_factors = FALSE)
-  res <- test_de(fit, conditionctrl - conditiontreated)
 
-  res2 <- test_de(fit, conditionctrl - conditiontreated,
-                  full_design =  ~ condition + cont1 + cont2 - 1,
-                  subset_to = cell_type == "Tcell",
-                  n_max = 4)
-  res3 <- test_de(fit, conditionctrl - conditiontreated,
-                  full_design =  ~ condition + cont1 - 1,
-                  subset_to = cell_type == "Tcell",
-                  pseudobulk_by = sample,
-                  n_max = 4)
-
-  res4 <- test_de(fit, reduced_design = ~ cont1 + 1,
-                  full_design = ~ cont1 + cont2,
-                  subset_to = cell_type == "Bcell",
-                  pseudobulk_by = sample,
-                  n_max = 4)
+  expect_no_error({
+    res <- test_de(fit, conditionctrl - conditiontreated)
+    res2 <- test_de(fit, conditionctrl - conditiontreated,
+                    full_design =  ~ condition + cont1 + cont2 - 1,
+                    subset_to = cell_type == "Tcell",
+                    n_max = 4)
+    res3 <- test_de(fit, conditionctrl - conditiontreated,
+                    full_design =  ~ condition + cont1 - 1,
+                    subset_to = cell_type == "Tcell",
+                    pseudobulk_by = sample,
+                    n_max = 4)
+    res4 <- test_de(fit, reduced_design = ~ cont1 + 1,
+                    full_design = ~ cont1 + cont2,
+                    subset_to = cell_type == "Bcell",
+                    pseudobulk_by = sample,
+                    n_max = 4)
+  })
 })
 
 

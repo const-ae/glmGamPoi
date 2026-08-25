@@ -24,7 +24,7 @@
 #'
 #'
 #' @export
-as.list.glmGamPoi <- function(x, ...){
+as.list.glmGamPoi2 <- function(x, ...){
   class(x) <- "list"
   x
 }
@@ -42,14 +42,14 @@ as.list.glmGamPoi <- function(x, ...){
 #'   method returns an object of class `summary.glmGamPoi`.
 #'
 #' @export
-print.glmGamPoi <- tools::.print.via.format
+print.glmGamPoi2 <- tools::.print.via.format
 
-#' @rdname print.glmGamPoi
+#' @rdname print.glmGamPoi2
 #' @export
-format.glmGamPoi <- function(x, ...){
+format.glmGamPoi2 <- function(x, ...){
   string_builder <- ""
-  nrow <- nrow(x$Mu)
-  ncol <- ncol(x$Mu)
+  nrow <- nrow(x$data)
+  ncol <- ncol(x$data)
   npara <- ncol(x$Beta)
   string_builder <- paste0(string_builder, "glmGamPoiFit object:\n",
                            "The data had ", nrow, " rows and ", ncol, " columns.\n",
@@ -57,24 +57,24 @@ format.glmGamPoi <- function(x, ...){
   string_builder
 }
 
-#' @rdname print.glmGamPoi
+#' @rdname print.glmGamPoi2
 #' @export
-summary.glmGamPoi <- function(object, ...){
+summary.glmGamPoi2 <- function(object, ...){
   ans <- object
   class(ans) <- "summary.glmGamPoi"
   ans
 }
 
-#' @rdname print.glmGamPoi
+#' @rdname print.glmGamPoi2
 #' @export
-print.summary.glmGamPoi <- tools::.print.via.format
+print.summary.glmGamPoi2 <- tools::.print.via.format
 
-#' @rdname print.glmGamPoi
+#' @rdname print.glmGamPoi2
 #' @export
-format.summary.glmGamPoi <- function(x, ...){
-  header <- paste0(format.glmGamPoi(x), "\n")
-  nrow <- nrow(x$Mu)
-  ncol <- ncol(x$Mu)
+format.summary.glmGamPoi2 <- function(x, ...){
+  header <- paste0(format.glmGamPoi2(x), "\n")
+  nrow <- nrow(x$data)
+  ncol <- ncol(x$data)
   npara <- ncol(x$Beta)
   ndigits <- 3
 

@@ -8,6 +8,11 @@ estimate_betas_roughly <- function(Y, model_matrix, offset_matrix, pseudo_count 
   stopifnot(is.null(ridge_penalty) ||
               (is.matrix(ridge_penalty) && ncol(ridge_penalty) == ncol(model_matrix)) ||
               length(ridge_penalty) == ncol(model_matrix))
+  if(is.vector(offset_matrix, mode = "numeric")){
+    stopifnot(length(offset_matrix) == ncol(Y))
+  }else{
+    stopifnot(dim(offset_matrix) == dim(Y))
+  }
 
   if(nrow(Y) == 0){
     return(matrix(numeric(0), nrow = 0, ncol = ncol(model_matrix)))
@@ -27,8 +32,19 @@ estimate_betas_roughly <- function(Y, model_matrix, offset_matrix, pseudo_count 
   Q <- qr.Q(qrx)[seq_len(nrow(model_matrix)),,drop=FALSE]
   R <- qr.R(qrx)
 
-  norm_log_count_mat <- t(log((Y / exp(offset_matrix) + pseudo_count)))
-  t(solve(R, as.matrix(t(Q) %*% norm_log_count_mat)))
+  if(is.vector(offset_matrix, mode = "numeric")){
+    norm_Y <- div_mtx_colwise(Y, exp(offset_matrix))
+  }else{
+    norm_Y <- div_mtx_elemwise(Y, exp(offset_matrix))
+  }
+
+  if (pseudo_count == 1) {
+    norm_log_count_mat <- log1p(norm_Y)
+  } else {
+    norm_log_count_mat <- log(norm_Y + pseudo_count)
+  }
+
+  t(solve(R, as.matrix(Matrix::tcrossprod(t(Q), norm_log_count_mat))))
 }
 
 
@@ -42,13 +58,19 @@ estimate_betas_roughly <- function(Y, model_matrix, offset_matrix, pseudo_count 
 #' @importFrom beachmat initializeCpp
 estimate_betas_fisher_scoring <- function(Y, model_matrix, offset_matrix,
                                           dispersions, beta_mat_init, ridge_penalty,
-                                          try_recovering_convergence_problems = TRUE){
-  max_iter <- 1000
+                                          try_recovering_convergence_problems = TRUE,
+                                          max_iter = 1000,
+                                          do_parallel = 0){
   stopifnot(nrow(model_matrix) == ncol(Y))
   stopifnot(nrow(beta_mat_init) == nrow(Y))
   stopifnot(ncol(beta_mat_init) == ncol(model_matrix))
   stopifnot(length(dispersions) == nrow(Y))
-  stopifnot(dim(offset_matrix) == dim(Y))
+  if(is.vector(offset_matrix, mode = "numeric")){
+    stopifnot(length(offset_matrix) == ncol(Y))
+  }else{
+    stopifnot(dim(offset_matrix) == dim(Y))
+  }
+
   stopifnot(is.null(ridge_penalty) ||
               (is.matrix(ridge_penalty) && ncol(ridge_penalty) == ncol(model_matrix)) ||
               length(ridge_penalty) == ncol(model_matrix))
@@ -60,25 +82,13 @@ estimate_betas_fisher_scoring <- function(Y, model_matrix, offset_matrix,
   }
 
   exp_offset_matrix <- exp(offset_matrix)
+  if(is.vector(exp_offset_matrix, mode = "numeric")){
+    exp_offset_matrix <- matrix(exp_offset_matrix, nrow = 1)
+  }
   betaRes <- fitBeta_fisher_scoring(initializeCpp(Y), model_matrix, initializeCpp(exp_offset_matrix), dispersions, beta_mat_init,
                                     ridge_penalty_nl = ridge_penalty, tolerance = 1e-8,
-                                    max_rel_mu_change = 1e5, max_iter =  max_iter)
-  not_converged <- betaRes$iter == max_iter
-  if(try_recovering_convergence_problems & any(not_converged)){
-    # Try again with optim
-    betaRes2 <- estimate_betas_optim(Y[not_converged,,drop=FALSE], model_matrix,
-                                     offset_matrix[not_converged,,drop=FALSE],
-                                     dispersions = dispersions[not_converged],
-                                     beta_mat_init = beta_mat_init[not_converged,,drop=FALSE],
-                                     ridge_penalty = ridge_penalty, max_iter = max_iter)
-    betaRes$beta_mat[not_converged, ] <- betaRes2$Beta
-    betaRes$deviance[not_converged] <- betaRes2$deviances
-    betaRes$iter[not_converged] <- betaRes2$iterations
-  }
-  # Don't use 'not_converged' because optim might recover some cases
+                                    max_rel_mu_change = 1e5, max_iter = max_iter, try_recov_w_optim = try_recovering_convergence_problems, do_parallel = do_parallel)
   warn_non_convergence(betaRes$iter == max_iter, rownames(Y))
-
-
 
   list(Beta = betaRes$beta_mat, iterations = betaRes$iter, deviances = betaRes$deviance)
 }
@@ -97,12 +107,16 @@ warn_non_convergence <- function(not_converged, rownames){
   }
 }
 
-estimate_betas_optim <- function(Y, model_matrix, offset_matrix, dispersions, beta_mat_init, ridge_penalty, max_iter = 1000){
+estimate_betas_optim <- function(Y, model_matrix, offset_matrix, dispersions, beta_mat_init, ridge_penalty, max_iter = 1000, do_parallel = 0){
   stopifnot(nrow(model_matrix) == ncol(Y))
   stopifnot(nrow(beta_mat_init) == nrow(Y))
   stopifnot(ncol(beta_mat_init) == ncol(model_matrix))
   stopifnot(length(dispersions) == nrow(Y))
-  stopifnot(dim(offset_matrix) == dim(Y))
+  if(is.vector(offset_matrix, mode = "numeric")){
+    stopifnot(length(offset_matrix) == ncol(Y))
+  }else{
+    stopifnot(dim(offset_matrix) == dim(Y))
+  }
   stopifnot(is.null(ridge_penalty) ||
               (is.matrix(ridge_penalty) && ncol(ridge_penalty) == ncol(model_matrix)) ||
               length(ridge_penalty) == ncol(model_matrix))
@@ -114,49 +128,7 @@ estimate_betas_optim <- function(Y, model_matrix, offset_matrix, dispersions, be
     attr(ridge_penalty, "target") <- ridge_target
   }
 
-  apply_ridge <- ! is.null(ridge_penalty)
-  n_samples <- ncol(Y)
-  if(apply_ridge){
-    ridge_penalty_sq <- t(ridge_penalty) %*% ridge_penalty
-    ridge_target <- if(is.null(attr(ridge_penalty, "target", TRUE))){
-      rep(0, ncol(model_matrix))
-    }else{
-      attr(ridge_penalty, "target", TRUE)
-    }
-  }
-  result <- list(Beta = matrix(NA, nrow = nrow(Y), ncol = ncol(model_matrix)),
-                 iterations = rep(NA, nrow(Y)),
-                 deviances = rep(NA, nrow(Y)))
-
-  for(idx in seq_len(nrow(Y))){
-    y <- Y[idx, ]
-    off <- offset_matrix[idx, ]
-    beta_init <- beta_mat_init[idx, ]
-    theta <- dispersions[idx]
-    if(! apply_ridge){
-      res <- optim(par = beta_init, function(beta){
-        mu <- exp(model_matrix %*% beta + off)
-        compute_gp_deviance_sum(y, mu, theta)
-      }, method = "BFGS", control = list(maxit = max_iter))
-    }else{
-      res <- optim(par = beta_init, function(beta){
-        mu <- exp(model_matrix %*% beta + off)
-        penalty <- n_samples * t(beta - ridge_target) %*% ridge_penalty_sq %*% (beta - ridge_target)
-        compute_gp_deviance_sum(y, mu, theta) + penalty
-      }, method = "BFGS", control = list(maxit = max_iter))
-    }
-    if(res$convergence != 0){
-      result$iterations[idx] <- max_iter
-      result$Beta[idx, ] <- NA_real_
-      result$deviances[idx] <- NA_real_
-    }else{
-      result$iterations[idx] <- min(res$counts[1], max_iter - 1)
-      result$Beta[idx, ] <- res$par
-      result$deviances[idx] <- res$value
-    }
-  }
-
-  result
+  fitBeta_optim(initializeCpp(Y), model_matrix, initializeCpp(exp(offset_matrix)), dispersions, beta_mat_init, ridge_penalty, max_iter, do_parallel = do_parallel)
 }
 
 
@@ -166,7 +138,11 @@ estimate_betas_optim <- function(Y, model_matrix, offset_matrix, dispersions, be
 #'
 #' @keywords internal
 estimate_betas_roughly_group_wise <- function(Y, offset_matrix, groups){
-  norm_Y <- Y / exp(offset_matrix)
+  if(is.vector(offset_matrix, mode = "numeric")){
+    norm_Y <- div_mtx_colwise(Y, exp(offset_matrix))
+  } else {
+    norm_Y <- div_mtx_elemwise(Y, exp(offset_matrix))
+  }
   do.call(cbind, lapply(unique(groups), function(gr){
     log(DelayedMatrixStats::rowMeans2(norm_Y, cols = groups == gr))
   }))
@@ -182,26 +158,34 @@ estimate_betas_roughly_group_wise <- function(Y, offset_matrix, groups){
 #'
 #' @keywords internal
 #' @importFrom beachmat initializeCpp
-estimate_betas_group_wise <- function(Y, offset_matrix,  dispersions, beta_group_init = NULL, beta_mat_init = NULL, groups, model_matrix){
+estimate_betas_group_wise <- function(Y, offset_matrix,  dispersions, beta_group_init = NULL, beta_mat_init = NULL, groups, model_matrix, max_iter = 100, do_parallel = 0){
   stopifnot(nrow(beta_group_init) == nrow(Y))
   stopifnot(ncol(beta_group_init) == length(unique(groups)))
   stopifnot(length(dispersions) == nrow(Y))
-  stopifnot(dim(offset_matrix) == dim(Y))
+  if(is.vector(offset_matrix, mode = "numeric")){
+    stopifnot(length(offset_matrix) == ncol(Y))
+  }else{
+    stopifnot(dim(offset_matrix) == dim(Y))
+  }
   stopifnot(is.null(beta_mat_init) != is.null(beta_group_init))
   if(is.null(beta_group_init)){
     # Calculate group_init based on Beta
     first_occurence_in_groups <- match(unique(groups), groups)
-    beta_group_init <- beta_mat_init %*% t(model_matrix[first_occurence_in_groups, ,drop=FALSE])
+    beta_group_init <- Matrix::tcrossprod(beta_mat_init, model_matrix[first_occurence_in_groups, ,drop=FALSE])
   }
 
   Beta_res_list <- lapply(unique(groups), function(gr){
     chosen <- gr == groups
     Y_gr <- Y[, chosen, drop = FALSE]
-    offset_gr <- offset_matrix[, chosen, drop = FALSE]
-    betaRes <- fitBeta_one_group(initializeCpp(Y_gr),
+    if(is.vector(offset_matrix, mode = "numeric")){
+      offset_gr <- matrix(offset_matrix[chosen, drop = FALSE], nrow = 1)
+    }else{
+      offset_gr <- offset_matrix[, chosen, drop = FALSE]
+    }
+    fitBeta_one_group(initializeCpp(Y_gr),
                                  initializeCpp(offset_gr), thetas = dispersions,
                                  beta_start_values = beta_group_init[, gr == unique(groups),drop=TRUE],
-                                 tolerance = 1e-8, maxIter = 100)
+                                 tolerance = 1e-8, max_iter = max_iter, do_parallel = do_parallel)
   })
   Beta <- do.call(cbind, lapply(Beta_res_list, function(x) x$beta))
   Iteration_mat <- do.call(cbind, lapply(Beta_res_list, function(x) x$iter))

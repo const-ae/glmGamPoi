@@ -1,6 +1,3 @@
-
-
-
 #' Estimate the Overdispersion for a Vector of Counts
 #'
 #' @param y a numeric or integer vector or matrix with the counts for which
@@ -59,9 +56,9 @@
 #'  # estimate = 0
 #'  overdispersion_mle(y)
 #'  # with different mu, overdispersion estimate changes
-#'  overdispersion_mle(y, mean = 15)
+#'  overdispersion_mle(y, mu = 15)
 #'  # Cox-Reid adjustment changes the result
-#'  overdispersion_mle(y, mean = 15, do_cox_reid_adjustment = FALSE)
+#'  overdispersion_mle(y, mu = 15, do_cox_reid_adjustment = FALSE)
 #'
 #'
 #'  # Many very small counts, true overdispersion = 50
@@ -78,106 +75,102 @@
 #' @seealso [glm_gp()]
 #' @export
 #' @importFrom beachmat initializeCpp
-overdispersion_mle <- function(y, mean,
-                           model_matrix = NULL,
-                           do_cox_reid_adjustment = ! is.null(model_matrix),
-                           global_estimate = FALSE,
-                           subsample = FALSE,
-                           max_iter = 200,
-                           verbose = FALSE){
-
+overdispersion_mle <- function(y, mu, model_matrix = NULL, do_cox_reid_adjustment = !is.null(model_matrix), global_estimate = FALSE, subsample = FALSE, max_iter = 200, verbose = FALSE, use_nr_overdisp_impl = FALSE, do_parallel = 0) {
   # Validate n_subsampling
   stopifnot(length(subsample) == 1, subsample >= 0)
-  if(isFALSE(subsample)){
+  if (isFALSE(subsample)) {
     n_subsamples <- length(y)
-  }else if(isTRUE(subsample)){
+  } else if (isTRUE(subsample)) {
     n_subsamples <- 1000
-  }else{
+  } else {
     n_subsamples <- subsample
   }
 
-  if(! is.vector(y)){
-    if(missing(mean)){
-      mean <- array(DelayedMatrixStats::rowMeans2(y), dim = dim(y))
+  if (!is.vector(y)) {
+    if (missing(mu)) {
+      mu <- array(DelayedMatrixStats::rowMeans2(y), dim = dim(y))
     }
     n_subsamples <- min(n_subsamples, ncol(y))
-    if(n_subsamples < ncol(y)){
-      if(verbose){ message("Subsample data to ", n_subsamples, " columns.") }
+    if (n_subsamples < ncol(y)) {
+      if (verbose) {
+        message("Subsample data to ", n_subsamples, " columns.")
+      }
     }
-    if(is.null(model_matrix)){
+    if (is.null(model_matrix)) {
       model_matrix <- matrix(1, nrow = ncol(y), ncol = 1)
     }
-    if(global_estimate){
-      estimate_global_overdispersion(y, mean, model_matrix, do_cox_reid_adjustment)
-    }else{
+    if (global_estimate) {
+      estimate_global_overdispersion(y, mu, model_matrix, do_cox_reid_adjustment)
+    } else {
       # This function calls overdispersion_mle() for each row, but is faster than a vapply()
-      estimate_overdispersions_fast(initializeCpp(y), initializeCpp(mean), model_matrix, do_cox_reid_adjustment, n_subsamples, max_iter)
+      if (is.function(mu)) {
+        offs <- attr(mu, "offsets")
+        (if (use_nr_overdisp_impl) {
+          function(...) estimate_overdispersions_nr_fast_delayed(..., do_parallel = do_parallel)
+        } else {
+          estimate_overdispersions_fast_delayed
+        })(initializeCpp(y), model_matrix, initializeCpp(if (is.vector(offs)) matrix(offs, nrow = 1) else offs), attr(mu, "betas"), do_cox_reid_adjustment, n_subsamples, max_iter)
+      } else {
+        (if (use_nr_overdisp_impl) {
+          function(...) estimate_overdispersions_nr_fast(..., do_parallel = do_parallel)
+        } else {
+          estimate_overdispersions_fast
+        })(initializeCpp(y), initializeCpp(mu), model_matrix, do_cox_reid_adjustment, n_subsamples, max_iter)
+      }
     }
-  }else{
-    overdispersion_mle_impl(as.numeric(y), mean, model_matrix, do_cox_reid_adjustment,
-                            min(n_subsamples, length(y)), max_iter, verbose = verbose)
+  } else {
+    if (!missing(mu) && is.function(mu)) {
+      overdispersion_mle_impl(as.numeric(y), mu(), model_matrix, do_cox_reid_adjustment, min(n_subsamples, length(y)), max_iter, verbose = verbose, use_nr_overdisp_impl = use_nr_overdisp_impl)
+    } else {
+      overdispersion_mle_impl(as.numeric(y), mu, model_matrix, do_cox_reid_adjustment, min(n_subsamples, length(y)), max_iter, verbose = verbose, use_nr_overdisp_impl = use_nr_overdisp_impl)
+    }
   }
-
 }
 
 
-
-overdispersion_mle_impl <- function(y, mean,
-                                 model_matrix,
-                                 do_cox_reid_adjustment,
-                                 n_subsamples,
-                                 max_iter,
-                                 verbose = FALSE){
-
+overdispersion_mle_impl <- function(y, mu, model_matrix, do_cox_reid_adjustment, n_subsamples, max_iter, verbose = FALSE, use_nr_overdisp_impl = FALSE) {
   stopifnot(is.numeric(y))
-  if(missing(mean)){
-    mean <- base::mean(y)
+  if (missing(mu)) {
+    mu <- base::mean(y)
   }
-  if(is.null(model_matrix)){
+  if (is.null(model_matrix)) {
     model_matrix <- matrix(1, nrow = length(y), ncol = 1)
   }
   validate_model_matrix(model_matrix, matrix(y, nrow = 1))
-  if(length(mean) == 1){
-    mean <- rep(mean, length(y))
+  if (length(mu) == 1) {
+    mu <- rep(mu, length(y))
   }
 
   # Apply subsampling by randomly selecting elements of y and mean
-  if(n_subsamples != length(y)){
+  if (n_subsamples != length(y)) {
     random_sel <- sort(sample(seq_along(y), size = round(n_subsamples), replace = FALSE))
     # It is important this is before subsetting y, because of lazy evaluation
-    model_matrix <- model_matrix[random_sel, , drop=FALSE]
+    model_matrix <- model_matrix[random_sel, , drop = FALSE]
     y <- y[random_sel]
-    mean <- mean[random_sel]
+    mu <- mu[random_sel]
   }
 
-
-  stopifnot(is.vector(y) && length(y) == length(mean))
-  stopifnot(all(! is.na(y)))   # Cannot handle missing values
+  stopifnot(is.vector(y) && length(y) == length(mu))
+  stopifnot(all(!is.na(y))) # Cannot handle missing values
   stopifnot(all(y >= 0))
-  stopifnot(all(! is.na(mean)))
-  stopifnot(all(mean >= 0))
+  stopifnot(all(!is.na(mu)))
+  stopifnot(all(mu >= 0))
   stopifnot(all(is.finite(y)))
-  stopifnot(all(is.finite(mean)))
+  stopifnot(all(is.finite(mu)))
 
-  # Do conventional optimization
-  conventional_overdispersion_mle(y, mean_vector = mean,
-                                  model_matrix = model_matrix,
-                                  do_cox_reid_adjustment = do_cox_reid_adjustment,
-                                  max_iter = max_iter,
-                                  verbose = verbose)
+  conventional_overdispersion_mle(y, mu_vector = mu, model_matrix = model_matrix, do_cox_reid_adjustment = do_cox_reid_adjustment, max_iter = max_iter, use_nr_overdisp_impl = use_nr_overdisp_impl)
 }
 
 
+conventional_overdispersion_mle <- function(y, mu_vector, model_matrix = matrix(1, nrow = length(y), ncol = 1), do_cox_reid_adjustment = TRUE, max_iter = 200, use_nr_overdisp_impl = FALSE) {
+  if(use_nr_overdisp_impl) {
+    return(NR_overdispersion_mle(y, mu_vector, model_matrix, do_cox_reid_adjustment, max_iter))
+  }
+  return_value <- list(estimate = NA_real_, iterations = NA_real_, message = "")
 
-conventional_overdispersion_mle <- function(y, mean_vector,
-                                       model_matrix = matrix(1, nrow = length(y), ncol = 1),
-                                       do_cox_reid_adjustment = TRUE, max_iter = 200,
-                                       verbose = FALSE){
-  return_value = list(estimate = NA_real_, iterations = NA_real_, message = "")
+  tab <- make_table_if_small(y, stop_if_larger = length(y) / 2)
 
-  tab <- make_table_if_small(y, stop_if_larger = length(y)/2)
-
-  if(all(y == 0)){
+  if (all(y == 0)) {
     return_value$estimate <- 0
     return_value$iterations <- 0
     return_value$message <- "All counts y are 0."
@@ -185,100 +178,114 @@ conventional_overdispersion_mle <- function(y, mean_vector,
   }
 
   # Mu = 0 makes problems
-  mean_vector[mean_vector == 0] <- 1e-6
+  mu_vector[mu_vector < 1e-128] <- 1e-6
 
-  far_left_value <- conventional_score_function_fast(y, mu = mean_vector, log_theta = log(1e-8),
-                                   model_matrix = model_matrix, do_cr_adj = do_cox_reid_adjustment, tab[[1]], tab[[2]])
-  if(far_left_value < 0){
+  far_left_value <- conventional_score_function_fast(y, mu = mu_vector, log_theta = log(1e-8), model_matrix = model_matrix, do_cr_adj = do_cox_reid_adjustment, tab[[1]], tab[[2]])
+  if (far_left_value < 0) {
     return_value$estimate <- 0
     return_value$iterations <- 0
-    return_value$message <-  "Even for very small theta, no maximum identified"
+    return_value$message <- "Even for very small theta, no maximum identified"
     return(return_value)
   }
 
   mu <- mean(y)
   start_value <- (var(y) - mu) / mu^2
-  if(is.na(start_value) || start_value <= 0){
+  if (is.na(start_value) || start_value <= 0) {
     start_value <- 0.5
   }
 
-  res <- nlminb(start = log(start_value),
-         objective = function(log_theta){
-           - conventional_loglikelihood_fast(y, mu = mean_vector, log_theta = log_theta,
-                             model_matrix = model_matrix, do_cr_adj = do_cox_reid_adjustment, tab[[1]], tab[[2]])
-         }, gradient = function(log_theta){
-           - conventional_score_function_fast(y, mu = mean_vector, log_theta = log_theta,
-                             model_matrix = model_matrix, do_cr_adj = do_cox_reid_adjustment, tab[[1]], tab[[2]])
-         }, hessian = function(log_theta){
-           res <- conventional_deriv_score_function_fast(y, mu = mean_vector, log_theta = log_theta,
-                             model_matrix = model_matrix, do_cr_adj = do_cox_reid_adjustment, tab[[1]], tab[[2]])
-           matrix(- res, nrow = 1, ncol = 1)
-         }, lower = log(1e-16), upper = log(1e16),
-         control = list(iter.max = max_iter))
+  res <- nlminb(
+    start = log(start_value),
+    objective = function(log_theta) {
+      -conventional_loglikelihood_fast(y, mu = mu_vector, log_theta = log_theta, model_matrix = model_matrix, do_cr_adj = do_cox_reid_adjustment, tab[[1]], tab[[2]])
+    },
+    gradient = function(log_theta) {
+      -conventional_score_function_fast(y, mu = mu_vector, log_theta = log_theta, model_matrix = model_matrix, do_cr_adj = do_cox_reid_adjustment, tab[[1]], tab[[2]])
+    },
+    hessian = function(log_theta) {
+      res <- conventional_deriv_score_function_fast(y, mu = mu_vector, log_theta = log_theta, model_matrix = model_matrix, do_cr_adj = do_cox_reid_adjustment, tab[[1]], tab[[2]])
+      matrix(-res, nrow = 1, ncol = 1)
+    },
+    lower = log(1e-16),
+    upper = log(1e16),
+    control = list(iter.max = max_iter)
+  )
 
-
-  if(res$convergence != 0){
+  if (res$convergence != 0) {
     # Do the same thing again with numerical hessian as the
     # analytical hessian is sometimes less robust than the other
     # two functions
-    res <- nlminb(start = log(start_value),
-                  objective = function(log_theta){
-                    - conventional_loglikelihood_fast(y, mu = mean_vector, log_theta = log_theta,
-                                                      model_matrix = model_matrix, do_cr_adj = do_cox_reid_adjustment, tab[[1]], tab[[2]])
-                  }, gradient = function(log_theta){
-                    - conventional_score_function_fast(y, mu = mean_vector, log_theta = log_theta,
-                                                       model_matrix = model_matrix, do_cr_adj = do_cox_reid_adjustment, tab[[1]], tab[[2]])
-                  }, lower = log(1e-16), upper = log(1e16),
-                  control = list(iter.max = max_iter))
+    return_value$message <- "Used numerical approximation of hessian. "
+    res <- nlminb(
+      start = log(start_value),
+      objective = function(log_theta) {
+        -conventional_loglikelihood_fast(y, mu = mu_vector, log_theta = log_theta, model_matrix = model_matrix, do_cr_adj = do_cox_reid_adjustment, tab[[1]], tab[[2]])
+      },
+      gradient = function(log_theta) {
+        -conventional_score_function_fast(y, mu = mu_vector, log_theta = log_theta, model_matrix = model_matrix, do_cr_adj = do_cox_reid_adjustment, tab[[1]], tab[[2]])
+      },
+      lower = log(1e-16),
+      upper = log(1e16),
+      control = list(iter.max = max_iter)
+    )
 
-    if(res$convergence != 0){
+    if (res$convergence != 0) {
+      return_value$message <- "Used numerical approximation of hessian w/o cox-reid adjustment. "
       # Still problematic result: do the same thing without Cox-Reid adjustment
-      res <- nlminb(start = log(start_value),
-                    objective = function(log_theta){
-                      - conventional_loglikelihood_fast(y, mu = mean_vector, log_theta = log_theta,
-                                                        model_matrix = model_matrix, do_cr_adj = FALSE, tab[[1]], tab[[2]])
-                    }, gradient = function(log_theta){
-                      - conventional_score_function_fast(y, mu = mean_vector, log_theta = log_theta,
-                                                         model_matrix = model_matrix, do_cr_adj = FALSE, tab[[1]], tab[[2]])
-                    }, lower = log(1e-16), upper = log(1e16),
-                    control = list(iter.max = max_iter))
+      res <- nlminb(
+        start = log(start_value),
+        objective = function(log_theta) {
+          -conventional_loglikelihood_fast(y, mu = mu_vector, log_theta = log_theta, model_matrix = model_matrix, do_cr_adj = FALSE, tab[[1]], tab[[2]])
+        },
+        gradient = function(log_theta) {
+          -conventional_score_function_fast(y, mu = mu_vector, log_theta = log_theta, model_matrix = model_matrix, do_cr_adj = FALSE, tab[[1]], tab[[2]])
+        },
+        lower = log(1e-16),
+        upper = log(1e16),
+        control = list(iter.max = max_iter)
+      )
     }
-
-
   }
-
 
   return_value$estimate <- exp(res$par)
   return_value$iterations <- res$iterations
-  return_value$message <- res$message
+  return_value$message <- paste0(return_value$message, res$message)
   return_value
 }
 
 
 #' @importFrom beachmat initializeCpp
-estimate_global_overdispersion <- function(Y, Mu, model_matrix, do_cox_reid_adjustment){
+estimate_global_overdispersion <- function(Y, Mu, model_matrix, do_cox_reid_adjustment, do_parallel = 0) {
   # The idea to calculate the log-likelihood and than maximize the interpolation
   # is from edgeR.
   # The runtime is linear with the number of `log_thetas`
   log_thetas <- seq(-6, 1, length.out = 10)
-  log_likes <- estimate_global_overdispersions_fast(initializeCpp(Y), initializeCpp(Mu), model_matrix, do_cox_reid_adjustment, log_thetas)
+  log_likes <- if (is.function(Mu)) {
+    offs <- attr(Mu, "offsets")
+    estimate_global_overdispersions_fast_delayed(initializeCpp(Y), model_matrix, initializeCpp(if (is.vector(offs)) matrix(offs, nrow = 1) else offs), attr(Mu, "betas"), do_cox_reid_adjustment, log_thetas, do_parallel = do_parallel)
+  } else {
+    estimate_global_overdispersions_fast(initializeCpp(Y), initializeCpp(Mu), model_matrix, do_cox_reid_adjustment, log_thetas, do_parallel = do_parallel)
+  }
   spl <- spline(log_thetas, log_likes, n = 1000)
   est <- exp(spl$x[which.max(spl$y)])
   list(estimate = est, iterations = 10, message = "global estimate using spline interpolation")
 }
 
 
-
-
-estimate_dispersions_by_moment <- function(Y, model_matrix, offset_matrix){
-  xim <- 1/mean(DelayedMatrixStats::colMeans2(exp(offset_matrix)))
+estimate_dispersions_by_moment <- function(Y, model_matrix, offset_matrix) {
+  # detect case of memory optimization
+  if (is.vector(offset_matrix, mode = "numeric")) {
+    xim <- 1 / mean(exp(offset_matrix))
+  } else {
+    xim <- 1 / mean(DelayedMatrixStats::colMeans2(exp(offset_matrix)))
+  }
   bv <- DelayedMatrixStats::rowVars(Y)
   bm <- DelayedMatrixStats::rowMeans2(Y)
   (bv - xim * bm) / bm^2
 }
 
 
-estimate_dispersions_roughly <- function(Y, model_matrix, offset_matrix){
+estimate_dispersions_roughly <- function(Y, model_matrix, offset_matrix) {
   # roughDisp <- DESeq2:::roughDispEstimate(y = Y / exp(offset_matrix),
   #                                         x = model_matrix)
   moments_disp <- estimate_dispersions_by_moment(Y, model_matrix, offset_matrix)
@@ -286,8 +293,3 @@ estimate_dispersions_roughly <- function(Y, model_matrix, offset_matrix){
   disp_rough <- moments_disp
   ifelse(is.na(disp_rough) | disp_rough < 0, 0, disp_rough)
 }
-
-
-
-
-

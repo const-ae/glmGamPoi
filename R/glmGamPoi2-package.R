@@ -1,5 +1,4 @@
-
-#' @useDynLib glmGamPoi, .registration = TRUE
+#' @useDynLib glmGamPoi2, .registration = TRUE
 NULL
 
 

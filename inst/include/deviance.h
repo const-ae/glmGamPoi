@@ -1,98 +1,63 @@
 #ifndef DEVIANCE_H
 #define DEVIANCE_H
 
-// #include <Rcpp.h>
-#include <RcppArmadillo.h>
-using namespace Rcpp;
+#include <Eigen/Dense>
+template <class D> using EMB = Eigen::MatrixBase<D>;
+using Eigen::MatrixX;
+using Eigen::MatrixXd;
 
+template <class T> inline int sgn(const T val) { return (T(0) < val) - (val < T(0)); }
 
-template <typename T>
-inline int sgn(T val) {
-  return (T(0) < val) - (val < T(0));
-}
-
-inline double compute_gp_deviance (double y, double mu, double theta) {
-  if(theta < 1e-6){
+inline double compute_gp_deviance(const double y, const double mu, const double theta) {
+  if (theta < 1e-6) {
     // If theta is so small, calculate Poisson deviance
-    if(y == 0){
+    if (y == 0) {
       return 2.0 * mu;
-    }else{
+    } else {
       // the max is necessary because some combination of y and mu give negative results:
       // e.g. y = 1, mu = 0.99999999999994
-      return std::max(2.0 * (y * std::log(y/mu) - (y - mu)), 0.0);
+      const auto d = 2.0 * (y * std::log(y / mu) - (y - mu));
+      return (d > 0. ? d : 0.);
     }
-  }else{
+  } else {
     // Otherwise calculate Gamma-Poisson deviance
-    if(y == 0){
-      return 2.0/theta * std::log((1 + mu * theta));
+    if (y == 0) {
+      return 2.0 / theta * std::log1p(mu * theta);
     } else {
-      double s1 = y * std::log((mu + y * mu * theta) / (y +  y * mu * theta));
-      double s2 = 1.0/theta * std::log((1 + mu * theta) / (1 + y * theta));
-      return std::max(-2.0 * (s1 - s2), 0.0);
+      const double s1 = y * std::log((mu + y * mu * theta) / (y + y * mu * theta));
+      const double s2 = 1.0 / theta * std::log((1 + mu * theta) / (1 + y * theta));
+      const auto d = -2.0 * (s1 - s2);
+      return (d > 0. ? d : 0.);
     }
   }
 }
 
-template<class NumericType>
-inline double compute_gp_deviance_sum(const arma::Mat<NumericType>& Y,
-                               const arma::Mat<double>& Mu,
-                               const NumericVector& thetas){
+template <class D1, class D2> inline double compute_gp_deviance_sum(const EMB<D1> &y, const EMB<D2> &mu, const double theta) {
   double dev = 0.0;
-  int nrows = Y.n_rows;
-  for (int i = 0; i < Y.n_elem; i++) {
-    dev += compute_gp_deviance(Y.at(i), Mu.at(i), thetas(i % nrows));
+  auto y_begin = y.cbegin();
+  auto mu_begin = mu.cbegin();
+  const auto y_end = y.cend();
+  for (; y_begin != y_end; ++y_begin, ++mu_begin) {
+    dev += compute_gp_deviance(*y_begin, *mu_begin, theta);
   }
   return dev;
 }
 
-template<class NumericType>
-inline double compute_gp_deviance_sum(const arma::Mat<NumericType>& Y,
-                               const arma::Mat<double>& Mu,
-                               double theta){
-  double dev = 0.0;
-  for (int i = 0; i < Y.n_elem; i++) {
-    dev += compute_gp_deviance(Y.at(i), Mu.at(i), theta);
-  }
-  return dev;
-}
-
-inline double compute_gp_deviance_sum(const NumericVector& Y,
-                                      const NumericVector& Mu,
-                                      double theta){
-  double dev = 0.0;
-  int n_elem = Y.size();
-  for (int i = 0; i < n_elem; i++) {
-    dev += compute_gp_deviance(Y[i], Mu[i], theta);
-  }
-  return dev;
-}
-
-
-
-template<class NumericType>
-inline arma::Mat<double> compute_gp_deviance_residuals_matrix_impl(const arma::Mat<NumericType> Y, const arma::Mat<double> Mu, NumericVector thetas) {
-  arma::Mat<double> result(Y.n_rows, Y.n_cols);
-  int nrows = Y.n_rows;
-  for(int i = 0; i < Y.n_elem; i++){
-    result(i) = sgn(Y.at(i) - Mu.at(i)) * sqrt(compute_gp_deviance(Y.at(i), Mu.at(i), thetas.at(i % nrows)));
+template <class D1, class D2, class D3>
+inline MatrixXd compute_gp_deviance_residuals_matrix_impl(const Eigen::MatrixBase<D1> &Y, const Eigen::MatrixBase<D2> &Mu,
+                                                          const Eigen::MatrixBase<D3> &thetas) {
+  const auto nr = Y.rows();
+  const auto nc = Y.cols();
+  MatrixXd result(nr, nc);
+  for (auto i = 0; i < nr; ++i) {
+    const auto theta = thetas(i);
+    for (auto j = 0; j < nc; ++j) {
+      const auto y = Y(i, j);
+      const auto mu = Mu(i, j);
+      result(i, j) = sgn(y - mu) * std::sqrt(compute_gp_deviance(y, mu, theta));
+    }
   }
   return result;
 }
-
-inline arma::Mat<double> compute_gp_deviance_residuals_matrix(const SEXP Y_SEXP, const arma::Mat<double>& Mu, NumericVector thetas) {
-  SEXP dims = Rf_getAttrib(Y_SEXP, R_DimSymbol);
-  int nrow = INTEGER(dims)[0];
-  int ncol = INTEGER(dims)[1];
-  if(TYPEOF(Y_SEXP) == INTSXP){
-    arma::Mat<int> Y(INTEGER(Y_SEXP), nrow, ncol, false);
-    return compute_gp_deviance_residuals_matrix_impl<int>(Y, Mu, thetas);
-  }else if(TYPEOF(Y_SEXP) == REALSXP){
-    arma::Mat<double> Y(REAL(Y_SEXP), nrow, ncol, false);
-    return compute_gp_deviance_residuals_matrix_impl<double>(Y, Mu, thetas);
-  }else{
-    stop("Cannot handle Y_SEXP of this type.");
-  }
-}
-
 
 #endif

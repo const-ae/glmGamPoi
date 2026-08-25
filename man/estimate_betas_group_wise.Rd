@@ -11,7 +11,9 @@ estimate_betas_group_wise(
   beta_group_init = NULL,
   beta_mat_init = NULL,
   groups,
-  model_matrix
+  model_matrix,
+  max_iter = 100,
+  do_parallel = 0
 )
 }
 \value{

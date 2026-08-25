@@ -1,46 +1,55 @@
-// #include <Rcpp.h>
-#include <RcppArmadillo.h>
+#include <fit_beta.h>
+#include <par_helpers.h>
+#include <tatami_helpers.h>
+
 #include "Rtatami.h"
 
-#include <deviance.h>
-#include <fisher_scoring_steps.h>
-
+// [[Rcpp::depends(RcppEigen)]]
+#include <RcppEigen.h>
 using namespace Rcpp;
+using Eigen::Map;
+using Eigen::VectorXi;
 
-
-
-template<class NumericType>
-void clamp_inplace(/*INOUT parameter*/ arma::Mat<NumericType>& v, double min, double max){
-  for(int i = 0; i < v.n_elem; i++){
-    if(v.at(i) < min){
-      v.at(i) = min;
-    }else if(v.at(i) > max){
-      v.at(i) = max;
-    }
-  }
+// [[Rcpp::export(name = "fisher_scoring_qr_step")]]
+Eigen::MatrixXd fisher_scoring_qr_step_mask(const Eigen::Map<Eigen::MatrixXd> &model_matrix, const Eigen::Map<Eigen::VectorXd> &counts,
+                                            const Eigen::Map<Eigen::VectorXd> &mu, const Eigen::Map<Eigen::VectorXd> &theta_times_mu) {
+  return fisher_scoring_qr_step(model_matrix, counts, mu, theta_times_mu);
 }
 
+// [[Rcpp::export(name = "fisher_scoring_qr_ridge_step")]]
+Eigen::MatrixXd fisher_scoring_qr_ridge_step_mask(const Eigen::Map<Eigen::MatrixXd> &model_matrix, const Eigen::Map<Eigen::VectorXd> &counts,
+                                                  const Eigen::Map<Eigen::VectorXd> &mu, const Eigen::Map<Eigen::VectorXd> &theta_times_mu,
+                                                  const Eigen::Map<Eigen::MatrixXd> &ridge_penalty, const Eigen::Map<Eigen::VectorXd> &ridge_target,
+                                                  const Eigen::Map<Eigen::VectorXd> &beta_hat) {
+  return fisher_scoring_qr_ridge_step(model_matrix, counts, mu, theta_times_mu, ridge_penalty, ridge_target, beta_hat);
+}
+
+// [[Rcpp::export(name = "fisher_scoring_diagonal_step")]]
+Eigen::MatrixXd fisher_scoring_diagonal_step_mask(const Eigen::Map<Eigen::MatrixXd> &model_matrix, const Eigen::Map<Eigen::VectorXd> &counts,
+                                                  const Eigen::Map<Eigen::VectorXd> &mu, const Eigen::Map<Eigen::VectorXd> &theta_times_mu) {
+  return fisher_scoring_diagonal_step(model_matrix, counts, mu, theta_times_mu);
+}
 
 // Check how many unique rows are in a matrix and if this number is less than or equal to n
 // This is important to determine if the model can be solved by group averages
 // (ie. the numer of unique rows == number of columns)
-// [[Rcpp::export]]
-bool lte_n_equal_rows(const NumericMatrix& matrix, int n, double tolerance = 1e-10) {
+// [[Rcpp::export(rng = false)]]
+bool lte_n_equal_rows(const NumericMatrix &matrix, const int n, const double tolerance = 1e-10) {
   NumericMatrix reference_matrix(n, matrix.ncol());
   size_t n_matches = 0;
-  for(size_t row_idx = 0; row_idx < matrix.nrow(); row_idx++){
+  for (size_t row_idx = 0; row_idx < matrix.nrow(); row_idx++) {
     bool matched = false;
     NumericMatrix::ConstRow vec = matrix(row_idx, _);
-    for(size_t ref_idx = 0; ref_idx < n_matches; ref_idx++){
-      NumericMatrix::Row ref_vec  = reference_matrix(ref_idx, _);
-      if(sum(abs(vec - ref_vec)) < tolerance){
+    for (size_t ref_idx = 0; ref_idx < n_matches; ref_idx++) {
+      NumericMatrix::Row ref_vec = reference_matrix(ref_idx, _);
+      if (sum(abs(vec - ref_vec)) < tolerance) {
         matched = true;
         break;
       }
     }
-    if(! matched){
+    if (!matched) {
       ++n_matches;
-      if(n_matches > n){
+      if (n_matches > n) {
         return false;
       }
       reference_matrix(n_matches - 1, _) = vec;
@@ -49,23 +58,23 @@ bool lte_n_equal_rows(const NumericMatrix& matrix, int n, double tolerance = 1e-
   return true;
 }
 
-// [[Rcpp::export]]
-IntegerVector get_row_groups(const NumericMatrix& matrix, int n_groups, double tolerance = 1e-10) {
+// [[Rcpp::export(rng = false)]]
+IntegerVector get_row_groups(const NumericMatrix &matrix, const int n_groups, const double tolerance = 1e-10) {
   NumericMatrix reference_matrix(n_groups, matrix.ncol());
   IntegerVector groups(matrix.nrow());
   size_t n_matches = 0;
-  for(size_t row_idx = 0; row_idx < matrix.nrow(); row_idx++){
+  for (size_t row_idx = 0; row_idx < matrix.nrow(); row_idx++) {
     bool matched = false;
     NumericMatrix::ConstRow vec = matrix(row_idx, _);
-    for(size_t ref_idx = 0; ref_idx < n_matches; ref_idx++){
-      NumericMatrix::Row ref_vec  = reference_matrix(ref_idx, _);
-      if(sum(abs(vec - ref_vec)) < tolerance){
+    for (size_t ref_idx = 0; ref_idx < n_matches; ref_idx++) {
+      NumericMatrix::Row ref_vec = reference_matrix(ref_idx, _);
+      if (sum(abs(vec - ref_vec)) < tolerance) {
         groups(row_idx) = ref_idx;
         matched = true;
         break;
       }
     }
-    if(! matched){
+    if (!matched) {
       groups(row_idx) = n_matches;
       reference_matrix(n_matches, _) = vec;
       ++n_matches;
@@ -73,103 +82,6 @@ IntegerVector get_row_groups(const NumericMatrix& matrix, int n_groups, double t
   }
   return groups + 1;
 }
-
-
-arma::vec calculate_mu(const arma::mat& model_matrix, const arma::vec& beta_hat, const arma::vec& exp_off){
-  arma::vec mu_hat = exp(model_matrix * beta_hat) % exp_off;
-  clamp_inplace(mu_hat, 1e-50, 1e50);
-  return mu_hat;
-}
-
-/**
- * This method takes in a proposal for a step and checks if it actually
- * decreases the deviance of the model. If does not add it tries again
- * with half the step size, then a quarter and so on.
- *
- * If even after 100 steps the deviance (0.5^100 = 7.9e-31) has not decreased
- * it returns NaN.
- *
- * Note that the first two parameters are changed: beta_hat and mu_hat
- *
- * The function returns the new deviance.
- *
- */
-template<class NumericType>
-double decrease_deviance(/*In-Out Parameter*/ arma::vec& beta_hat,
-                         /*In-Out Parameter*/ arma::vec& mu_hat,
-                         const arma::vec& step,
-                         const arma::mat& model_matrix,
-                         const arma::mat& exp_off,
-                         const arma::Col<NumericType>& counts,
-                         const double theta, const double dev_old, const double tolerance, const double max_rel_mu_change){
-  double speeding_factor = 1.0;
-  int line_iter = 0;
-  double dev = 0;
-  beta_hat = beta_hat + step;
-  const arma::vec mu_old = mu_hat;
-  while(true){
-    mu_hat = calculate_mu(model_matrix, beta_hat, exp_off);
-    dev = compute_gp_deviance_sum(counts, mu_hat, theta);
-    double conv_test = fabs(dev - dev_old)/(fabs(dev) + 0.1);
-    double mu_rel_change = max(mu_hat / mu_old);
-    if((dev < dev_old && mu_rel_change < max_rel_mu_change) || conv_test < tolerance){
-      break; // while loop
-    }else if(line_iter >= 100){
-      // speeding factor is very small, something is going wrong here
-      dev = std::numeric_limits<double>::quiet_NaN();
-      break; // while loop
-    }else{
-      // Halfing the speed
-      speeding_factor = speeding_factor / 2.0;
-      beta_hat = beta_hat - step * speeding_factor;
-    }
-    line_iter++;
-  }
-  return dev;
-}
-
-
-template<class NumericType>
-double decrease_deviance_plus_ridge(/*In-Out Parameter*/ arma::vec& beta_hat,
-                                    /*In-Out Parameter*/ arma::vec& mu_hat,
-                                    const arma::vec& step,
-                                    const arma::mat& model_matrix,
-                                    const arma::mat& ridge_penalty_sq,
-                                    const arma::vec& ridge_target,
-                                    const arma::mat& exp_off,
-                                    const arma::Col<NumericType>& counts,
-                                    const double theta, const double dev_old,
-                                    const double tolerance, const double max_rel_mu_change){
-  double speeding_factor = 1.0;
-  int line_iter = 0;
-  double dev = 0;
-  int n_samples = model_matrix.n_rows;
-  beta_hat = beta_hat + step;
-  const arma::vec mu_old = mu_hat;
-  while(true){
-    mu_hat = calculate_mu(model_matrix, beta_hat, exp_off);
-    double pen_sum = n_samples * arma::as_scalar((beta_hat - ridge_target).t() * ridge_penalty_sq * (beta_hat - ridge_target));
-    dev = compute_gp_deviance_sum(counts, mu_hat, theta) + pen_sum;
-    double conv_test = fabs(dev - dev_old)/(fabs(dev) + 0.1);
-    double mu_rel_change = max(mu_hat / mu_old);
-    if((dev < dev_old && mu_rel_change < max_rel_mu_change) || conv_test < tolerance){
-      break; // while loop
-    }else if(line_iter >= 100){
-      // speeding factor is very small, something is going wrong here
-      dev = std::numeric_limits<double>::quiet_NaN();
-      break; // while loop
-    }else{
-      // Halfing the speed
-      speeding_factor = speeding_factor / 2.0;
-      beta_hat = beta_hat - step * speeding_factor;
-    }
-    line_iter++;
-  }
-  return dev;
-}
-
-
-
 
 //--------------------------------------------------------------------------------------------------//
 // The following code was originally copied from https://github.com/mikelove/DESeq2/blob/master/src/DESeq2.cpp
@@ -183,242 +95,280 @@ double decrease_deviance_plus_ridge(/*In-Out Parameter*/ arma::vec& beta_hat,
 //  * Add line search that ensures that deviance is decreasing at every step
 //  * Add optional ridge penalty
 
-
 // fit the Negative Binomial GLM with Fisher scoring
 // note: the betas are on the natural log scale
 //
-List fitBeta_fisher_scoring_impl(RObject Y, const arma::mat& model_matrix, RObject exp_offset_matrix,
-                                 NumericVector thetas, SEXP beta_matSEXP, Nullable<NumericMatrix> ridge_penalty_nl,
-                                 double tolerance, double max_rel_mu_change, int max_iter, bool use_diagonal_approx) {
+template <class FSConf>
+List fitBeta_fisher_scoring_impl(const RObject Y, const Eigen::Map<Eigen::MatrixXd> &model_matrix, const RObject exp_offset_matrix,
+                                 const NumericVector thetas, const Eigen::Map<Eigen::MatrixXd> &beta_mat_v,
+                                 // callbacks
+                                 const FSConf &conf,
+                                 // misc other parameters
+                                 const double tolerance, const double max_rel_mu_change, const int max_iter, const bool try_recov_w_optim,
+                                 const int do_parallel) {
   Rtatami::BoundNumericPointer Y_bm_ptr(Y);
-  const auto& Y_bm = *(Y_bm_ptr->ptr);
+  const auto &Y_bm = *(Y_bm_ptr->ptr);
 
   Rtatami::BoundNumericPointer exp_offsets_bm_ptr(exp_offset_matrix);
-  const auto& exp_offsets_bm = *(exp_offsets_bm_ptr->ptr);
+  const auto &exp_offsets_bm = *(exp_offsets_bm_ptr->ptr);
 
-  int n_samples = Y_bm.ncol();
-  int n_genes = Y_bm.nrow();
+  const auto n_samples = Y_bm.ncol();
+  const auto n_genes = Y_bm.nrow();
 
-  // the ridge penalty
-  bool apply_ridge_penalty = ridge_penalty_nl.isNotNull();
-  arma::mat ridge_penalty;
-  arma::mat ridge_penalty_sq;
-  arma::vec ridge_target;
-  if(apply_ridge_penalty){
-    NumericMatrix tmp = ridge_penalty_nl.get();
-    ridge_penalty = arma::mat(tmp.cbegin(), tmp.nrow(), tmp.ncol());
-    if(model_matrix.n_cols != ridge_penalty.n_cols){
-      stop("Number of columns in model_matrix does not match the columns of the ridge_penalty");
-    }
-    ridge_penalty_sq = ridge_penalty.t() * ridge_penalty;
-
-    if(tmp.hasAttribute("target")){
-      ridge_target = (NumericVector) tmp.attr("target");
-    }else{
-      ridge_target = arma::zeros(tmp.ncol());
-    }
-  }
-  // The result
-  arma::mat beta_mat = as<arma::mat>(beta_matSEXP);
-
-  auto Y_ext = tatami::consecutive_extractor<false>(&Y_bm, true, 0, n_genes);
-  auto exp_offsets_ext = tatami::consecutive_extractor<false>(&exp_offsets_bm, true, 0, n_genes);
-  arma::Col<double> counts(n_samples), exp_off(n_samples);
+  // out matrix, initialized as copy from view of initial betas matrix
+  MatrixXd beta_mat = beta_mat_v;
 
   // deviance, convergence and tolerance
-  NumericVector iterations(n_genes);
+  IntegerVector iterations(n_genes);
   NumericVector deviance(n_genes);
 
-  for (int gene_idx = 0; gene_idx < n_genes; gene_idx++) {
-    if (gene_idx % 100 == 0) checkUserInterrupt();
+  Map<VectorXi> iterations_v(iterations.begin(), iterations.size());
+  Map<VectorXd> deviance_v(deviance.begin(), deviance.size());
 
-    // Fill count and offset vector from beachmat matrix. This requires copy_n
-    // to ensure that the arma vectors are actually filled.
-    auto cptr = Y_ext->fetch(counts.begin());
-    tatami::copy_n(cptr, n_samples, counts.begin());
-    auto eptr = exp_offsets_ext->fetch(exp_off.begin());
-    tatami::copy_n(eptr, n_samples, exp_off.begin());
+  const auto run = [&](const auto start, const auto length) -> void {
+    auto Y_ext = tatami::consecutive_extractor<false>(Y_bm, true, start, length);
+    std::unique_ptr<tatami::OracularDenseExtractor<double, tatami::NumericMatrix::index_type>> exp_offsets_ext;
+    if (exp_offsets_bm.nrow() > 1) {
+      exp_offsets_ext = tatami::consecutive_extractor<false>(exp_offsets_bm, true, start, length);
+    } else {
+      exp_offsets_ext = tatami::new_extractor<false, true>(exp_offsets_bm, true, std::make_shared<ConstIndexOracle<0>>(length));
+    }
+    // buffers needed in case pointers to data from extractors are not available (e.g. DelayedArray)
+    VectorXd counts(n_samples), exp_off(n_samples);
 
-    // Init beta and mu
-    arma::vec beta_hat = beta_mat.row(gene_idx).t();
-    arma::vec mu_hat = calculate_mu(model_matrix, beta_hat, exp_off);
-    if(beta_hat.has_nan() || Rcpp::traits::is_na<REALSXP>(thetas(gene_idx))){
-      beta_hat.fill(NA_REAL);
-      iterations(gene_idx) = 0;
-      deviance(gene_idx) = NA_REAL;
-      continue;
-    }
-    // Init deviance
-    double dev_old = 0;
-    if(apply_ridge_penalty){
-      // For diagonal ridge_penalty: pen = Sum (lambda_i b_i)^2
-      double pen_sum = n_samples * arma::as_scalar((beta_hat - ridge_target).t() * ridge_penalty_sq * (beta_hat - ridge_target));
-      dev_old = compute_gp_deviance_sum(counts, mu_hat, thetas(gene_idx)) + pen_sum;
-    }else{
-      dev_old = compute_gp_deviance_sum(counts, mu_hat, thetas(gene_idx));
-    }
-    for (int t = 0; t < max_iter; t++) {
-      iterations(gene_idx)++;
-      // Find good direction to optimize beta
-      arma::vec step;
-      if(use_diagonal_approx){
-        step = fisher_scoring_diagonal_step(model_matrix, counts, mu_hat, thetas(gene_idx) * mu_hat);
-      }else{
-        if(apply_ridge_penalty){
-          step = fisher_scoring_qr_ridge_step(model_matrix, counts, mu_hat, thetas(gene_idx) * mu_hat, ridge_penalty, ridge_target, beta_hat);
-        }else{
-          step = fisher_scoring_qr_step(model_matrix, counts, mu_hat, thetas(gene_idx) * mu_hat);
+    const auto grp_max_id = start + length;
+    for (size_t gene_idx = start; gene_idx < grp_max_id; gene_idx++) {
+      if (gene_idx % 100 == 0) {
+        if (check_interrupt()) {
+          return;
         }
       }
-      // Find step size that actually decreases the deviance
-      double dev = 0;
-      if(apply_ridge_penalty){
-        dev = decrease_deviance_plus_ridge(beta_hat, mu_hat, step, model_matrix, ridge_penalty_sq, ridge_target,
-                                exp_off, counts, thetas(gene_idx), dev_old, tolerance, max_rel_mu_change);
-      }else{
-        dev = decrease_deviance(beta_hat, mu_hat, step, model_matrix,
-                                exp_off, counts, thetas(gene_idx), dev_old, tolerance, max_rel_mu_change);
-      }
-      double conv_test = fabs(dev - dev_old)/(fabs(dev) + 0.1);
-      dev_old = dev;
-      if (std::isnan(conv_test)) {
-        // This should not happen
-        beta_hat.fill(NA_REAL);
-        iterations(gene_idx) = max_iter;
-        break;
-      }
-      if (conv_test < tolerance) {
-        break;
-      }
+
+      // not using copy_n to avoid copies when not necessary, using Eigen::Map type instead.
+      const auto cptr = Y_ext->fetch(counts.data());
+      const auto eptr = exp_offsets_ext->fetch(exp_off.data());
+      const Map<const VectorXd> counts_v(cptr, n_samples), exp_off_v(eptr, n_samples);
+
+      auto beta_row = beta_mat.row(gene_idx); // using auto on purpose to get a block expression
+
+      fitBeta_FS_internal_step(beta_row, deviance_v(gene_idx), iterations_v(gene_idx), model_matrix, counts_v, exp_off_v, conf, thetas(gene_idx),
+                               tolerance, max_rel_mu_change, max_iter, try_recov_w_optim);
     }
-    beta_mat.row(gene_idx) = beta_hat.t();
-    deviance(gene_idx) = dev_old;
+  };
+
+  if (do_parallel > 0) {
+    run_par(run, n_genes, do_parallel);
+  } else {
+    run(0, n_genes);
+  }
+  // check if we got an interrupt, if yes, re-raise it
+  if (check_interrupt()) {
+    std::raise(SIGINT);
+    Rcpp::checkUserInterrupt();
   }
 
-  return List::create(
-    Named("beta_mat", beta_mat),
-    Named("iter", iterations),
-    Named("deviance", deviance));
+  return List::create(_["beta_mat"] = beta_mat, _["iter"] = iterations, _["deviance"] = deviance);
 }
 
+// [[Rcpp::export(rng = false)]]
+List fitBeta_fisher_scoring(const RObject Y, const Eigen::Map<Eigen::MatrixXd> model_matrix, const RObject exp_offset_matrix,
+                            const NumericVector thetas, const Eigen::Map<Eigen::MatrixXd> &beta_mat_v, const Nullable<NumericMatrix> ridge_penalty_nl,
+                            const double tolerance, const double max_rel_mu_change, const int max_iter, const bool try_recov_w_optim = false,
+                            const int do_parallel = 0) {
+  if (ridge_penalty_nl.isNotNull()) {
+    const NumericMatrix tmp = ridge_penalty_nl.get();
+    const auto ridge_penalty = Rcpp::as<Map<MatrixXd>>(tmp);
+    const auto nc = ridge_penalty.cols();
+    if (model_matrix.cols() != nc) {
+      stop("Number of columns in model_matrix does not match the columns of the ridge_penalty");
+    }
+    const auto n_samples = static_cast<double>(model_matrix.rows());
 
-// [[Rcpp::export]]
-List fitBeta_fisher_scoring(RObject Y, const arma::mat& model_matrix, RObject exp_offset_matrix,
-                                  NumericVector thetas, SEXP beta_matSEXP, Nullable<NumericMatrix> ridge_penalty_nl,
-                                  double tolerance, double max_rel_mu_change, int max_iter) {
-  return fitBeta_fisher_scoring_impl(Y, model_matrix, exp_offset_matrix,
-                                     thetas,  beta_matSEXP,
-                                     /*ridge_penalty=*/ ridge_penalty_nl,
-                                     tolerance, max_rel_mu_change, max_iter,
-                                     /*use_diagonal_approx=*/ false);
+    if (tmp.hasAttribute("target")) {
+      const NumericVector ridge_target_buf = tmp.attr("target");
+      const Map<const VectorXd> ridge_target(ridge_target_buf.begin(), ridge_target_buf.size());
+
+      const FisherScoreQRwRidge conf(ridge_target, ridge_penalty, n_samples);
+      return fitBeta_fisher_scoring_impl(Y, model_matrix, exp_offset_matrix, thetas, beta_mat_v, conf, tolerance, max_rel_mu_change, max_iter,
+                                         try_recov_w_optim, do_parallel);
+    } else {
+      const VectorXd ridge_target = VectorXd::Constant(nc, 0.0);
+
+      const FisherScoreQRwRidge conf(ridge_target, ridge_penalty, n_samples);
+      return fitBeta_fisher_scoring_impl(Y, model_matrix, exp_offset_matrix, thetas, beta_mat_v, conf, tolerance, max_rel_mu_change, max_iter,
+                                         try_recov_w_optim, do_parallel);
+    }
+  }
+
+  const auto conf = FisherScoreQR();
+  return fitBeta_fisher_scoring_impl(Y, model_matrix, exp_offset_matrix, thetas, beta_mat_v, conf, tolerance, max_rel_mu_change, max_iter,
+                                     try_recov_w_optim, do_parallel);
 }
 
-
-
-// [[Rcpp::export]]
-List fitBeta_diagonal_fisher_scoring(RObject Y, const arma::mat& model_matrix, RObject exp_offset_matrix,
-                                     NumericVector thetas, SEXP beta_matSEXP,
-                                     double tolerance, double max_rel_mu_change, int max_iter) {
-  return fitBeta_fisher_scoring_impl(Y, model_matrix, exp_offset_matrix,
-                                     thetas,  beta_matSEXP,
-                                     /*ridge_penalty=*/ R_NilValue,
-                                     tolerance, max_rel_mu_change, max_iter,
-                                     /*use_diagonal_approx=*/ true);
+// [[Rcpp::export(rng = false)]]
+List fitBeta_diagonal_fisher_scoring(const RObject Y, const Eigen::Map<Eigen::MatrixXd> model_matrix, const RObject exp_offset_matrix,
+                                     const NumericVector thetas, const Eigen::Map<Eigen::MatrixXd> &beta_mat_v, const double tolerance,
+                                     const double max_rel_mu_change, const int max_iter, const bool try_recov_w_optim = false,
+                                     const int do_parallel = 0) {
+  const auto conf = FisherScoreDiagApprox();
+  return fitBeta_fisher_scoring_impl(Y, model_matrix, exp_offset_matrix, thetas, beta_mat_v, conf, tolerance, max_rel_mu_change,
+                                     max_iter, try_recov_w_optim, do_parallel);
 }
 
+template <class FSConf>
+List fitBeta_optim_impl(const RObject Y, const Eigen::Map<Eigen::MatrixXd> &model_matrix, const RObject exp_offset_matrix, const NumericVector thetas,
+                        const Eigen::Map<Eigen::MatrixXd> &beta_mat_v, const FSConf &conf, const int max_iter, const int do_parallel) {
+  Rtatami::BoundNumericPointer Y_bm_ptr(Y);
+  const auto &Y_bm = *(Y_bm_ptr->ptr);
 
+  Rtatami::BoundNumericPointer exp_offsets_bm_ptr(exp_offset_matrix);
+  const auto &exp_offsets_bm = *(exp_offsets_bm_ptr->ptr);
+
+  const auto n_samples = Y_bm.ncol();
+  const auto n_genes = Y_bm.nrow();
+
+  MatrixXd beta_mat = beta_mat_v;
+
+  IntegerVector iterations(n_genes);
+  NumericVector deviance(n_genes);
+
+  Map<VectorXi> iterations_v(iterations.begin(), iterations.size());
+  Map<VectorXd> deviance_v(deviance.begin(), deviance.size());
+
+  const auto run = [&](const auto start, const auto length) -> void {
+    auto Y_ext = tatami::consecutive_extractor<false>(Y_bm, true, start, length);
+    std::unique_ptr<tatami::OracularDenseExtractor<double, tatami::NumericMatrix::index_type>> exp_offsets_ext;
+    if (exp_offsets_bm.nrow() > 1) {
+      exp_offsets_ext = tatami::consecutive_extractor<false>(exp_offsets_bm, true, start, length);
+    } else {
+      exp_offsets_ext = tatami::new_extractor<false, true>(exp_offsets_bm, true, std::make_shared<ConstIndexOracle<0>>(length));
+    }
+    // buffers needed in case pointers to data from extractors are not available (e.g. DelayedArray)
+    VectorXd counts(n_samples), exp_off(n_samples);
+
+    const auto grp_max_id = start + length;
+    for (size_t gene_idx = start; gene_idx < grp_max_id; gene_idx++) {
+      if (gene_idx % 100 == 0) {
+        if (check_interrupt()) {
+          return;
+        }
+      }
+
+      // not using copy_n to avoid copies when not necessary, using Eigen::Map type instead.
+      const auto cptr = Y_ext->fetch(counts.data());
+      const auto eptr = exp_offsets_ext->fetch(exp_off.data());
+      const Map<const VectorXd> counts_v(cptr, n_samples), exp_off_v(eptr, n_samples);
+
+      VectorXd beta_row = beta_mat.row(gene_idx);
+      fitBeta_FS_optim_step(beta_row, deviance_v(gene_idx), iterations_v(gene_idx), model_matrix, counts_v, exp_off_v, conf, thetas(gene_idx),
+                            max_iter);
+      beta_mat.row(gene_idx) = beta_row;
+    }
+  };
+
+  if (do_parallel > 0) {
+    run_par(run, n_genes, do_parallel);
+  } else {
+    run(0, n_genes);
+  }
+  // check if we got an interrupt, if yes, re-raise it
+  if (check_interrupt()) {
+    std::raise(SIGINT);
+    Rcpp::checkUserInterrupt();
+  }
+
+  return List::create(_["Beta"] = beta_mat, _["iterations"] = iterations, _["deviances"] = deviance);
+}
+
+//[[Rcpp::export(rng = false)]]
+List fitBeta_optim(const RObject Y, const Eigen::Map<Eigen::MatrixXd> &model_matrix, const RObject exp_offset_matrix, const NumericVector thetas,
+                   const Eigen::Map<Eigen::MatrixXd> &beta_mat_v, const Nullable<NumericMatrix> ridge_penalty_nl, const int max_iter,
+                   const int do_parallel = 0) {
+  if (ridge_penalty_nl.isNotNull()) {
+    const NumericMatrix tmp = ridge_penalty_nl.get();
+    const auto ridge_penalty = Rcpp::as<Map<MatrixXd>>(tmp);
+    const auto nc = ridge_penalty.cols();
+    if (model_matrix.cols() != nc) {
+      stop("Number of columns in model_matrix does not match the columns of the ridge_penalty");
+    }
+    const auto n_samples = static_cast<double>(model_matrix.rows());
+
+    if (tmp.hasAttribute("target")) {
+      const NumericVector ridge_target_buf = tmp.attr("target");
+      const Map<const VectorXd> ridge_target(ridge_target_buf.begin(), ridge_target_buf.size());
+
+      const FisherScoreQRwRidge conf(ridge_target, ridge_penalty, n_samples);
+      return fitBeta_optim_impl(Y, model_matrix, exp_offset_matrix, thetas, beta_mat_v, conf, max_iter, do_parallel);
+    } else {
+      const VectorXd ridge_target = VectorXd::Constant(nc, 0.0);
+
+      const FisherScoreQRwRidge conf(ridge_target, ridge_penalty, n_samples);
+      return fitBeta_optim_impl(Y, model_matrix, exp_offset_matrix, thetas, beta_mat_v, conf, max_iter, do_parallel);
+    }
+  }
+
+  const auto conf = FisherScoreQR();
+  return fitBeta_optim_impl(Y, model_matrix, exp_offset_matrix, thetas, beta_mat_v, conf, max_iter, do_parallel);
+}
 
 // If there is only one group, there is no need to do the full Fisher-scoring
 // Instead a simple Newton-Raphson algorithm will do
 //
 //[[Rcpp::export(rng = false)]]
-List fitBeta_one_group(RObject Y, RObject offset_matrix, NumericVector thetas, NumericVector beta_start_values, double tolerance, int maxIter) {
+List fitBeta_one_group(const RObject Y, const RObject offset_matrix, const NumericVector thetas, const NumericVector beta_start_values,
+                       const double tolerance, const int max_iter, const int do_parallel = 0) {
   Rtatami::BoundNumericPointer Y_bm_ptr(Y);
-  const auto& Y_bm = *(Y_bm_ptr->ptr);
+  const auto &Y_bm = *(Y_bm_ptr->ptr);
 
   Rtatami::BoundNumericPointer offsets_bm_ptr(offset_matrix);
-  const auto& offsets_bm = *(offsets_bm_ptr->ptr);
+  const auto &offsets_bm = *(offsets_bm_ptr->ptr);
 
-  int n_samples = Y_bm.ncol();
-  int n_genes = Y_bm.nrow();
-  NumericVector result(n_genes);
-  IntegerVector iterations(n_genes);
+  const auto n_samples = Y_bm.ncol();
+  const auto n_genes = Y_bm.nrow();
+
+  NumericVector result = Rcpp::clone(beta_start_values);
   NumericVector deviance(n_genes);
+  IntegerVector iterations(n_genes);
 
-  Environment glmGamPoiEnv = Environment::namespace_env("glmGamPoi");
-  Function estimate_betas_group_wise_optimize_helper = glmGamPoiEnv["estimate_betas_group_wise_optimize_helper"];
+  Map<VectorXd> result_v(result.begin(), result.size()), deviance_v(deviance.begin(), deviance.size());
+  Map<VectorXi> iterations_v(iterations.begin(), iterations.size());
 
-  auto Y_ext = tatami::consecutive_extractor<false>(&Y_bm, true, 0, n_genes);
-  auto offset_ext = tatami::consecutive_extractor<false>(&offsets_bm, true, 0, n_genes);
-  Rcpp::NumericVector counts_vec(n_samples), off_vec(n_samples);
-
-  for(int gene_idx = 0; gene_idx < n_genes; gene_idx++){
-    if (gene_idx % 100 == 0) checkUserInterrupt();
-
-    // This must be run before any continue statement, otherwise we're not respecting 
-    // our promise to extract consecutive genes in the consecutive_extractor() call.
-    //
-    // Also note that this function returns pointers that may not actually fill the
-    // *_vec vectors, e.g., row-major matrices where a pointer to the underlying
-    // array can be directly returned. If *_vec must be filled, use tatami::copy_n.
-    auto counts = Y_ext->fetch(gene_idx, counts_vec.begin());
-    auto off = offset_ext->fetch(gene_idx, off_vec.begin());
-
-    double beta = beta_start_values(gene_idx);
-    const double& theta = thetas(gene_idx);
-    if(Rcpp::traits::is_na<REALSXP>(beta) || Rcpp::traits::is_na<REALSXP>(theta)){
-      // Missing values, just continue with next gene
-      result(gene_idx) = NA_REAL;
-      iterations(gene_idx) = 0;
-      deviance(gene_idx) = NA_REAL;
-      continue;
+  const auto run = [&](const auto start, const auto length) -> void {
+    auto Y_ext = tatami::consecutive_extractor<false>(Y_bm, true, start, length);
+    std::unique_ptr<tatami::OracularDenseExtractor<double, tatami::NumericMatrix::index_type>> offset_ext;
+    if (offsets_bm.nrow() > 1) {
+      offset_ext = tatami::consecutive_extractor<false>(offsets_bm, true, start, length);
+    } else {
+      offset_ext = tatami::new_extractor<false, true>(offsets_bm, true, std::make_shared<ConstIndexOracle<0>>(length));
     }
+    VectorXd counts_vec(n_samples), off_vec(n_samples);
 
-    // Newton-Raphson
-    int iter = 0;
-    for(; iter < maxIter; iter++){
-      double dl = 0.0;
-      double ddl = 0.0;
-      bool all_zero = true;
-      for(int sample_iter = 0; sample_iter < n_samples; sample_iter++){
-        const auto count = counts[sample_iter];
-        all_zero = all_zero && count == 0;
-        const double mu = std::exp(beta + off[sample_iter]);
-        const double denom = 1.0 + mu * theta;
-        dl += (count - mu) / denom;
-        ddl += mu * (1.0 + count * theta) / denom / denom;
-        // ddl += mu / denom;           // This is what edgeR is using
+    const auto grp_max_id = start + length;
+    for (size_t gene_idx = start; gene_idx < grp_max_id; gene_idx++) {
+      if (gene_idx % 100 == 0) {
+        if (check_interrupt()) {
+          return;
+        }
       }
-      if(all_zero){
-        beta = R_NegInf;
-        break;
-      }
-      const double step = dl / ddl;
-      beta += step;
-      if(std::abs(step) < tolerance){
-        break;
-      }else if(Rcpp::traits::is_nan<REALSXP>(beta)){
-        break;
-      }
+      const auto cptr = Y_ext->fetch(counts_vec.data());
+      const auto optr = offset_ext->fetch(off_vec.data());
+      // not using copy_n to avoid copies when not necessary, using Eigen::Map type instead.
+      const Map<const VectorXd> counts_v(cptr, n_samples), off_v(optr, n_samples);
+
+      fitBeta_NR_internal_step(result_v(gene_idx), deviance_v(gene_idx), iterations_v(gene_idx), counts_v, off_v, thetas(gene_idx), tolerance,
+                               max_iter);
     }
-    if(iter == maxIter || Rcpp::traits::is_nan<REALSXP>(beta)){
-      // Make sure we actually populate the vectors before sending them over to R.
-      tatami::copy_n(counts, n_samples, counts_vec.begin());
-      tatami::copy_n(off, n_samples, off_vec.begin());
-      // Not converged -> try again with optimize()
-      beta =  Rcpp::as<double>(estimate_betas_group_wise_optimize_helper(counts_vec, off_vec, theta));
-    }
-    result(gene_idx) = beta;
-    iterations(gene_idx) = iter;
-    double dev = 0.0;
-    for(int sample_iter = 0; sample_iter < n_samples; sample_iter++){
-      dev += compute_gp_deviance(counts[sample_iter], exp(beta + off[sample_iter]), theta);
-    }
-    deviance(gene_idx) = dev;
+  };
+  if (do_parallel > 0) {
+    run_par(run, n_genes, do_parallel);
+  } else {
+    run(0, n_genes);
   }
-  return List::create(
-    Named("beta", result),
-    Named("iter", iterations),
-    Named("deviance", deviance)
-  );
+  // check if we got an interrupt, if yes, re-raise it
+  if (check_interrupt()) {
+    std::raise(SIGINT);
+    Rcpp::checkUserInterrupt();
+  }
+
+  return List::create(_["beta"] = result, _["iter"] = iterations, _["deviance"] = deviance);
 }

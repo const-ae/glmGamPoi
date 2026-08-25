@@ -12,7 +12,9 @@ overdispersion_mle(
   global_estimate = FALSE,
   subsample = FALSE,
   max_iter = 200,
-  verbose = FALSE
+  verbose = FALSE,
+  use_nr_overdisp_impl = FALSE,
+  do_parallel = 0
 )
 }
 \arguments{
@@ -89,9 +91,9 @@ additional maintenance burden.
  # estimate = 0
  overdispersion_mle(y)
  # with different mu, overdispersion estimate changes
- overdispersion_mle(y, mean = 15)
+ overdispersion_mle(y, mu = 15)
  # Cox-Reid adjustment changes the result
- overdispersion_mle(y, mean = 15, do_cox_reid_adjustment = FALSE)
+ overdispersion_mle(y, mu = 15, do_cox_reid_adjustment = FALSE)
 
 
  # Many very small counts, true overdispersion = 50

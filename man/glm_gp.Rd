@@ -18,12 +18,13 @@ glm_gp(
   subsample = FALSE,
   on_disk = NULL,
   use_assay = NULL,
+  perf_optim = FALSE,
   verbose = FALSE
 )
 }
 \arguments{
-\item{data}{any matrix-like object (e.g. \link{matrix}, sparse matrix (\link{dgCMatrix}), \link{DelayedArray}, \link{HDF5Matrix}) or
-anything that can be cast to a \link{SummarizedExperiment} (e.g. \code{MSnSet}, \code{eSet} etc.) with
+\item{data}{any matrix-like object (e.g. \link{matrix}, sparse matrix (\link[Matrix:dgCMatrix-class]{dgCMatrix}), \link[DelayedArray:DelayedArray]{DelayedArray}, \link[HDF5Array:HDF5Matrix]{HDF5Matrix}) or
+anything that can be cast to a \link[SummarizedExperiment:SummarizedExperiment]{SummarizedExperiment} (e.g. \code{MSnSet}, \code{eSet} etc.) with
 one column per sample and row per gene.}
 
 \item{design}{a specification of the experimental design used to fit the Gamma-Poisson GLM.
@@ -115,6 +116,25 @@ data structure.}
 
 \item{use_assay}{Specify which assay to use. Default: \code{NULL}, which means that if available 'counts'
 are used. Otherwise an error is thrown except if there is only a single assay.}
+
+\item{perf_optim}{a value that indicates if attempts should be made to optimize performance / memory use while fitting the GLM.
+Can be provided as a boolean (turns on/off all optimizations) or as a list to select only specific optimizations.
+Note: various optimizations here can lead to BREAKING changes in output shape and/or values,
+and were designed/intended for application on single-cell transcriptomics data (e.g. sparse matrix, with l.t. ~10\% density)
+A list of currently specified optimizations is provided below:
+\itemize{
+\item \code{offset_as_vec}: if \code{offset} is provided as either a constant or a vector of per-sample offsets,
+\code{Offset} will be a vector instead of a matrix to avoid generating a dense n_sample * n_genes matrix
+\item \code{cast_dgC_Y_to_dgR}: data matrix will be internally converted to row-major format to improve memory access patterns
+as internal steps fetch data row-wise on a per-gene basis
+\item \code{do_parallel}: if value greater than zero, then enables parallelization for model parameter fitting processes
+the number of threads used is equal to the provided integer
+\item \code{delay_mu}: Mu matrix is never explicitly formed, instead Mu field of output is provided as a function
+which can be called to materialize full matrix.
+IMPORTANT NOTE: \link{predict} and \link{residuals} methods will lead to a memory spike if this option is enabled, as they require the full Mu matrix to be present in memory.
+\item \code{use_nr_overdisp_impl}: uses a C++-implemented newton-raphson procedure instead of nlmimb for estimating overdispersions, which allows for parallelizing that step
+}
+Default: \code{FALSE}, meaning no optimizations are made}
 
 \item{verbose}{a boolean that indicates if information about the individual steps are printed
 while fitting the GLM. Default: \code{FALSE}.}

@@ -1,27 +1,32 @@
 #ifndef FISHER_SCORING_STEPS_H
 #define FISHER_SCORING_STEPS_H
 
-#include <RcppArmadillo.h>
+#include <Eigen/Dense>
+template <class D> using EMB = Eigen::MatrixBase<D>;
+using Eigen::ArrayXd;
+using Eigen::HouseholderQR;
+using Eigen::MatrixXd;
+using Eigen::TriangularView;
+using Eigen::VectorX;
+using Eigen::VectorXd;
 
-using namespace Rcpp;
-
-template<class NumericType>
-arma::vec fisher_scoring_qr_step(const arma::mat& model_matrix, const arma::Col<NumericType>& counts,
-                                 const arma::colvec& mu, const arma::colvec& theta_times_mu){
+template <class D1, class D2, class D3, class D4>
+inline VectorXd fisher_scoring_qr_step(const EMB<D1> &model_matrix, const EMB<D2> &counts, const EMB<D3> &mu, const EMB<D4> &theta_times_mu) {
   // The QR decomposition of the model_matrix
-  arma::mat q, r;
-  arma::vec w_vec = (mu/(1.0 + theta_times_mu));
-  arma::vec w_sqrt_vec = sqrt(w_vec);
-  // prepare matrices
-  arma::mat weighted_model_matrix = model_matrix.each_col() % w_sqrt_vec;
-  qr_econ(q, r, weighted_model_matrix);
+  const ArrayXd w_sqrt_vec = (mu.array() / (1.0 + theta_times_mu.array())).sqrt();
+  const HouseholderQR qr = (model_matrix.array().colwise() * w_sqrt_vec).matrix().householderQr();
+
+  // materialize q and r matrix views
+  // HouseholderSequence defines the multiplication operator, so we extract a "thin" Q by multiplying with the identity matrix;
+  const MatrixXd q = qr.householderQ() * MatrixXd::Identity(model_matrix.rows(), model_matrix.cols());
+  // r is stored in the top left corner of the matrixQR() matrix, of which we only need the triangular view
+  const TriangularView r = qr.matrixQR().topLeftCorner(model_matrix.cols(), model_matrix.cols()).template triangularView<Eigen::Upper>();
+
   // Not actually quite the score vec, but related
   // See Dunn&Smyth GLM Book eq. 6.16
-  arma::vec score_vec = (q.each_col() % w_sqrt_vec).t() * ((counts - mu) / mu);
-  arma::vec step = solve(arma::trimatu(r), score_vec);
-  return step;
+  const VectorXd score_vec = (q.array().colwise() * w_sqrt_vec).matrix().transpose() * (counts - mu).cwiseQuotient(mu);
+  return r.solve(score_vec);
 }
-
 
 /**
  * Ridge ression penalizes large values of beta:
@@ -44,46 +49,45 @@ arma::vec fisher_scoring_qr_step(const arma::mat& model_matrix, const arma::Col<
  * For the actual implementation below, we need to keep the weighting w = mu / (1 + mu * theta)
  * in mind. However, for clarity, I skipped w in the above derivation.
  */
-template<class NumericType>
-arma::vec fisher_scoring_qr_ridge_step(const arma::mat& model_matrix, const arma::Col<NumericType>& counts, const arma::colvec& mu,
-                                       const arma::colvec& theta_times_mu, const arma::mat& ridge_penalty,  const arma::colvec& ridge_target, const arma::colvec& beta){
-  // The QR decomposition of the model_matrix
-  arma::mat q, r;
-  int extra = ridge_penalty.n_rows;
-  arma::vec w_vec = (mu/(1.0 + theta_times_mu));
-  arma::vec w_sqrt_vec = sqrt(w_vec);
+
+template <class D1, class D2, class D3, class D4, class D5, class D6, class D7>
+inline VectorXd fisher_scoring_qr_ridge_step(const EMB<D1> &model_matrix, const EMB<D2> &counts, const EMB<D3> &mu, const EMB<D4> &theta_times_mu,
+                                             const EMB<D5> &ridge_penalty, const EMB<D6> &ridge_target, const EMB<D7> &beta_hat) {
+  const size_t extra = ridge_penalty.rows();
+
   // the sqrt(n) is important to scale the ridge_penalty by the number of samples
   // i.e. pen = sum dev(y, mu) + n * b^t Lambda^t Lambda b^t
-  arma::mat ridge_helper = sqrt(model_matrix.n_rows) *  ridge_penalty;
-  // Add rows for Ridge Regularization (see https://math.stackexchange.com/a/299508/492945)
-  arma::mat extended_model_matrix = arma::join_cols(model_matrix, ridge_helper);
+  const MatrixXd ridge_helper = std::sqrt(double(model_matrix.rows())) * ridge_penalty;
 
-  arma::vec extended_w_sqrt_vec = arma::join_cols(w_sqrt_vec, arma::ones(extra));
-  arma::vec extended_working_resid =  arma::join_cols((counts - mu) / mu, - ridge_helper * (beta - ridge_target));
-  // prepare matrices
-  arma::mat weighted_extended_model_matrix = extended_model_matrix.each_col() % extended_w_sqrt_vec;
-  qr_econ(q, r, weighted_extended_model_matrix);
+  // Add rows for Ridge Regularization (see https://math.stackexchange.com/a/299508/492945)
+  MatrixXd extended_model_matrix(model_matrix.rows() + extra, model_matrix.cols());
+  extended_model_matrix << model_matrix, ridge_helper;
+  ArrayXd extended_w_sqrt_vec(mu.size() + extra);
+  extended_w_sqrt_vec << (mu.array() / (1.0 + theta_times_mu.array())).sqrt(), VectorXd::Constant(extra, 1.0);
+  VectorXd extended_working_resid(counts.size() + extra);
+  extended_working_resid << (counts - mu).cwiseQuotient(mu), ridge_helper * (ridge_target - beta_hat);
+
+  // The QR decomposition of the model_matrix
+  const HouseholderQR qr = (extended_model_matrix.array().colwise() * extended_w_sqrt_vec).matrix().householderQr();
+  // materialize q and r matrix views
+  // HouseholderSequence defines the multiplication operator, so we extract a "thin" Q by multiplying with the identity matrix;
+  const MatrixXd q = qr.householderQ() * MatrixXd::Identity(extended_model_matrix.rows(), extended_model_matrix.cols());
+  // r is stored in the top left corner of the matrixQR() matrix, of which we only need the triangular view
+  const TriangularView r =
+      qr.matrixQR().topLeftCorner(extended_model_matrix.cols(), extended_model_matrix.cols()).template triangularView<Eigen::Upper>();
 
   // Not actually quite the score vec, but related
   // See Dunn&Smyth GLM Book eq. 6.16
-  arma::vec score_vec = (q.each_col() % extended_w_sqrt_vec).t() * extended_working_resid;
-  arma::vec step = solve(arma::trimatu(r), score_vec);
-  return step;
+  const VectorXd score_vec = (q.array().colwise() * extended_w_sqrt_vec).matrix().transpose() * extended_working_resid;
+  return r.solve(score_vec);
 }
 
+template <class D1, class D2, class D3, class D4>
+inline VectorXd fisher_scoring_diagonal_step(const EMB<D1> &model_matrix, const EMB<D2> &counts, const EMB<D3> &mu, const EMB<D4> &theta_times_mu) {
+  const ArrayXd w_vec = mu.array() / (1.0 + theta_times_mu.array());
 
-
-template<class NumericType>
-arma::vec fisher_scoring_diagonal_step(const arma::mat& model_matrix, const arma::Col<NumericType>& counts,
-                                       const arma::colvec& mu, const arma::colvec& theta_times_mu){
-  arma::vec w_vec = (mu/(1.0 + theta_times_mu));
-  // prepare matrices
-  arma::mat weighted_model_matrix = model_matrix.each_col() % w_vec;
-  arma::vec score_vec = weighted_model_matrix.t() * ((counts - mu) / mu);
-  // This calculates the diag(Xˆt W X) efficiently. arma::sum(mat, 0) = colSums()
-  arma::vec info_vec = arma::sum(arma::mat(arma::pow(model_matrix, 2)).each_col() % w_vec, 0).t();
-  arma::vec step = score_vec / info_vec;
-  return step;
+  return ((model_matrix.array().colwise() * w_vec).transpose().matrix() * (counts - mu).cwiseQuotient(mu))
+      .cwiseQuotient((model_matrix.array().square().colwise() * w_vec).colwise().sum().matrix().transpose());
 }
 
 #endif

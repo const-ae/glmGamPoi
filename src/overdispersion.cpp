@@ -1,355 +1,536 @@
-// #include <Rcpp.h>
-#include <RcppArmadillo.h>
+#include <calc_helpers.h>
+#include <overdispersion.h>
+#include <par_helpers.h>
+#include <tatami_helpers.h>
+
+#include <algorithm> // for std::shuffle
+#include <numeric>   // for std::iota
+#include <random>
+
+// [[Rcpp::depends(RcppEigen)]]
+#include <RcppEigen.h>
+using namespace Rcpp;
+using Eigen::ArrayXi;
+using Eigen::Map;
+using Eigen::VectorXd;
+
 #include "Rtatami.h"
 
-using namespace Rcpp;
-// [[Rcpp::depends(RcppArmadillo)]]
+// [[Rcpp::export(rng = false)]]
+List make_table_if_small(const NumericVector x, size_t stop_if_larger) {
+  VectorXd keys, values;
 
-
-
-// This correction factor is necessary to avoid estimates of
-// theta that are basically +Inf. The problem is that for
-// some combination of the y, mu, and X the term
-// lgamma(1/theta) and the log(det(t(X) %*% W %*% X))
-// with W = diag(1/(1/mu + theta)) canceled each other
-// exactly out for large theta.
-const double cr_correction_factor = 0.99;
-
-
-// [[Rcpp::export]]
-List make_table_if_small(const NumericVector& x, int stop_if_larger){
-  std::unordered_map<long, size_t> counts;
-  counts.reserve(stop_if_larger);
-  for (double v : x){
-    ++counts[(long) v];
-    if(counts.size() > stop_if_larger){
-      return List::create(NumericVector::create(), NumericVector::create());
-    }
-  }
-  NumericVector keys(counts.size());
-  NumericVector values(counts.size());
-  transform(counts.begin(), counts.end(), keys.begin(), [](std::pair<int, size_t> pair){return (double) pair.first;});
-  transform(counts.begin(), counts.end(), values.begin(), [](std::pair<int, size_t> pair){return (double) pair.second;});
+  make_map_if_small(keys, values, x, stop_if_larger);
   return List::create(keys, values);
 }
 
-
-//--------------------------------------------------------------------------------------------------//
-// The following code was originally copied from https://github.com/mikelove/DESeq2/blob/master/src/DESeq2.cpp
-// I adapted it to the needs of this project by:
-//  * renaming alpha -> theta for consitency
-//  * removing the part for the prior on theta
-//  * renaming x -> model_matrix
-//  * additional small changes
-//  * adding capability to calculate digamma/trigamma only
-//    on unique counts
-
-
-
-/*
- * DESeq2 C++ functions
- *
- * Author: Michael I. Love, Constantin Ahlmann-Eltze
- * Last modified: May 21, 2020
- * License: LGPL (>= 3)
- *
- * Note: The canonical, up-to-date DESeq2.cpp lives in
- * the DESeq2 library, the development branch of which
- * can be viewed here:
- *
- * https://github.com/mikelove/DESeq2/blob/master/src/DESeq2.cpp
- */
-
-
-
-// this function returns the log posterior of dispersion parameter alpha, for negative binomial variables
-// given the counts y, the expected means mu, the design matrix x (used for calculating the Cox-Reid adjustment),
-// and the parameters for the normal prior on log alpha
-
-// [[Rcpp::export]]
-double conventional_loglikelihood_fast(NumericVector y, NumericVector mu, double log_theta, const arma::mat& model_matrix, bool do_cr_adj,
+// we take y as a NumericVector and not a Map<VectorXd> to allow for implicit conversions when y is given as integers if this is called directly from
+// R all numerical methods on the C++ side work assuming floating point inputs, so these copies are theoretically unavoidable (TODO: find way of maybe
+// avoiding this?)
+// [[Rcpp::export(rng = false)]]
+double conventional_loglikelihood_fast(const NumericVector y, const Eigen::Map<Eigen::VectorXd> &mu, double log_theta,
+                                       const Eigen::Map<Eigen::MatrixXd> &model_matrix, bool do_cr_adj,
                                        NumericVector unique_counts = NumericVector::create(),
                                        NumericVector count_frequencies = NumericVector::create()) {
-  double theta = exp(log_theta);
-  double cr_term = 0.0;
-  if(do_cr_adj){
-    arma::vec w_diag = 1.0 / (1.0 / mu + theta);
-    arma::mat b = model_matrix.t() * (model_matrix.each_col() % w_diag);
-    // cr_term = -0.5 * log(det(b)) * cr_correction_factor;
-    arma::mat L, U, P;
-    arma::lu(L, U, P, b);
-    double ld = sum(log(arma::diagvec(L)));
-    arma::vec u_diag = arma::diagvec(U);
-    for(double e : u_diag){
-      ld += e < 1e-50 ? log(1e-50) : log(e);
-    }
-    cr_term = -0.5 * ld * cr_correction_factor;
-  }
-  double theta_neg1 = R_pow_di(theta, -1);
-  double lgamma_term = 0;
-  // If summarized counts are available use those to calculate sum(lgamma(y + theta_neg1))
-  if(unique_counts.size() > 0 && unique_counts.size() == count_frequencies.size()){
-    for(size_t iter = 0; iter < count_frequencies.size(); ++iter){
-      lgamma_term += count_frequencies[iter] * lgamma(unique_counts[iter] + theta_neg1);
-    }
-  }else{
-    lgamma_term = sum(lgamma(y + theta_neg1));
-  }
-  lgamma_term -=  y.size() * lgamma(theta_neg1);
-  double ll_part = 0.0;
-  for(size_t i = 0; i < y.size(); ++i){
-    ll_part += (-y[i] - theta_neg1) * log(mu[i] + theta_neg1);
-  }
-  ll_part -= y.size() * theta_neg1 * log(theta);
-  return lgamma_term + ll_part + cr_term;
+  const Map<const VectorXd> unique_counts_v(unique_counts.begin(), unique_counts.size()),
+      count_frequencies_v(count_frequencies.begin(), count_frequencies.size()), y_v(y.begin(), y.size());
+  return conventional_loglikelihood_fast_impl(y_v, mu, log_theta, model_matrix, do_cr_adj, unique_counts_v, count_frequencies_v);
 }
-
-
-// this function returns the derivative of the log posterior with respect to the log of the
-// dispersion parameter alpha, given the same inputs as the previous function
-
-// [[Rcpp::export]]
-double conventional_score_function_fast(NumericVector y, NumericVector mu, double log_theta, const arma::mat& model_matrix, bool do_cr_adj,
+// [[Rcpp::export(rng = false)]]
+double conventional_score_function_fast(const NumericVector y, const Eigen::Map<Eigen::VectorXd> &mu, double log_theta,
+                                        const Eigen::Map<Eigen::MatrixXd> &model_matrix, bool do_cr_adj,
                                         NumericVector unique_counts = NumericVector::create(),
                                         NumericVector count_frequencies = NumericVector::create()) {
-  double theta = exp(log_theta);
-  double theta_neg1 = 1.0 / theta;
+  const Map<const VectorXd> unique_counts_v(unique_counts.begin(), unique_counts.size()),
+      count_frequencies_v(count_frequencies.begin(), count_frequencies.size()), y_v(y.begin(), y.size());
+  return conventional_score_function_fast_impl(y_v, mu, log_theta, model_matrix, do_cr_adj, unique_counts_v, count_frequencies_v);
+}
+// [[Rcpp::export(rng = false)]]
+double conventional_deriv_score_function_fast(const NumericVector y, const Eigen::Map<Eigen::VectorXd> &mu, double log_theta,
+                                              const Eigen::Map<Eigen::MatrixXd> &model_matrix, bool do_cr_adj,
+                                              const NumericVector unique_counts = NumericVector::create(),
+                                              const NumericVector count_frequencies = NumericVector::create()) {
+  const Map<const VectorXd> unique_counts_v(unique_counts.begin(), unique_counts.size()),
+      count_frequencies_v(count_frequencies.begin(), count_frequencies.size()), y_v(y.begin(), y.size());
+  return conventional_deriv_score_function_fast_impl(y_v, mu, log_theta, model_matrix, do_cr_adj, unique_counts_v, count_frequencies_v);
+}
+// [[Rcpp::export(rng = false)]]
+List NR_overdispersion_mle(const NumericVector y, const Eigen::Map<Eigen::VectorXd> &mu_vector, const Eigen::Map<Eigen::MatrixXd> &model_matrix,
+                           const bool do_cox_reid_adjustment, const int max_iter, const double tolerance = 1e-8) {
+  const Map<const VectorXd> y_v(y.begin(), y.size());
 
-  double cr_term = 0.0;
-  if(do_cr_adj){
-    arma::vec w_diag = 1.0 / (1.0 / mu + theta);
-    arma::vec dw_diag = -1 * w_diag % w_diag;
-    arma::mat b = model_matrix.t() * (model_matrix.each_col() % w_diag);
-    arma::mat db = model_matrix.t() * (model_matrix.each_col() % dw_diag);
-    // The diag(1e-6) protects against singular matrices
-    arma::mat b_inv = inv_sympd(b + arma::eye(b.n_rows, b.n_cols) * 1e-6);
-    cr_term = -0.5 * trace(b_inv * db) * cr_correction_factor;
-  }
+  double est = NAN;
+  int iters = -1;
+  std::string msg = "";
+  overdispersion_mle_NR_impl(est, iters, msg, y_v, mu_vector, model_matrix, do_cox_reid_adjustment, max_iter, tolerance);
 
-
-  double digamma_term = 0;
-  // If summarized counts are available use those to calculate sum(digamma(y + theta_neg1))
-  if(unique_counts.size() > 0 && unique_counts.size() == count_frequencies.size()){
-    double max_y = 0.0;
-    double sum_y = 0.0;
-    double sum_prod_y = 0.0;
-    for(size_t iter = 0; iter < count_frequencies.size(); ++iter){
-      digamma_term += count_frequencies[iter] * Rf_digamma(unique_counts[iter] + theta_neg1);
-      sum_y += count_frequencies[iter] * unique_counts[iter];
-      sum_prod_y += count_frequencies[iter] * (unique_counts[iter] - 1) * unique_counts[iter];
-      max_y = std::max(max_y, unique_counts[iter]);
-    }
-    double corr = theta_neg1 > 1e5 ? sum_prod_y / (2 * theta_neg1) : 0.0;
-    if(max_y * 1e6 < theta_neg1){
-      // This approximation is based on the fact that for large x
-      // (sum(digamma(y + x))  - length(y) * digamma(x)) * x \approx sum(y)
-      // Due to numerical imprecision the digamma_term reaches sum(y) sometimes
-      // quicker than the ll_term, thus I subtract the first term of the
-      // Laurent series expansion at x -> inf
-      digamma_term = sum_y - corr;
-    }else{
-      digamma_term -= y.size() * Rf_digamma(theta_neg1);
-      digamma_term *= theta_neg1;
-      digamma_term = std::min(digamma_term, sum_y - corr);
-    }
-  }else{
-    double max_y = 0.0;
-    double sum_y = 0.0;
-    double sum_prod_y = 0.0;
-    for(size_t iter = 0; iter < y.size(); ++iter){
-      digamma_term += Rf_digamma(y[iter] + theta_neg1);
-      sum_y += y[iter];
-      sum_prod_y += (y[iter] - 1) * y[iter];
-      max_y = std::max(max_y, y[iter]);
-    }
-    double corr = theta_neg1 > 1e5 ? sum_prod_y / (2 * theta_neg1) : 0.0;
-    if(max_y * 1e6 < theta_neg1){
-      digamma_term = sum_y - corr;
-    }else{
-      digamma_term -= y.size() * Rf_digamma(theta_neg1);
-      digamma_term *= theta_neg1;
-
-      digamma_term = std::min(digamma_term, sum_y - corr);
-    }
-  }
-
-  double ll_part = 0.0;
-  for(size_t i = 0; i < y.size(); ++i){
-    double mu_theta = (mu[i] * theta);
-    if(mu_theta < 1e-10){
-      ll_part += mu_theta * mu_theta * (1 / (1 + mu_theta) - 0.5);
-    }else if(mu_theta < 1e-4){
-      // The bounds are based on the Taylor expansion of log(1 + x) for x = 0.
-      double inv = 1 / (1 + mu_theta);
-      double upper_bound = mu_theta * mu_theta * inv;
-      double lower_bound = mu_theta * mu_theta * (inv - 0.5);
-      double suggest = (log(1 + mu_theta) - mu[i] / (mu[i] + theta_neg1)) ;
-      ll_part +=  std::max(std::min(suggest, upper_bound), lower_bound);
-    }else{
-      ll_part += log(1 + mu_theta)  - mu[i] / (mu[i] + theta_neg1);
-    }
-    ll_part += y[i] / (mu[i] + theta_neg1);
-  }
-  ll_part *= theta_neg1;
-  return ll_part - digamma_term + cr_term * theta;
+  return List::create(_["estimate"] = est, _["iterations"] = iters, _["message"] = msg);
 }
 
-
-
-// this function returns the second derivative of the log posterior with respect to the log of the
-// dispersion parameter alpha, given the same inputs as the previous function
-
-// [[Rcpp::export]]
-double conventional_deriv_score_function_fast(NumericVector y, NumericVector mu, double log_theta, const arma::mat& model_matrix, bool do_cr_adj,
-                                              NumericVector unique_counts = NumericVector::create(),
-                                              NumericVector count_frequencies = NumericVector::create()) {
-  double theta = exp(log_theta);
-  double cr_term = 0.0;
-  double cr_term2 = 0.0;
-  if(do_cr_adj){
-    arma::vec w_diag = 1/(1/mu + theta);
-    arma::vec dw_diag = -1 * w_diag % w_diag;
-    arma::vec d2w_diag = -2 * dw_diag % w_diag;
-
-    arma::mat b = model_matrix.t() * (model_matrix.each_col() % w_diag);
-    arma::mat db = model_matrix.t() * (model_matrix.each_col() % dw_diag);
-    arma::mat d2b = model_matrix.t() * (model_matrix.each_col() % d2w_diag);
-    // The diag(1e-6) protects against singular matrices
-    arma::mat b_inv = inv_sympd(b + arma::eye(b.n_rows, b.n_cols) * 1e-6);
-    arma::mat d_i_db = b_inv * db;
-    double ddetb = trace(d_i_db);
-    double d2detb = ((R_pow_di(ddetb, 2) - trace(d_i_db * d_i_db) + trace(b_inv * d2b)) );
-    cr_term = (0.5 * R_pow_di(ddetb, 2) - 0.5 * d2detb)  * cr_correction_factor;
-    cr_term2 = -0.5 * ddetb * cr_correction_factor;
-  }
-
-  double theta_neg1 = R_pow_di(theta, -1);
-  double theta_neg2 = R_pow_di(theta, -2);
-  double digamma_term = 0.0;
-  double trigamma_term = 0.0;
-
-  // If summarized counts are available use those to calculate sum(digamma()) and sum(trigamma())
-  if(unique_counts.size() > 0 && unique_counts.size() == count_frequencies.size()){
-    for(size_t iter = 0; iter < count_frequencies.size(); ++iter){
-      digamma_term += count_frequencies[iter] * Rf_digamma(unique_counts[iter] + theta_neg1);
-      trigamma_term += count_frequencies[iter] * Rf_trigamma(unique_counts[iter] + theta_neg1);
-    }
-    trigamma_term *= theta_neg2;
-
-    digamma_term -= y.size() * Rf_digamma(theta_neg1);
-    trigamma_term -=  theta_neg2 * y.size() * Rf_trigamma(theta_neg1);
-  }else{
-    digamma_term = sum(digamma(y + theta_neg1));
-    digamma_term -= y.size() * Rf_digamma(theta_neg1);
-
-    trigamma_term = theta_neg2 * sum(trigamma(y + theta_neg1));
-    trigamma_term -=  theta_neg2 * y.size() * Rf_trigamma(theta_neg1);
-  }
-
-  double ll_part_1 = 0.0;
-  double ll_part_2 = 0.0;
-  for(size_t i = 0; i < y.size(); ++i){
-    ll_part_1 += log(1 + mu[i] * theta) + (y[i] - mu[i]) / (mu[i] + theta_neg1);
-    ll_part_2 += (mu[i] * mu[i] * theta + y[i]) / (1 + mu[i] * theta) / (1 + mu[i] * theta);
-  }
-  double ll_part = -2 * theta_neg1 * (ll_part_1 - digamma_term) + (ll_part_2 + trigamma_term);
-
-  double res = ll_part + cr_term * R_pow_di(theta, 2) + (ll_part_1 - digamma_term) * theta_neg1 + cr_term2 * theta;
-  return res;
-}
-
-
-// ------------------------------------------------------------------------------------------------
-
-// [[Rcpp::export]]
-List estimate_overdispersions_fast(RObject Y, RObject mean_matrix, NumericMatrix model_matrix, bool do_cox_reid_adjustment,
-                                   double n_subsamples, int max_iter){
+// [[Rcpp::export(rng = false)]]
+List estimate_overdispersions_fast(const RObject Y, const RObject mean_matrix, const NumericMatrix model_matrix, const bool do_cox_reid_adjustment,
+                                   const double n_subsamples, const int max_iter) {
   Rtatami::BoundNumericPointer Y_bm_ptr(Y);
-  const auto& Y_bm = *(Y_bm_ptr->ptr);
+  const auto &Y_bm = *(Y_bm_ptr->ptr);
   Rtatami::BoundNumericPointer mean_mat_bm_ptr(mean_matrix);
-  const auto& mean_mat_bm = *(mean_mat_bm_ptr->ptr);
+  const auto &mean_mat_bm = *(mean_mat_bm_ptr->ptr);
 
-  int n_samples = Y_bm.ncol();
-  int n_genes = Y_bm.nrow();
+  const auto n_samples = Y_bm.ncol();
+  const auto n_genes = Y_bm.nrow();
 
   NumericVector estimates(n_genes);
-  NumericVector iterations(n_genes);
+  IntegerVector iterations(n_genes);
   CharacterVector messages(n_genes);
 
-  if(n_genes != mean_mat_bm.nrow() || n_samples != mean_mat_bm.ncol()){
+  if (n_genes != mean_mat_bm.nrow() || n_samples != mean_mat_bm.ncol()) {
     throw std::runtime_error("Dimensions of Y and mean_matrix do not match");
   }
 
-  auto Y_ext = tatami::consecutive_extractor<false>(&Y_bm, true, 0, n_genes);
-  auto mean_mat_ext = tatami::consecutive_extractor<false>(&mean_mat_bm, true, 0, n_genes);
+  auto Y_ext = tatami::consecutive_extractor<false>(Y_bm, true, 0, n_genes);
+  auto mean_mat_ext = tatami::consecutive_extractor<false>(mean_mat_bm, true, 0, n_genes);
   NumericVector counts(n_samples), mu(n_samples);
 
   // This is calling back to R, which simplifies my code a lot
-  Environment glmGamPoiEnv = Environment::namespace_env("glmGamPoi");
+  Environment glmGamPoiEnv = Environment::namespace_env("glmGamPoi2");
   Function overdispersion_mle_impl = glmGamPoiEnv["overdispersion_mle_impl"];
-  for(int gene_idx = 0; gene_idx < n_genes; gene_idx++){
-    if (gene_idx % 100 == 0) checkUserInterrupt();
+  for (size_t gene_idx = 0; gene_idx < n_genes; gene_idx++) {
+    if (gene_idx % 100 == 0)
+      checkUserInterrupt();
 
     // Using copy_n to ensure that the vectors are actually filled.
-    auto cptr = Y_ext->fetch(counts.begin());
+    const auto cptr = Y_ext->fetch(counts.begin());
     tatami::copy_n(cptr, n_samples, counts.begin());
-    auto mptr = mean_mat_ext->fetch(mu.begin());
+    const auto mptr = mean_mat_ext->fetch(mu.begin());
     tatami::copy_n(mptr, n_samples, mu.begin());
 
     // Check if the first value is NA, if yes all of them will be
-    if(n_samples > 0 && Rcpp::traits::is_na<REALSXP>(mu[0])){
-      estimates(gene_idx) = NA_REAL;
+    if (n_samples > 0 && std::isnan(mu[0])) {
+      estimates(gene_idx) = NAN;
       iterations(gene_idx) = max_iter;
       messages(gene_idx) = "Mean estimate was NA. Cannot estimate overdispersion";
-    }else{
-      List dispRes =  Rcpp::as<List>(overdispersion_mle_impl(counts, mu, model_matrix, do_cox_reid_adjustment, n_subsamples, max_iter));
+    } else {
+      List dispRes = Rcpp::as<List>(overdispersion_mle_impl(counts, mu, model_matrix, do_cox_reid_adjustment, n_subsamples, max_iter));
       estimates(gene_idx) = Rcpp::as<double>(dispRes["estimate"]);
       iterations(gene_idx) = Rcpp::as<double>(dispRes["iterations"]);
       messages(gene_idx) = Rcpp::as<String>(dispRes["message"]);
     }
-
   }
-  return List::create(
-    Named("estimate", estimates),
-    Named("iterations", iterations),
-    Named("message", messages));;
+  return List::create(_["estimate"] = estimates, _["iterations"] = iterations, _["message"] = messages);
 }
 
-// [[Rcpp::export]]
-NumericVector estimate_global_overdispersions_fast(RObject Y, RObject mean_matrix, const arma::mat model_matrix, const bool do_cox_reid_adjustment,
-                                                   const NumericVector log_thetas){
+// [[Rcpp::export(rng = false)]]
+List estimate_overdispersions_fast_delayed(const RObject Y, const NumericMatrix model_matrix, const RObject offset_matrix,
+                                           const Eigen::Map<Eigen::MatrixXd> &beta_mat_v, const bool do_cox_reid_adjustment,
+                                           const size_t n_subsamples, const int max_iter) {
   Rtatami::BoundNumericPointer Y_bm_ptr(Y);
-  const auto& Y_bm = *(Y_bm_ptr->ptr);
-  Rtatami::BoundNumericPointer mean_mat_bm_ptr(mean_matrix);
-  const auto& mean_mat_bm = *(mean_mat_bm_ptr->ptr);
+  const auto &Y_bm = *(Y_bm_ptr->ptr);
 
-  int n_samples = Y_bm.ncol();
-  int n_genes = Y_bm.nrow();
-  int n_spline_points = log_thetas.size();
+  Rtatami::BoundNumericPointer offsets_bm_ptr(offset_matrix);
+  const auto &offsets_bm = *(offsets_bm_ptr->ptr);
+
+  const auto n_samples = Y_bm.ncol();
+  const auto n_genes = Y_bm.nrow();
+
+  NumericVector estimates(n_genes);
+  IntegerVector iterations(n_genes);
+  CharacterVector messages(n_genes);
+
+  auto Y_ext = tatami::consecutive_extractor<false>(Y_bm, true, 0, n_genes);
+  std::unique_ptr<tatami::OracularDenseExtractor<double, tatami::NumericMatrix::index_type>> offsets_ext;
+  if (offsets_bm.nrow() > 1) {
+    offsets_ext = tatami::consecutive_extractor<false>(offsets_bm, true, 0, n_genes);
+  } else {
+    offsets_ext = tatami::new_extractor<false, true>(offsets_bm, true, std::make_shared<ConstIndexOracle<0>>(n_genes));
+  }
+  NumericVector counts(n_samples), mu(n_samples);
+  VectorXd off(n_samples);
+
+  // This is calling back to R, which simplifies my code a lot
+  Environment glmGamPoiEnv = Environment::namespace_env("glmGamPoi2");
+  Function overdispersion_mle_impl = glmGamPoiEnv["overdispersion_mle_impl"];
+
+  const Map<const MatrixXd> model_matrix_m(model_matrix.cbegin(), model_matrix.nrow(), model_matrix.ncol());
+
+  for (size_t gene_idx = 0; gene_idx < n_genes; gene_idx++) {
+    if (gene_idx % 100 == 0)
+      Rcpp::checkUserInterrupt();
+
+    // Using copy_n to ensure that the vectors are actually filled.
+    const auto cptr = Y_ext->fetch(counts.begin());
+    tatami::copy_n(cptr, n_samples, counts.begin());
+    const auto optr = offsets_ext->fetch(off.data());
+
+    const Map<const VectorXd> counts_v(cptr, n_samples), off_v(optr, n_samples);
+    Map<VectorXd> mu_v(mu.begin(), n_samples);
+    const auto beta_hat = beta_mat_v.row(gene_idx).transpose();
+    mu_v = calculate_mu_add<VectorXd>(model_matrix_m, beta_hat, off_v);
+
+    // Check if the first value is NA, if yes all of them will be
+    if (n_samples > 0 && std::isnan(mu[0])) {
+      estimates(gene_idx) = NAN;
+      iterations(gene_idx) = max_iter;
+      messages(gene_idx) = "Mean estimate was NA. Cannot estimate overdispersion";
+    } else {
+      List dispRes =
+          Rcpp::as<List>(overdispersion_mle_impl(counts, mu, model_matrix, do_cox_reid_adjustment, n_subsamples, max_iter, gene_idx == 9520));
+      estimates(gene_idx) = Rcpp::as<double>(dispRes["estimate"]);
+      iterations(gene_idx) = Rcpp::as<double>(dispRes["iterations"]);
+      messages(gene_idx) = Rcpp::as<String>(dispRes["message"]);
+    }
+  }
+  return List::create(_["estimate"] = estimates, _["iterations"] = iterations, _["message"] = messages);
+}
+
+// [[Rcpp::export(rng = false)]]
+NumericVector estimate_global_overdispersions_fast(const RObject Y, const RObject mean_matrix, const Eigen::Map<Eigen::MatrixXd> &model_matrix,
+                                                   const bool do_cox_reid_adjustment, const NumericVector log_thetas, const int do_parallel = 0) {
+  Rtatami::BoundNumericPointer Y_bm_ptr(Y);
+  const auto &Y_bm = *(Y_bm_ptr->ptr);
+  Rtatami::BoundNumericPointer mean_mat_bm_ptr(mean_matrix);
+  const auto &mean_mat_bm = *(mean_mat_bm_ptr->ptr);
+
+  const auto n_samples = Y_bm.ncol();
+  const auto n_genes = Y_bm.nrow();
+  const auto n_spline_points = log_thetas.size();
 
   NumericVector log_likelihoods(n_spline_points);
 
-  auto Y_ext = tatami::consecutive_extractor<false>(&Y_bm, true, 0, n_genes);
-  auto mean_mat_ext = tatami::consecutive_extractor<false>(&mean_mat_bm, true, 0, n_genes);
-  NumericVector counts(n_samples), mu(n_samples);
+  const auto run = [&](const auto start, const auto length) -> void {
+    auto Y_ext = tatami::consecutive_extractor<false>(Y_bm, true, start, length);
+    auto mean_mat_ext = tatami::consecutive_extractor<false>(mean_mat_bm, true, start, length);
+    VectorXd counts(n_samples), mu(n_samples);
 
-  for(int gene_idx = 0; gene_idx < n_genes; gene_idx++){
-    if (gene_idx % 100 == 0) checkUserInterrupt();
+    const auto grp_max_id = start + length;
+    for (size_t gene_idx = start; gene_idx < grp_max_id; gene_idx++) {
+      if (gene_idx % 100 == 0) {
+        if (check_interrupt()) {
+          return;
+        }
+      }
 
-    // Using copy_n to ensure that the vectors are actually filled.
-    auto cptr = Y_ext->fetch(counts.begin());
-    tatami::copy_n(cptr, n_samples, counts.begin());
-    auto mptr = mean_mat_ext->fetch(mu.begin());
-    tatami::copy_n(mptr, n_samples, mu.begin());
+      const auto cptr = Y_ext->fetch(counts.data());
+      const auto mptr = mean_mat_ext->fetch(mu.data());
+      // not using copy_n to avoid copies when not necessary, using Eigen::Map type instead.
+      const Map<const VectorXd> counts_v(cptr, n_samples), mu_v(mptr, n_samples);
 
-    ListOf<NumericVector> tab = List::create(NumericVector::create(), NumericVector::create());
+      VectorXd unique_counts, count_frequencies;
+      make_map_if_small(unique_counts, count_frequencies, counts_v, /*stop_if_larger = */ n_samples / 2);
 
-    tab = make_table_if_small(counts, /*stop_if_larger = */ n_samples / 2);
-
-    for(int point_idx = 0; point_idx < n_spline_points; point_idx++){
-      log_likelihoods[point_idx] += conventional_loglikelihood_fast(counts, mu, log_thetas[point_idx], model_matrix,
-                                                                    do_cox_reid_adjustment, tab[0], tab[1]);
+      for (size_t point_idx = 0; point_idx < n_spline_points; point_idx++) {
+        log_likelihoods[point_idx] += conventional_loglikelihood_fast_impl(counts_v, mu_v, log_thetas[point_idx], model_matrix,
+                                                                           do_cox_reid_adjustment, unique_counts, count_frequencies);
+      }
     }
+  };
+
+  if (do_parallel > 0) {
+    run_par(run, n_genes, do_parallel);
+  } else {
+    run(0, n_genes);
   }
+  // check if we got an interrupt, if yes, re-raise it
+  if (check_interrupt()) {
+    std::raise(SIGINT);
+    Rcpp::checkUserInterrupt();
+  }
+
   return log_likelihoods;
+}
+
+// [[Rcpp::export(rng = false)]]
+NumericVector estimate_global_overdispersions_fast_delayed(const RObject Y, const Eigen::Map<Eigen::MatrixXd> &model_matrix,
+                                                           const RObject offset_matrix, const Eigen::Map<Eigen::MatrixXd> &beta_mat_v,
+                                                           const bool do_cox_reid_adjustment, const NumericVector log_thetas,
+                                                           const int do_parallel = 0) {
+  Rtatami::BoundNumericPointer Y_bm_ptr(Y);
+  const auto &Y_bm = *(Y_bm_ptr->ptr);
+  Rtatami::BoundNumericPointer offsets_bm_ptr(offset_matrix);
+  const auto &offsets_bm = *(offsets_bm_ptr->ptr);
+
+  const auto n_samples = Y_bm.ncol();
+  const auto n_genes = Y_bm.nrow();
+  const auto n_spline_points = log_thetas.size();
+
+  NumericVector log_likelihoods(n_spline_points);
+
+  const auto run = [&](const auto start, const auto length) -> void {
+    auto Y_ext = tatami::consecutive_extractor<false>(Y_bm, true, start, length);
+    std::unique_ptr<tatami::OracularDenseExtractor<double, tatami::NumericMatrix::index_type>> offsets_ext;
+    if (offsets_bm.nrow() > 1) {
+      offsets_ext = tatami::consecutive_extractor<false>(offsets_bm, true, start, length);
+    } else {
+      offsets_ext = tatami::new_extractor<false, true>(offsets_bm, true, std::make_shared<ConstIndexOracle<0>>(n_genes));
+    }
+    VectorXd counts(n_samples), off(n_samples);
+
+    const auto grp_max_id = start + length;
+    for (size_t gene_idx = start; gene_idx < grp_max_id; gene_idx++) {
+      if (gene_idx % 100 == 0) {
+        if (check_interrupt()) {
+          return;
+        }
+      }
+
+      const auto cptr = Y_ext->fetch(counts.data());
+      const auto optr = offsets_ext->fetch(off.data());
+
+      // not using copy_n to avoid copies when not necessary, using Eigen::Map type instead.
+      const Map<const VectorXd> counts_v(cptr, n_samples), off_v(optr, n_samples);
+
+      // not using copy_n to avoid copies when not necessary, using Eigen::Map type instead.
+      const auto beta_hat = beta_mat_v.row(gene_idx).transpose();
+      const auto mu = calculate_mu_add<VectorXd>(model_matrix, beta_hat, off_v);
+
+      VectorXd unique_counts, count_frequencies;
+      make_map_if_small(unique_counts, count_frequencies, counts_v, /*stop_if_larger = */ n_samples / 2);
+
+      for (size_t point_idx = 0; point_idx < n_spline_points; point_idx++) {
+        log_likelihoods[point_idx] += conventional_loglikelihood_fast_impl(counts_v, mu, log_thetas[point_idx], model_matrix, do_cox_reid_adjustment,
+                                                                           unique_counts, count_frequencies);
+      }
+    }
+  };
+  if (do_parallel > 0) {
+    run_par(run, n_genes, do_parallel);
+  } else {
+    run(0, n_genes);
+  }
+  // check if we got an interrupt, if yes, re-raise it
+  if (check_interrupt()) {
+    std::raise(SIGINT);
+    Rcpp::checkUserInterrupt();
+  }
+
+  return log_likelihoods;
+}
+
+// [[Rcpp::export(rng = true)]]
+List estimate_overdispersions_nr_fast(const RObject Y, const RObject mean_matrix, const Eigen::Map<Eigen::MatrixXd> &model_matrix,
+                                      const bool do_cox_reid_adjustment, const size_t n_subsamples, const int max_iter, const double tolerance = 1e-8,
+                                      const int do_parallel = 0) {
+  Rtatami::BoundNumericPointer Y_bm_ptr(Y);
+  const auto &Y_bm = *(Y_bm_ptr->ptr);
+  Rtatami::BoundNumericPointer mean_mat_bm_ptr(mean_matrix);
+  const auto &mean_mat_bm = *(mean_mat_bm_ptr->ptr);
+
+  const auto n_samples = Y_bm.ncol();
+  const auto n_genes = Y_bm.nrow();
+
+  if (n_genes != mean_mat_bm.nrow() || n_samples != mean_mat_bm.ncol()) {
+    throw std::runtime_error("Dimensions of Y and mean_matrix do not match");
+  }
+
+  const bool do_sub = n_subsamples < n_samples;
+
+  const size_t seed = do_sub ? static_cast<size_t>(Rcpp::sample(INT_MAX, 1)[0]) : 0;
+
+  const auto run = [&](const auto start, const auto length, auto &estimates, auto &iterations, auto &messages) -> void {
+    auto Y_ext = tatami::consecutive_extractor<false>(Y_bm, true, start, length);
+    auto mean_mat_ext = tatami::consecutive_extractor<false>(mean_mat_bm, true, start, length);
+    VectorXd counts(n_samples), mu(n_samples);
+
+    // use pointers to avoid initializing an RNG when not subsampling
+    std::unique_ptr<std::minstd_rand> gen;
+    std::unique_ptr<std::vector<size_t>> idx;
+    if (do_sub) {
+      // seed rng w/ value from R RNG to ensure reproducibility w/ set.seed from R
+      gen = std::unique_ptr<std::minstd_rand>(new std::minstd_rand(seed + static_cast<size_t>(start)));
+
+      idx = std::unique_ptr<std::vector<size_t>>(new std::vector<size_t>(n_samples));
+      std::iota(idx->begin(), idx->end(), 0);
+    }
+
+    const auto grp_max_id = start + length;
+    for (size_t gene_idx = start; gene_idx < grp_max_id; gene_idx++) {
+      if (gene_idx % 100 == 0) {
+        if (check_interrupt()) {
+          return;
+        }
+      }
+
+      // Using copy_n to ensure that the vectors are actually filled.
+      const auto cptr = Y_ext->fetch(counts.data());
+      const auto mptr = mean_mat_ext->fetch(mu.data());
+      // not using copy_n to avoid copies when not necessary, using Eigen::Map type instead.
+      const Map<const VectorXd> counts_v(cptr, n_samples), mu_v(mptr, n_samples);
+
+      // important to use && to keep reference semantics for &string AND allow for Rcpp's string proxy type that is by-value
+      auto &&msg_out = messages[gene_idx];
+
+      // Check if the first value is NA, if yes all of them will be
+      // std::isnan is valid here since the R NA value for a double is NaN
+      if (n_samples > 0 && std::isnan(mu_v(0))) {
+        estimates[gene_idx] = NAN;
+        iterations[gene_idx] = max_iter;
+        msg_out = "Mean estimate was NA. Cannot estimate overdispersion";
+        continue;
+      }
+
+      if (do_sub) {
+        // dereferencing gen & idx is safe when gated against do_sub
+        std::shuffle(idx->begin(), idx->end(), *gen);
+        const std::vector<size_t> idx_s(idx->begin(), idx->begin() + n_subsamples);
+
+        const VectorXd counts_s = counts_v(idx_s);
+        const VectorXd mu_s = mu_v(idx_s);
+        const MatrixXd mm_s = model_matrix(idx_s, Eigen::all);
+        overdispersion_mle_NR_impl(estimates[gene_idx], iterations[gene_idx], msg_out, counts_s, mu_s, mm_s, do_cox_reid_adjustment, max_iter,
+                                   tolerance);
+      } else {
+        overdispersion_mle_NR_impl(estimates[gene_idx], iterations[gene_idx], msg_out, counts_v, mu_v, model_matrix, do_cox_reid_adjustment, max_iter,
+                                   tolerance);
+      }
+    }
+  };
+
+  if (do_parallel > 0) {
+    std::vector<double> estimates(n_genes);
+    std::vector<int> iterations(n_genes);
+    std::vector<std::string> messages(n_genes);
+
+    const auto run_w = [&run, &estimates, &iterations, &messages](const auto start, const auto length) -> void {
+      run(start, length, estimates, iterations, messages);
+    };
+
+    run_par(run_w, n_genes, do_parallel);
+    if (check_interrupt()) {
+      std::raise(SIGINT);
+      Rcpp::checkUserInterrupt();
+    }
+    return List::create(_["estimate"] = estimates, _["iterations"] = iterations, _["message"] = messages);
+  } else {
+    NumericVector estimates(n_genes);
+    IntegerVector iterations(n_genes);
+    CharacterVector messages(n_genes);
+
+    run(0, n_genes, estimates, iterations, messages);
+    if (check_interrupt()) {
+      std::raise(SIGINT);
+      Rcpp::checkUserInterrupt();
+    }
+    return List::create(_["estimate"] = estimates, _["iterations"] = iterations, _["message"] = messages);
+  }
+}
+
+// [[Rcpp::export(rng = true)]]
+List estimate_overdispersions_nr_fast_delayed(const RObject Y, const Eigen::Map<Eigen::MatrixXd> &model_matrix, const RObject offset_matrix,
+                                              const Eigen::Map<Eigen::MatrixXd> &beta_mat_v, const bool do_cox_reid_adjustment,
+                                              const size_t n_subsamples, const int max_iter, const double tolerance = 1e-8,
+                                              const int do_parallel = 0) {
+  Rtatami::BoundNumericPointer Y_bm_ptr(Y);
+  const auto &Y_bm = *(Y_bm_ptr->ptr);
+
+  Rtatami::BoundNumericPointer offsets_bm_ptr(offset_matrix);
+  const auto &offsets_bm = *(offsets_bm_ptr->ptr);
+
+  const auto n_samples = Y_bm.ncol();
+  const auto n_genes = Y_bm.nrow();
+
+  std::vector<double> estimates(n_genes);
+  std::vector<int> iterations(n_genes);
+  std::vector<std::string> messages(n_genes);
+
+  const bool do_sub = n_subsamples < n_samples;
+
+  const size_t seed = do_sub ? static_cast<size_t>(Rcpp::sample(INT_MAX, 1)[0]) : 0;
+
+  const auto run = [&](const auto start, const auto length, auto &estimates, auto &iterations, auto &messages) -> void {
+    auto Y_ext = tatami::consecutive_extractor<false>(Y_bm, true, start, length);
+    std::unique_ptr<tatami::OracularDenseExtractor<double, tatami::NumericMatrix::index_type>> offsets_ext;
+    if (offsets_bm.nrow() > 1) {
+      offsets_ext = tatami::consecutive_extractor<false>(offsets_bm, true, start, length);
+    } else {
+      offsets_ext = tatami::new_extractor<false, true>(offsets_bm, true, std::make_shared<ConstIndexOracle<0>>(length));
+    }
+    VectorXd counts(n_samples), off(n_samples);
+
+    // use pointers to avoid initializing an RNG when not subsampling
+    std::unique_ptr<std::minstd_rand> gen;
+    std::unique_ptr<std::vector<size_t>> idx;
+    if (do_sub) {
+      // seed rng w/ value from R RNG to ensure reproducibility w/ set.seed from R
+      gen = std::unique_ptr<std::minstd_rand>(new std::minstd_rand(seed + static_cast<size_t>(start)));
+
+      idx = std::unique_ptr<std::vector<size_t>>(new std::vector<size_t>(n_samples));
+      std::iota(idx->begin(), idx->end(), 0);
+    }
+
+    const auto grp_max_id = start + length;
+    for (size_t gene_idx = start; gene_idx < grp_max_id; gene_idx++) {
+      if (gene_idx % 100 == 0) {
+        if (check_interrupt()) {
+          return;
+        }
+      }
+
+      // Using copy_n to ensure that the vectors are actually filled.
+      const auto cptr = Y_ext->fetch(counts.data());
+      const auto optr = offsets_ext->fetch(off.data());
+
+      // not using copy_n to avoid copies when not necessary, using Eigen::Map type instead.
+      const Map<const VectorXd> counts_v(cptr, n_samples), off_v(optr, n_samples);
+
+      // important to use && to keep reference semantics for &string AND allow for Rcpp's string proxy type that is by-value
+      auto &&msg_out = messages[gene_idx];
+
+      const auto beta_hat = beta_mat_v.row(gene_idx).transpose();
+      if (do_sub) {
+        // dereferencing gen & idx is safe when gated against do_sub
+        std::shuffle(idx->begin(), idx->end(), *gen);
+        const std::vector<size_t> idx_s(idx->begin(), idx->begin() + n_subsamples);
+
+        const VectorXd counts_s = counts_v(idx_s);
+        const VectorXd off_s = off_v(idx_s);
+        const MatrixXd mm_s = model_matrix(idx_s, Eigen::all);
+
+        const auto mu = calculate_mu_add<VectorXd>(mm_s, beta_hat, off_s);
+        if (n_samples > 0 && std::isnan(mu(0))) {
+          estimates[gene_idx] = NAN;
+          iterations[gene_idx] = max_iter;
+          msg_out = "Mean estimate was NA. Cannot estimate overdispersion";
+          continue;
+        }
+        overdispersion_mle_NR_impl(estimates[gene_idx], iterations[gene_idx], msg_out, counts_s, mu, mm_s, do_cox_reid_adjustment, max_iter,
+                                   tolerance);
+      } else {
+        const auto mu = calculate_mu_add<VectorXd>(model_matrix, beta_hat, off);
+        if (n_samples > 0 && std::isnan(mu(0))) {
+          estimates[gene_idx] = NAN;
+          iterations[gene_idx] = max_iter;
+          msg_out = "Mean estimate was NA. Cannot estimate overdispersion";
+          continue;
+        }
+        overdispersion_mle_NR_impl(estimates[gene_idx], iterations[gene_idx], msg_out, counts_v, mu, model_matrix, do_cox_reid_adjustment, max_iter,
+                                   tolerance);
+      }
+    }
+  };
+
+  if (do_parallel > 0) {
+    std::vector<double> estimates(n_genes);
+    std::vector<int> iterations(n_genes);
+    std::vector<std::string> messages(n_genes);
+
+    const auto run_w = [&run, &estimates, &iterations, &messages](const auto start, const auto length) -> void {
+      run(start, length, estimates, iterations, messages);
+    };
+
+    run_par(run_w, n_genes, do_parallel);
+    if (check_interrupt()) {
+      std::raise(SIGINT);
+      Rcpp::checkUserInterrupt();
+    }
+    return List::create(_["estimate"] = estimates, _["iterations"] = iterations, _["message"] = messages);
+  } else {
+    NumericVector estimates(n_genes);
+    IntegerVector iterations(n_genes);
+    CharacterVector messages(n_genes);
+
+    run(0, n_genes, estimates, iterations, messages);
+    if (check_interrupt()) {
+      std::raise(SIGINT);
+      Rcpp::checkUserInterrupt();
+    }
+    return List::create(_["estimate"] = estimates, _["iterations"] = iterations, _["message"] = messages);
+  }
 }

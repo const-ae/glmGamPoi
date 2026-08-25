@@ -16,7 +16,7 @@ estimate_size_factors <- function(Y, method, verbose = FALSE){
   if(nrow(Y) <= 1){
     if(verbose) {
       message("Skipping size factor estimation, because there is only a single gene.",
-            call. = FALSE)
+              call. = FALSE)
     }
     return(rep(1, ncol(Y)))
   }
@@ -73,7 +73,7 @@ estimate_size_factors <- function(Y, method, verbose = FALSE){
 
 
 
-combine_size_factors_and_offset <- function(offset, size_factors, Y, verbose = FALSE){
+combine_size_factors_and_offset <- function(offset, size_factors, Y, verbose = FALSE, offset_as_vec = FALSE){
   n_genes <- nrow(Y)
   n_samples <- ncol(Y)
 
@@ -94,7 +94,11 @@ combine_size_factors_and_offset <- function(offset, size_factors, Y, verbose = F
     if(length(offset) != 1 && length(offset) != n_samples){
       stop("'offset' is a vector. Its length must either be 1 or match the number of samples (", n_samples, ").")
     }
-    offset_matrix <- matrix(offset, nrow=n_genes, ncol = n_samples, byrow = TRUE)
+    if(offset_as_vec){
+      offset_matrix <- NULL
+    }else{
+      offset_matrix <- matrix(offset, nrow = n_genes, ncol = n_samples, byrow = TRUE)
+    }
   }else if(is.matrix(offset) || is(offset, "DelayedMatrix")){
     stopifnot(dim(offset) == c(n_genes, n_samples))
     offset_matrix <- offset
@@ -137,13 +141,27 @@ combine_size_factors_and_offset <- function(offset, size_factors, Y, verbose = F
     }
   }
   # offset_matrix <- offset_matrix + lsf_mat
-  offset_matrix <- add_vector_to_each_row(offset_matrix, lsf)
-  if(make_offset_hdf5_mat && ! is(offset_matrix, "HDF5Array")){
-    offset_matrix <- HDF5Array::writeHDF5Array(offset_matrix)
-  }else if(make_offset_delayed_mat && ! is(offset_matrix, "DelayedArray")){
-    offset_matrix <- DelayedArray::DelayedArray(offset_matrix)
+  if(is.null(offset_matrix)){
+    offset_val <- offset + lsf
+  }else{
+    offset_val <- add_vector_to_each_row(offset_matrix, lsf)
   }
-  list(offset_matrix = offset_matrix, size_factors = exp(lsf))
+
+  if(make_offset_hdf5_mat && ! is(offset_val, "HDF5Array")){
+    # @TODO: figure out a better way to construct a HDF5Array in this case?
+    if(is.null(offset_matrix)){
+      offset_val <- matrix(offset_val, nrow = n_genes, ncol = n_samples, byrow=TRUE)
+    }
+    offset_val <- HDF5Array::writeHDF5Array(offset_val)
+  }else if(make_offset_delayed_mat && ! is(offset_val, "DelayedArray")){
+    # @TODO: figure out a better way to construct a DelayedArray in this case?
+    if(is.null(offset_matrix)){
+      offset_val <- matrix(offset_val, nrow = n_genes, ncol = n_samples, byrow=TRUE)
+    }
+    offset_val <- DelayedArray::DelayedArray(offset_val)
+  }
+
+  list(offset_matrix = offset_val, size_factors = exp(lsf))
 }
 
 

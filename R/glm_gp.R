@@ -1,5 +1,3 @@
-
-
 #' Fit a Gamma-Poisson Generalized Linear Model
 #'
 #' This function provides a simple to use interface to fit Gamma-Poisson generalized
@@ -8,7 +6,7 @@
 #' automatically determines the appropriate size factors for each sample and efficiently
 #' finds the best overdispersion parameter for each gene.
 #'
-#' @param data any matrix-like object (e.g. [matrix], sparse matrix ([dgCMatrix]), [DelayedArray], [HDF5Matrix]) or
+#' @param data any matrix-like object (e.g. [matrix], sparse matrix ([dgCMatrix][Matrix::dgCMatrix-class]), [DelayedArray], [HDF5Matrix]) or
 #'   anything that can be cast to a [SummarizedExperiment] (e.g. `MSnSet`, `eSet` etc.) with
 #'   one column per sample and row per gene.
 #' @param design a specification of the experimental design used to fit the Gamma-Poisson GLM.
@@ -89,6 +87,24 @@
 #'   to reduce the memory usage. Processing in memory can be significantly faster than on disk.
 #'   Default: `NULL` which means that the data is only processed in memory if `data` is an in-memory
 #'   data structure.
+#' @param perf_optim a value that indicates if attempts should be made to optimize performance / memory use while fitting the GLM.
+#'   Can be provided as a boolean (turns on/off all optimizations) or as a list to select only specific optimizations.
+#'   Note: various optimizations here can lead to BREAKING changes in output shape and/or values,
+#'   and were designed/intended for application on single-cell transcriptomics data (e.g. sparse matrix, with l.t. ~10% density)
+#'   A list of currently specified optimizations is provided below:
+#'   \itemize{
+#'     \item `offset_as_vec`: if `offset` is provided as either a constant or a vector of per-sample offsets,
+#'       `Offset` will be a vector instead of a matrix to avoid generating a dense n_sample * n_genes matrix
+#'     \item `cast_dgC_Y_to_dgR`: data matrix will be internally converted to row-major format to improve memory access patterns
+#'        as internal steps fetch data row-wise on a per-gene basis
+#'     \item `do_parallel`: if value greater than zero, then enables parallelization for model parameter fitting processes
+#'        the number of threads used is equal to the provided integer
+#'     \item `delay_mu`: Mu matrix is never explicitly formed, instead Mu field of output is provided as a function
+#'        which can be called to materialize full matrix.
+#'        IMPORTANT NOTE: [predict] and [residuals] methods will lead to a memory spike if this option is enabled, as they require the full Mu matrix to be present in memory.
+#'     \item `use_nr_overdisp_impl`: uses a C++-implemented newton-raphson procedure instead of nlmimb for estimating overdispersions, which allows for parallelizing that step
+#'   }
+#'   Default: `FALSE`, meaning no optimizations are made
 #' @param verbose a boolean that indicates if information about the individual steps are printed
 #'   while fitting the GLM. Default: `FALSE`.
 #'
@@ -228,6 +244,7 @@ glm_gp <- function(data,
                    subsample = FALSE,
                    on_disk = NULL,
                    use_assay = NULL,
+                   perf_optim = FALSE,
                    verbose = FALSE){
 
   # Validate `data`
@@ -249,6 +266,8 @@ glm_gp <- function(data,
   col_data <- get_col_data(data, col_data)
   des <- handle_design_parameter(design, data, col_data, reference_level)
 
+  perf_optim <- handle_perf_optim_parameter(perf_optim)
+
   # Call glm_gp_impl()
   res <- glm_gp_impl(data_mat,
               model_matrix = des$model_matrix,
@@ -259,6 +278,7 @@ glm_gp <- function(data,
               ridge_penalty = ridge_penalty,
               do_cox_reid_adjustment = do_cox_reid_adjustment,
               subsample = subsample,
+              perf_optim = perf_optim,
               verbose = verbose)
   # Make sure that the output is nice and beautiful
   rownames(data_mat) <- rownames(data)
@@ -275,15 +295,54 @@ glm_gp <- function(data,
   if(! is.null(res$ridge_penalty)){
     names(res$ridge_penalty) <- colnames(res$model_matrix)
   }
-  rownames(res$Mu) <- rownames(data)
-  colnames(res$Mu) <- colnames(data)
-  rownames(res$Offset) <- rownames(data)
-  colnames(res$Offset) <- colnames(data)
+  if(is.function(res$Mu)){
+    .old <- res$Mu
+    res$Mu <- function(i = NULL, j = NULL) {
+      if (!is.null(i)) {
+        if (!is.null(rownames(data))) {
+          i <- handle_sub_param(rownames(data), i)
+          rn <- rownames(data)[i]
+        } else {
+          i <- handle_sub_param(nrow(data), i)
+          rn <- NULL
+        }
+      } else {
+        rn <- rownames(data)
+      }
+      if (!is.null(j)) {
+        if (!is.null(colnames(data))) {
+          j <- handle_sub_param(colnames(data), j)
+          cn <- colnames(data)[i]
+        } else {
+          j <- handle_sub_param(ncol(data), j)
+          cn <- NULL
+        }
+      } else {
+        cn <- colnames(data)
+      }
+
+      o <- .old(i = i, j = j)
+      rownames(o) <- rn
+      colnames(o) <- cn
+      o
+    }
+  }else{
+    rownames(res$Mu) <- rownames(data)
+    colnames(res$Mu) <- colnames(data)
+  }
+  if(is.vector(res$Offset, mode = "numeric")){
+    names(res$Offset) <- colnames(data)
+  }else{
+    rownames(res$Offset) <- rownames(data)
+    colnames(res$Offset) <- colnames(data)
+  }
   names(res$overdispersions) <- rownames(data)
   names(res$deviances) <- rownames(data)
   names(res$size_factors) <- colnames(data)
 
-  class(res) <- "glmGamPoi"
+  attr(res, "perf_optim") <- perf_optim
+
+  class(res) <- "glmGamPoi2"
   res
 }
 
@@ -647,8 +706,74 @@ extract_data_from_formula <- function(formula, col_data, encl = parent.frame()){
 }
 
 
-is_on_disk.glmGamPoi <- function(fit){
+is_on_disk.glmGamPoi2 <- function(fit){
   is(fit$Mu, "DelayedMatrix") && is(DelayedArray::seed(fit$Mu), "HDF5ArraySeed")
 }
 
+#' @export
+filt <- function(x, i, j, ...) {
+  # subset by observations
+  if (!missing(j) && !is.null(j)) {
+    j <- handle_sub_param(if (is.null(colnames(x[["data"]]))) { ncol(x[["data"]]) } else { colnames(x[["data"]]) }, j)
 
+    x[["data"]] <- x[["data"]][, j]
+
+    x[["size_factors"]] <- x[["size_factors"]][j]
+    x[["model_matrix"]] <- x[["model_matrix"]][j, , drop = FALSE]
+
+    if (is.vector(x[["Offset"]])) {
+      x[["Offset"]] <- x[["Offset"]][j]
+    } else {
+      x[["Offset"]] <- x[["Offset"]][, j, drop = FALSE]
+    }
+
+    if (is.function(x[["Mu"]])) {
+      .fn <- mk_delayed_mu(x[["Beta"]], x[["model_matrix"]], x[["Offset"]])
+      .rn <- rownames(x[["data"]])
+      .cn <- colnames(x[["data"]])
+      x[["Mu"]] <- function(...) {
+        o <- .fn(...)
+        rownames(o) <- .rn
+        colnames(o) <- .cn
+        o
+      }
+    } else {
+      x[["Mu"]] <- x[["Mu"]][, j, drop = FALSE]
+    }
+  }
+
+  # subset by gene
+  if (!missing(i) && !is.null(i)) {
+    i <- handle_sub_param(if (is.null(rownames(x[["data"]]))) { nrow(x[["data"]]) } else { rownames(x[["data"]]) }, i)
+
+    x[["data"]] <- x[["data"]][i, ]
+
+    x[["Beta"]] <- x[["Beta"]][i, , drop = FALSE]
+    x[["overdispersions"]] <- x[["overdispersions"]][i]
+    x[["overdispersion_shrinkage_list"]][["dispersion_trend"]] <- x[["overdispersion_shrinkage_list"]][["dispersion_trend"]][i]
+    x[["overdispersion_shrinkage_list"]][["ql_disp_estimate"]] <- x[["overdispersion_shrinkage_list"]][["ql_disp_estimate"]][i]
+    x[["overdispersion_shrinkage_list"]][["ql_disp_trend"]] <- x[["overdispersion_shrinkage_list"]][["ql_disp_trend"]][i]
+    x[["overdispersion_shrinkage_list"]][["ql_disp_shrunken"]] <- x[["overdispersion_shrinkage_list"]][["ql_disp_shrunken"]][i]
+    x[["deviances"]] <- x[["deviances"]][i]
+
+    if (!is.vector(x[["Offset"]])) {
+      x[["Offset"]] <- x[["Offset"]][i, , drop = FALSE]
+    }
+
+    if (is.function(x[["Mu"]])) {
+      .fn <- mk_delayed_mu(x[["Beta"]], x[["model_matrix"]], x[["Offset"]])
+      .rn <- rownames(x[["data"]])
+      .cn <- colnames(x[["data"]])
+      x[["Mu"]] <- function(...) {
+        o <- .fn(...)
+        rownames(o) <- .rn
+        colnames(o) <- .cn
+        o
+      }
+    } else {
+      x[["Mu"]] <- x[["Mu"]][i, , drop = FALSE]
+    }
+  }
+
+  x
+}
